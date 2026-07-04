@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="${TERMSURF_SMOKE_VERSION:-1.4.8}"
+VERSION="${TERMSURF_SMOKE_VERSION:-0.1.0}"
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 START_EPOCH="$(date +%s)"
 LOG_DIR="$ROOT/logs/issue-869-exp1-installed-homebrew"
@@ -195,7 +195,7 @@ require_version_identity() {
   [ "$cli_version" = "Astrohacker Terminal $VERSION" ] || fail "CLI version mismatch: $cli_version"
   [ "$short_version" = "$VERSION" ] || fail "short version mismatch: $short_version"
   [ "$build_version" = "$VERSION" ] || fail "build version mismatch: $build_version"
-  [ "$brew_version" = "termsurf $VERSION" ] || fail "brew version mismatch: $brew_version"
+  [ "$brew_version" = "astrohacker-terminal $VERSION" ] || fail "brew version mismatch: $brew_version"
 
   log "PASS: installed CLI version=$cli_version"
   log "PASS: installed CFBundleShortVersionString=$short_version"

@@ -34667,7 +34667,7 @@ index 2f01c48ce..2ae0a347e 100644
      submenu {
 diff --git a/src/apprt/termsurf.zig b/src/apprt/termsurf.zig
 new file mode 100644
-index 000000000..b7d40a267
+index 000000000..b3806d0d4
 --- /dev/null
 +++ b/src/apprt/termsurf.zig
 @@ -0,0 +1,6725 @@
@@ -34725,9 +34725,9 @@ index 000000000..b7d40a267
 +const installed_roamium_path_env = "TERMSURF_INSTALLED_ROAMIUM_PATH";
 +const installed_surfari_path_env = "TERMSURF_INSTALLED_SURFARI_PATH";
 +const installed_girlbat_path_env = "TERMSURF_INSTALLED_GIRLBAT_PATH";
-+const installed_roamium_path = "/opt/homebrew/opt/termsurf-roamium/roamium";
-+const installed_surfari_path = "/opt/homebrew/opt/termsurf-surfari/surfari";
-+const installed_girlbat_path = "/opt/homebrew/opt/termsurf-girlbat/bin/girlbat";
++const installed_roamium_path = "/opt/homebrew/opt/astrohacker-terminal-roamium/roamium";
++const installed_surfari_path = "/opt/homebrew/opt/astrohacker-terminal-surfari/surfari";
++const installed_girlbat_path = "/opt/homebrew/opt/astrohacker-terminal-girlbat/bin/girlbat";
 +const gtui_app_id = "gtui";
 +const gtui_app_path_env = "TERMSURF_GTUI_APP_PATH";
 +const deno_path_env = "TERMSURF_DENO_PATH";
@@ -40805,10 +40805,10 @@ index 000000000..b7d40a267
 +    try testing.expect(!shouldSupplySurfariRuntimeFrameworkPath("surfari", "/tmp/WebKitBuild/Debug"));
 +    try testing.expect(!shouldSupplySurfariRuntimeFrameworkPath("roamium", null));
 +    try testing.expectEqualStrings(
-+        "/opt/homebrew/opt/termsurf-surfari",
-+        surfariRuntimeFrameworkPath("surfari", "/opt/homebrew/opt/termsurf-surfari/surfari").?,
++        "/opt/homebrew/opt/astrohacker-terminal-surfari",
++        surfariRuntimeFrameworkPath("surfari", "/opt/homebrew/opt/astrohacker-terminal-surfari/surfari").?,
 +    );
-+    try testing.expect(surfariRuntimeFrameworkPath("roamium", "/opt/homebrew/opt/termsurf-roamium/roamium") == null);
++    try testing.expect(surfariRuntimeFrameworkPath("roamium", "/opt/homebrew/opt/astrohacker-terminal-roamium/roamium") == null);
 +}
 +
 +test "Girlbat spawn argv carries render surface service only for Girlbat" {
