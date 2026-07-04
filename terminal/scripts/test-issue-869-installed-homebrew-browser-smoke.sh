@@ -175,7 +175,7 @@ require_no_build_tree_rpath() {
   local rpaths
   rpaths="$(otool -l "$file" | grep -A2 LC_RPATH || true)"
   printf '%s\n' "$rpaths" >>"$HARNESS_LOG"
-  if printf '%s\n' "$rpaths" | grep -E "/dev/termsurf|WebKitBuild|libtermsurf_webkit/build" >/dev/null 2>&1; then
+  if printf '%s\n' "$rpaths" | grep -E "/dev/(termsurf|astrohacker)|WebKitBuild|libtermsurf_webkit/build" >/dev/null 2>&1; then
     fail "$label contains build-tree rpath"
   fi
   log "PASS: $label has no build-tree rpath"
