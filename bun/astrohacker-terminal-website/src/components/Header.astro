@@ -1,0 +1,75 @@
+---
+import { Github, ExternalLink, BookOpen, LogIn, UserRoundPlus } from "lucide-astro";
+import { cloudHrefForHostname } from "../lib/cloud-links";
+
+interface Props {
+  showBrand?: boolean;
+}
+const { showBrand = true } = Astro.props;
+const pathname = Astro.url.pathname;
+const NAV_ITEMS = [
+  { to: "https://github.com/astrohackerlabs/astrohacker-terminal", label: "GitHub", external: true, icon: "github" },
+  { to: "/docs", label: "Docs", icon: "docs" },
+  { to: cloudHrefForHostname("termsurf.com", "login"), label: "Login", external: true, icon: "login", cloudEntry: "login" },
+  { to: cloudHrefForHostname("termsurf.com", "create"), label: "Create account", external: true, icon: "create", cloudEntry: "create" },
+];
+---
+
+<header class="mb-8">
+  <div class="flex items-center justify-between text-sm">
+    {showBrand ? (
+      <a href="/" class="flex items-center gap-2 text-primary font-bold">
+        <picture>
+          <source
+            srcset="/images/termsurf-14-dark-192.png"
+            media="(prefers-color-scheme: dark)"
+          />
+          <img
+            src="/images/termsurf-14-light-192.png"
+            alt="Astrohacker Terminal logo"
+            class="w-6 h-6"
+          />
+        </picture>
+        Astrohacker Terminal
+      </a>
+    ) : (
+      <div></div>
+    )}
+    <nav class="flex flex-wrap justify-end gap-3" aria-label="Primary">
+      {NAV_ITEMS.map((item) => {
+        const active = pathname === item.to;
+        return (
+          <a
+            href={item.to}
+            data-cloud-entry={item.cloudEntry}
+            class:list={[
+              "flex items-center gap-1 whitespace-nowrap",
+              active ? "text-primary" : "text-muted hover:text-accent",
+            ]}
+            {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          >
+            {item.icon === "github" && <Github class="w-4 h-4" />}
+            {item.icon === "docs" && <BookOpen class="w-4 h-4" />}
+            {item.icon === "login" && <LogIn class="w-4 h-4" />}
+            {item.icon === "create" && <UserRoundPlus class="w-4 h-4" />}
+            {item.label}
+            {item.external && <ExternalLink class="w-3 h-3" />}
+          </a>
+        );
+      })}
+    </nav>
+  </div>
+  <div class="mt-3 border-t border-border"></div>
+</header>
+
+<script>
+  import { cloudHrefForHostname } from "../lib/cloud-links";
+
+  const hostname = window.location.hostname;
+  document.querySelectorAll<HTMLAnchorElement>("[data-cloud-entry]").forEach((link) => {
+    const entry = link.dataset.cloudEntry;
+    if (entry === "login" || entry === "create") {
+      link.href = cloudHrefForHostname(hostname, entry);
+    }
+  });
+</script>

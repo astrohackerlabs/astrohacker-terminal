@@ -1,0 +1,55 @@
+# Astrohacker Terminal Public Source
+
+This repository contains open source Astrohacker Terminal client source synced
+from the private Astrohacker monorepo.
+
+## Rules
+
+Do exactly what the user asks. Do not change code unless explicitly asked.
+
+When editing Rust code, run `cargo fmt` from `rust/`. Accept formatter output as
+the source of truth.
+
+When editing Markdown, preserve the existing prose wrapping style.
+
+## Build
+
+Common build commands:
+
+```bash
+./terminal/scripts/build.sh chromium
+./terminal/scripts/build.sh roamium
+./terminal/scripts/build.sh webkit
+./terminal/scripts/build.sh surfari-lib
+./terminal/scripts/build.sh surfari
+./terminal/scripts/build.sh webtui
+./terminal/scripts/build.sh ghostboard
+./terminal/scripts/build.sh all --release
+```
+
+## Engine Workspaces
+
+Large upstream engine checkouts are local-only. Reconstruct them from the patch
+records under `patches/`; do not commit engine working trees, build products, or
+dependency caches.
+
+Relevant public patch docs:
+
+- `patches/chromium/README.md`
+- `patches/webkit/README.md`
+- `patches/ladybird/README.md`
+- `patches/ghostty/README.md`
+- `patches/gecko/README.md`
+
+## Project Layout
+
+- `terminal/` — product docs, assets, and public build/install/test helpers.
+- `rust/` — Astrohacker Terminal Rust workspace.
+- `bun/astrohacker-terminal-website/` — public Terminal website.
+- `bun/gtui-app/` — GTUI app assets.
+- `patches/` — fork patch archives and reconstruction notes.
+
+This public repository intentionally excludes private issue records, epics,
+company operations, marketing plans, terminal cloud work, private release
+orchestration, local agent metadata, ignored fork working trees, and build
+outputs.
