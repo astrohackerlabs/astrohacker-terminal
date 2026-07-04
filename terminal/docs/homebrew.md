@@ -11,6 +11,19 @@ brew trust astrohackerlabs/astrohacker
 brew install --cask astrohacker-terminal
 ```
 
+## Initial 0.1.0 Signing Model
+
+Astrohacker Terminal `0.1.0` is distributed through the Astrohacker Homebrew tap
+before Developer ID notarization is in place. The cask postflight clears
+quarantine attributes from the installed app and runtime artifacts, then applies
+ad-hoc signatures to the app bundle, CLI wrappers, and bundled browser runtime
+executables and libraries.
+
+`brew trust astrohackerlabs/astrohacker` trusts the tap source used by Homebrew.
+It does not notarize the downloaded app with Apple. Treat the initial cask as a
+trusted Astrohacker tap install while notarized distribution is still future
+work.
+
 To upgrade an existing install:
 
 ```bash
