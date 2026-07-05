@@ -17,14 +17,14 @@ When editing Markdown, preserve the existing prose wrapping style.
 Common build commands:
 
 ```bash
-./terminal/scripts/build.sh chromium
-./terminal/scripts/build.sh roamium
-./terminal/scripts/build.sh webkit
-./terminal/scripts/build.sh surfari-lib
-./terminal/scripts/build.sh surfari
-./terminal/scripts/build.sh webtui
-./terminal/scripts/build.sh ghostboard
-./terminal/scripts/build.sh all --release
+./scripts/build.sh chromium
+./scripts/build.sh roamium
+./scripts/build.sh webkit
+./scripts/build.sh surfari-lib
+./scripts/build.sh surfari
+./scripts/build.sh webtui
+./scripts/build.sh aht
+./scripts/build.sh all --release
 ```
 
 ## Engine Workspaces
@@ -43,7 +43,9 @@ Relevant public patch docs:
 
 ## Project Layout
 
-- `terminal/` — product docs, assets, and public build/install/test helpers.
+- `assets/astrohacker-terminal/` — product images and Terminal assets.
+- `docs/` — product docs and public Terminal records.
+- `scripts/` — public build/install/test helpers.
 - `rust/` — Astrohacker Terminal Rust workspace.
 - `bun/astrohacker-terminal-website/` — public Terminal website.
 - `bun/gtui-app/` — GTUI app assets.

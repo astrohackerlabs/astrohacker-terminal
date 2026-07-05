@@ -5,9 +5,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 LOG_DIR="$ROOT/logs/issue-867-exp3-release-no-env"
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-issue867-exp3.XXXXXX")"
-APP="${TERMSURF_RELEASE_GHOSTBOARD_APP:-$ROOT/ghostboard/macos/build/Release/Astrohacker Terminal.app}"
+APP="${TERMSURF_RELEASE_GHOSTBOARD_APP:-$ROOT/forks/ghostty/macos/build/Release/Astrohacker Terminal.app}"
 APP_BIN="$APP/Contents/MacOS/aht"
-WEB="${TERMSURF_RELEASE_WEB:-$ROOT/target/release/web}"
+WEB="${TERMSURF_RELEASE_WEB:-$ROOT/rust/target/release/web}"
 ROAMIUM="/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd"
 SURFARI="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd"
 HARNESS_LOG="$LOG_DIR/harness-$RUN_ID.log"
@@ -213,7 +213,7 @@ require_unset TERMSURF_INSTALLED_SURFARI_PATH
 require_unset DYLD_FRAMEWORK_PATH
 
 case "$APP_BIN" in
-  "$ROOT/ghostboard/macos/build/Release/Astrohacker Terminal.app/Contents/MacOS/aht") ;;
+  "$ROOT/forks/ghostty/macos/build/Release/Astrohacker Terminal.app/Contents/MacOS/aht") ;;
   *) fail "expected repo Release app binary, got: $APP_BIN" ;;
 esac
 

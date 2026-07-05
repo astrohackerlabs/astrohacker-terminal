@@ -3,8 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-LADYBIRD_DIR="$REPO_DIR/vendor/ladybird"
-PROBE_SRC="$REPO_DIR/girlbat/libtermsurf_ladybird/probes/headless-lifecycle"
+LADYBIRD_DIR="$REPO_DIR/forks/ladybird"
+PROBE_SRC="$REPO_DIR/rust/girlbat/libtermsurf_ladybird/probes/headless-lifecycle"
 IN_TREE_PROBE="$LADYBIRD_DIR/Tests/LibWebView/TestGirlbatHeadlessLifecycle.cpp"
 PRESET="${TERMSURF_LADYBIRD_PROBE_PRESET:-Debug}"
 GUI="${TERMSURF_LADYBIRD_PROBE_GUI:-AppKit}"
@@ -56,12 +56,12 @@ if [ -f "$IN_TREE_PROBE" ]; then
 
   if [ -n "$(git -C "$LADYBIRD_DIR" status --short)" ]; then
     record "result=tier0"
-    record "failure=vendor/ladybird is dirty before in-tree probe"
+    record "failure=forks/ladybird is dirty before in-tree probe"
     git -C "$LADYBIRD_DIR" status --short | tee -a "$SUMMARY"
     exit 0
   fi
 
-  record "build_command=vendor/ladybird/Meta/ladybird.py build --preset $PRESET --gui $GUI --jobs $JOBS $TARGET"
+  record "build_command=forks/ladybird/Meta/ladybird.py build --preset $PRESET --gui $GUI --jobs $JOBS $TARGET"
   if ! (cd "$LADYBIRD_DIR" && ./Meta/ladybird.py build --preset "$PRESET" --gui "$GUI" --jobs "$JOBS" "$TARGET") \
     >"$LOG_DIR/ladybird-build.stdout.log" 2>"$LOG_DIR/ladybird-build.stderr.log"; then
     record "result=tier0"
@@ -119,12 +119,12 @@ record "target=$TARGET"
 
 if [ -n "$(git -C "$LADYBIRD_DIR" status --short)" ]; then
   record "result=tier0"
-  record "failure=vendor/ladybird is dirty before probe"
+  record "failure=forks/ladybird is dirty before probe"
   git -C "$LADYBIRD_DIR" status --short | tee -a "$SUMMARY"
   exit 0
 fi
 
-record "build_command=vendor/ladybird/Meta/ladybird.py build --preset $PRESET --gui $GUI --jobs $JOBS $TARGET"
+record "build_command=forks/ladybird/Meta/ladybird.py build --preset $PRESET --gui $GUI --jobs $JOBS $TARGET"
 if ! (cd "$LADYBIRD_DIR" && ./Meta/ladybird.py build --preset "$PRESET" --gui "$GUI" --jobs "$JOBS" "$TARGET") \
   >"$LOG_DIR/ladybird-build.stdout.log" 2>"$LOG_DIR/ladybird-build.stderr.log"; then
   record "result=tier0"

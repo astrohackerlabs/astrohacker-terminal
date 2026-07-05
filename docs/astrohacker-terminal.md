@@ -247,16 +247,16 @@ bun run build:terminal-cloud
 Roastty support targets. `bun/` builds the Astrohacker website, Astrohacker
 Terminal website, Terminal Cloud package, and GTUI app support code.
 
-The compatibility build helper under `terminal/scripts/build.sh` uses the new
-monorepo paths while preserving the historical component selectors:
+The build helper under `scripts/build.sh` uses the monorepo paths while
+preserving the historical component selectors:
 
 ```bash
-terminal/scripts/build.sh webtui
-terminal/scripts/build.sh gtui
-terminal/scripts/build.sh roamium
-terminal/scripts/build.sh surfari
-terminal/scripts/build.sh girlbat
-terminal/scripts/build.sh ghostboard
+scripts/build.sh webtui
+scripts/build.sh gtui
+scripts/build.sh roamium
+scripts/build.sh surfari
+scripts/build.sh girlbat
+scripts/build.sh aht
 ```
 
 #### 5. Build the patched Ghostty app

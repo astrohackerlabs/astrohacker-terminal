@@ -3,10 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-CHROMIUM_OUT="$REPO_DIR/chromium/src/out/Default"
+RUST_DIR="$REPO_DIR/rust"
+BUN_DIR="$REPO_DIR/bun"
+CHROMIUM_OUT="$REPO_DIR/forks/chromium/src/out/Default"
 source "$SCRIPT_DIR/roamium-resources.sh"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
-AHT_RELEASE_APP="$REPO_DIR/ghostboard/macos/build/Release/Astrohacker Terminal.app"
+AHT_RELEASE_APP="$REPO_DIR/forks/ghostty/macos/build/Release/Astrohacker Terminal.app"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
 CHROMIUMD_INSTALL_DIR="${TERMSURF_ROAMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
 GTUI_BIN_DIR="${TERMSURF_GTUI_BIN_DIR:-/usr/local/bin}"
@@ -73,7 +75,7 @@ if [ "$(id -u)" -ne 0 ] && needs_root; then
 fi
 
 install_chromiumd() {
-  local CHROMIUMD_SRC="$REPO_DIR/target/release/ah-chromiumd"
+  local CHROMIUMD_SRC="$RUST_DIR/target/release/ah-chromiumd"
   local INSTALL_DIR="$CHROMIUMD_INSTALL_DIR"
 
   if [ ! -f "$CHROMIUMD_SRC" ]; then
@@ -130,7 +132,7 @@ install_aht() {
 }
 
 install_webtui() {
-  local WEB="$REPO_DIR/target/release/web"
+  local WEB="$RUST_DIR/target/release/web"
 
   if [ ! -f "$WEB" ]; then
     echo "Error: Release build not found at $WEB"
@@ -146,7 +148,7 @@ install_webtui() {
 }
 
 install_gtui() {
-  local TERMSURF_CLI="$REPO_DIR/target/release/termsurf"
+  local TERMSURF_CLI="$RUST_DIR/target/release/termsurf"
 
   if [ ! -f "$TERMSURF_CLI" ]; then
     echo "Error: Release build not found at $TERMSURF_CLI"
@@ -158,7 +160,7 @@ install_gtui() {
   mkdir -p "$GTUI_BIN_DIR" "$GTUI_INSTALL_DIR"
   cp "$TERMSURF_CLI" "$GTUI_BIN_DIR/termsurf"
   rm -rf "$GTUI_INSTALL_DIR/app"
-  cp -R "$REPO_DIR/gtui/app" "$GTUI_INSTALL_DIR/app"
+  cp -R "$BUN_DIR/gtui-app" "$GTUI_INSTALL_DIR/app"
   codesign --force --sign - "$GTUI_BIN_DIR/termsurf" || true
 
   echo "  Bin: $GTUI_BIN_DIR/termsurf"

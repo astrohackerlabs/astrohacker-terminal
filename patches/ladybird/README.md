@@ -7,7 +7,7 @@ tracks patch archives and branch notes that are safe to commit.
 ## Current State
 
 - Current local branch: `a80d01fc-issue-0884-visible-runtime-load-finish`
-- Current local HEAD: `53ecd8199536bc25ec4c746c4182124d6a7f498e`
+- Current local HEAD: `53ecd819952f3992b6b634378a372b3d3ad5c82d`
 - Working tree: `forks/ladybird`
 - Patch archives: `patches/ladybird/patches`
 

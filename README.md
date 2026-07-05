@@ -7,8 +7,9 @@ workflows.
 This public repository contains the open source client material synced from the
 private Astrohacker monorepo for source releases. It includes:
 
-- `terminal/` — product docs, assets, public build/install helpers, and smoke
-  scripts.
+- `assets/astrohacker-terminal/` — product images and Terminal assets.
+- `docs/` — product docs and public Terminal records.
+- `scripts/` — public build/install helpers and smoke scripts.
 - `rust/` — Rust workspace crates for `web`, Roamium, Surfari, Girlbat, GTUI,
   and protocol/native support code.
 - `bun/astrohacker-terminal-website/` — public Terminal website source.
@@ -52,18 +53,18 @@ Prepare local engine workspaces from the recorded patch archives, then build the
 client components:
 
 ```bash
-./terminal/scripts/build.sh chromium
-./terminal/scripts/build.sh roamium
-./terminal/scripts/build.sh webkit
-./terminal/scripts/build.sh surfari
-./terminal/scripts/build.sh webtui
-./terminal/scripts/build.sh ghostboard
+./scripts/build.sh chromium
+./scripts/build.sh roamium
+./scripts/build.sh webkit
+./scripts/build.sh surfari
+./scripts/build.sh webtui
+./scripts/build.sh aht
 ```
 
 For a release-style local build:
 
 ```bash
-./terminal/scripts/build.sh all --release
+./scripts/build.sh all --release
 ```
 
 The app bundle is written to:

@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
-COMPANY_DIR="$(dirname "$REPO_DIR")"
+COMPANY_DIR="$REPO_DIR"
 RUST_DIR="$COMPANY_DIR/rust"
 CHROMIUM_SRC="$COMPANY_DIR/forks/chromium/src"
 CHROMIUM_OUT="$CHROMIUM_SRC/out/Default"
@@ -16,6 +16,7 @@ GHOSTTY_DIR="$COMPANY_DIR/forks/ghostty"
 RELEASE=false
 CLEAN=false
 OPEN=false
+PRINT_PATHS=false
 COMPONENT=""
 
 usage() {
@@ -33,6 +34,7 @@ configuration() {
 
 for arg in "$@"; do
   case "$arg" in
+    --print-paths) PRINT_PATHS=true ;;
     --release) RELEASE=true ;;
     --clean)   CLEAN=true ;;
     --open)    OPEN=true ;;
@@ -51,6 +53,17 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+if $PRINT_PATHS; then
+  printf 'SCRIPT_DIR=%s\n' "$SCRIPT_DIR"
+  printf 'REPO_DIR=%s\n' "$REPO_DIR"
+  printf 'COMPANY_DIR=%s\n' "$COMPANY_DIR"
+  printf 'RUST_DIR=%s\n' "$RUST_DIR"
+  printf 'CHROMIUM_SRC=%s\n' "$CHROMIUM_SRC"
+  printf 'WEBKIT_SRC=%s\n' "$WEBKIT_SRC"
+  printf 'GHOSTTY_DIR=%s\n' "$GHOSTTY_DIR"
+  exit 0
+fi
 
 if [ -z "$COMPONENT" ]; then
   usage
