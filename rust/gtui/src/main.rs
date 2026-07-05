@@ -233,7 +233,7 @@ fn browser_name() -> io::Result<String> {
         });
     }
 
-    Ok("ah-chromiumd".to_string())
+    Ok("roamium".to_string())
 }
 
 fn repo_root_from_exe() -> io::Result<PathBuf> {
