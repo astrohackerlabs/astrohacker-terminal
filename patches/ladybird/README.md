@@ -7,12 +7,12 @@ tracks patch archives and branch notes that are safe to commit.
 ## Current State
 
 - Current local branch: `a80d01fc-issue-0884-visible-runtime-load-finish`
-- Current local HEAD: `51ae5b2a51fa45cc8ccd9ac87d87761651e86974`
+- Current local HEAD: `53ecd8199536bc25ec4c746c4182124d6a7f498e`
 - Working tree: `forks/ladybird`
 - Patch archives: `patches/ladybird/patches`
 
 The imported patch set contains issue 0884 patches for the initial Girlbat /
-Ladybird ABI work.
+Ladybird ABI work plus issue 0890 packaging fixes.
 
 ## Applying Patches
 
