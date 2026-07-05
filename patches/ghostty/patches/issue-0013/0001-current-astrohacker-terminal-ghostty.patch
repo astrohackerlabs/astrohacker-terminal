@@ -20928,7 +20928,7 @@ literal 0
 HcmV?d00001
 
 diff --git a/macos/Ghostty-Info.plist b/macos/Ghostty-Info.plist
-index 7ffe12c39..8ec84af62 100644
+index 7ffe12c39..c5c31db6c 100644
 --- a/macos/Ghostty-Info.plist
 +++ b/macos/Ghostty-Info.plist
 @@ -112,9 +112,9 @@
@@ -20936,7 +20936,7 @@ index 7ffe12c39..8ec84af62 100644
  		<dict>
  			<key>UTTypeIdentifier</key>
 -			<string>com.mitchellh.ghosttySurfaceId</string>
-+			<string>com.termsurf.surfaceId</string>
++			<string>com.astrohacker.terminal.surface-id</string>
  			<key>UTTypeDescription</key>
 -			<string>Ghostty Surface Identifier</string>
 +			<string>Astrohacker Terminal Surface Identifier</string>
@@ -21023,7 +21023,7 @@ index c84cf2f6c..c83cf51f6 100644
      </command>
  
 diff --git a/macos/Ghostty.xcodeproj/project.pbxproj b/macos/Ghostty.xcodeproj/project.pbxproj
-index 6d883ded8..9ed3991e1 100644
+index 6d883ded8..a2772e725 100644
 --- a/macos/Ghostty.xcodeproj/project.pbxproj
 +++ b/macos/Ghostty.xcodeproj/project.pbxproj
 @@ -86,7 +86,7 @@
@@ -21115,7 +21115,7 @@ index 6d883ded8..9ed3991e1 100644
  				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 -				PRODUCT_BUNDLE_IDENTIFIER = com.mitchellh.ghostty;
 -				PRODUCT_NAME = "$(TARGET_NAME)";
-+				PRODUCT_BUNDLE_IDENTIFIER = com.termsurf;
++				PRODUCT_BUNDLE_IDENTIFIER = com.astrohacker.terminal;
 +				PRODUCT_MODULE_NAME = Ghostty;
 +				PRODUCT_NAME = "Astrohacker Terminal";
  				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -21134,7 +21134,7 @@ index 6d883ded8..9ed3991e1 100644
  				MACOSX_DEPLOYMENT_TARGET = 13.0;
  				MARKETING_VERSION = 0.1;
 -				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-dock-tile";
-+				PRODUCT_BUNDLE_IDENTIFIER = "com.termsurf.dock-tile";
++				PRODUCT_BUNDLE_IDENTIFIER = "com.astrohacker.terminal.dock-tile";
  				PRODUCT_NAME = "$(TARGET_NAME)";
  				PROVISIONING_PROFILE_SPECIFIER = "";
  				SKIP_INSTALL = YES;
@@ -21151,7 +21151,7 @@ index 6d883ded8..9ed3991e1 100644
  				MACOSX_DEPLOYMENT_TARGET = 13.0;
  				MARKETING_VERSION = 0.1;
 -				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-dock-tile";
-+				PRODUCT_BUNDLE_IDENTIFIER = "com.termsurf.dock-tile";
++				PRODUCT_BUNDLE_IDENTIFIER = "com.astrohacker.terminal.dock-tile";
  				PRODUCT_NAME = "$(TARGET_NAME)";
  				PROVISIONING_PROFILE_SPECIFIER = "";
  				SKIP_INSTALL = YES;
@@ -21168,7 +21168,7 @@ index 6d883ded8..9ed3991e1 100644
  				MACOSX_DEPLOYMENT_TARGET = 13.0;
  				MARKETING_VERSION = 0.1;
 -				PRODUCT_BUNDLE_IDENTIFIER = "com.mitchellh.ghostty-dock-tile";
-+				PRODUCT_BUNDLE_IDENTIFIER = "com.termsurf.dock-tile";
++				PRODUCT_BUNDLE_IDENTIFIER = "com.astrohacker.terminal.dock-tile";
  				PRODUCT_NAME = "$(TARGET_NAME)";
  				PROVISIONING_PROFILE_SPECIFIER = "";
  				SKIP_INSTALL = YES;
@@ -21258,7 +21258,7 @@ index 6d883ded8..9ed3991e1 100644
  				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 -				PRODUCT_BUNDLE_IDENTIFIER = com.mitchellh.ghostty.debug;
 -				PRODUCT_NAME = "$(TARGET_NAME)";
-+				PRODUCT_BUNDLE_IDENTIFIER = com.termsurf.debug;
++				PRODUCT_BUNDLE_IDENTIFIER = com.astrohacker.terminal.debug;
 +				PRODUCT_MODULE_NAME = Ghostty;
 +				PRODUCT_NAME = "Astrohacker Terminal";
  				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -21324,7 +21324,7 @@ index 6d883ded8..9ed3991e1 100644
  				"OTHER_LDFLAGS[arch=*]" = "-lstdc++";
 -				PRODUCT_BUNDLE_IDENTIFIER = com.mitchellh.ghostty;
 -				PRODUCT_NAME = "$(TARGET_NAME)";
-+				PRODUCT_BUNDLE_IDENTIFIER = com.termsurf;
++				PRODUCT_BUNDLE_IDENTIFIER = com.astrohacker.terminal;
 +				PRODUCT_MODULE_NAME = Ghostty;
 +				PRODUCT_NAME = "Astrohacker Terminal";
  				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -21372,7 +21372,7 @@ index 8ebdaf6f0..c2f0a6977 100644
 -
 diff --git a/macos/Sources/App/macOS/AppDelegate+TermSurf.swift b/macos/Sources/App/macOS/AppDelegate+TermSurf.swift
 new file mode 100644
-index 000000000..4c53fc79f
+index 000000000..020f4ae58
 --- /dev/null
 +++ b/macos/Sources/App/macOS/AppDelegate+TermSurf.swift
 @@ -0,0 +1,592 @@
@@ -21445,7 +21445,7 @@ index 000000000..4c53fc79f
 +  }
 +}
 +
-+private let termsurfDebugInputNotification = Notification.Name("com.termsurf.debug-input")
++private let termsurfDebugInputNotification = Notification.Name("com.astrohacker.terminal.debug-input")
 +
 +func termsurfInstallDebugInputObserverIfRequested() {
 +  guard ProcessInfo.processInfo.environment["TERMSURF_TEST_SCRIPTED_BROWSER_INPUT"] == "1" else {
@@ -22469,7 +22469,7 @@ index c52b7a52e..db8151106 100644
      }
  }
 diff --git a/macos/Sources/Features/App Intents/IntentPermission.swift b/macos/Sources/Features/App Intents/IntentPermission.swift
-index 26a21e70b..49f56a010 100644
+index 26a21e70b..10ab7920a 100644
 --- a/macos/Sources/Features/App Intents/IntentPermission.swift	
 +++ b/macos/Sources/Features/App Intents/IntentPermission.swift	
 @@ -44,8 +44,8 @@ func requestIntentPermission() async -> Bool {
@@ -22478,7 +22478,7 @@ index 26a21e70b..49f56a010 100644
              PermissionRequest.show(
 -                "com.mitchellh.ghostty.shortcutsPermission",
 -                message: "Allow Shortcuts to interact with Ghostty?",
-+                "com.termsurf.shortcutsPermission",
++                "com.astrohacker.terminal.shortcuts-permission",
 +                message: "Allow Shortcuts to interact with Astrohacker Terminal?",
                  allowDuration: .forever,
                  rememberDuration: nil,
@@ -22545,9 +22545,21 @@ index df0fe17a5..2f370ee80 100644
          return .result(value: terminals)
      }
 diff --git a/macos/Sources/Features/Custom App Icon/DockTilePlugin.swift b/macos/Sources/Features/Custom App Icon/DockTilePlugin.swift
-index 0b2d528e7..8ca629cfd 100644
+index 0b2d528e7..5146ed682 100644
 --- a/macos/Sources/Features/Custom App Icon/DockTilePlugin.swift	
 +++ b/macos/Sources/Features/Custom App Icon/DockTilePlugin.swift	
+@@ -10,9 +10,9 @@ class DockTilePlugin: NSObject, NSDockTilePlugIn {
+     // Separate defaults based on debug vs release builds so we can test icons
+     // without messing up releases.
+     #if DEBUG
+-    private let ghosttyUserDefaults = UserDefaults(suiteName: "com.mitchellh.ghostty.debug")
++    private let ghosttyUserDefaults = UserDefaults(suiteName: "com.astrohacker.terminal.debug")
+     #else
+-    private let ghosttyUserDefaults = UserDefaults(suiteName: "com.mitchellh.ghostty")
++    private let ghosttyUserDefaults = UserDefaults(suiteName: "com.astrohacker.terminal")
+     #endif
+ 
+     private var iconChangeObserver: Any?
 @@ -49,20 +49,10 @@ class DockTilePlugin: NSObject, NSDockTilePlugIn {
  
      /// Reset the application icon and dock tile icon to the default.
@@ -22573,6 +22585,17 @@ index 0b2d528e7..8ca629cfd 100644
      }
  }
  
+diff --git a/macos/Sources/Features/Custom App Icon/Extensions/Notification+AppIcon.swift b/macos/Sources/Features/Custom App Icon/Extensions/Notification+AppIcon.swift
+index c0c71159d..698e86884 100644
+--- a/macos/Sources/Features/Custom App Icon/Extensions/Notification+AppIcon.swift	
++++ b/macos/Sources/Features/Custom App Icon/Extensions/Notification+AppIcon.swift	
+@@ -4,5 +4,5 @@ extension Notification.Name {
+     /// Distributed Notification for DockTilePlugin to update icon
+     ///
+     /// Ghostty -> DockTilePlugin
+-    static let ghosttyIconDidChange = Notification.Name("com.mitchellh.ghostty.iconDidChange")
++    static let ghosttyIconDidChange = Notification.Name("com.astrohacker.terminal.icon-did-change")
+ }
 diff --git a/macos/Sources/Features/Global Keybinds/GlobalEventTap.swift b/macos/Sources/Features/Global Keybinds/GlobalEventTap.swift
 index d308e59ea..9bb63776a 100644
 --- a/macos/Sources/Features/Global Keybinds/GlobalEventTap.swift	
@@ -23300,7 +23323,7 @@ index aab99c088..c64fe920a 100644
  
      /// Handles a change in the frame of NSScrollPocket styling overlays
 diff --git a/macos/Sources/Ghostty/Surface View/SurfaceView+Transferable.swift b/macos/Sources/Ghostty/Surface View/SurfaceView+Transferable.swift
-index 106875813..57a4d6842 100644
+index 106875813..0d9174286 100644
 --- a/macos/Sources/Ghostty/Surface View/SurfaceView+Transferable.swift	
 +++ b/macos/Sources/Ghostty/Surface View/SurfaceView+Transferable.swift	
 @@ -47,7 +47,7 @@ extension Ghostty.SurfaceView: Transferable {
@@ -23308,7 +23331,7 @@ index 106875813..57a4d6842 100644
      /// A format that encodes the bare UUID only for the surface. This can be used if you have
      /// a way to look up a surface by ID.
 -    static let ghosttySurfaceId = UTType(exportedAs: "com.mitchellh.ghosttySurfaceId")
-+    static let ghosttySurfaceId = UTType(exportedAs: "com.termsurf.surfaceId")
++    static let ghosttySurfaceId = UTType(exportedAs: "com.astrohacker.terminal.surface-id")
  }
  
  #if canImport(AppKit)
@@ -29301,6 +29324,19 @@ index 46758a42d..762b67f75 100644
          }
  
          return success
+diff --git a/macos/Sources/Helpers/Extensions/UserDefaults+Extension.swift b/macos/Sources/Helpers/Extensions/UserDefaults+Extension.swift
+index 7cd0e12ed..6ad853660 100644
+--- a/macos/Sources/Helpers/Extensions/UserDefaults+Extension.swift
++++ b/macos/Sources/Helpers/Extensions/UserDefaults+Extension.swift
+@@ -3,7 +3,7 @@ import Foundation
+ extension UserDefaults {
+     static var ghosttySuite: String? {
+         #if DEBUG
+-        ProcessInfo.processInfo.environment["GHOSTTY_USER_DEFAULTS_SUITE"]
++        ProcessInfo.processInfo.environment["GHOSTTY_USER_DEFAULTS_SUITE"] ?? "com.astrohacker.terminal.debug"
+         #else
+         nil
+         #endif
 diff --git a/macos/Tests/Update/ReleaseNotesTests.swift b/macos/Tests/Update/ReleaseNotesTests.swift
 index 6c7d43ed5..5254f2081 100644
 --- a/macos/Tests/Update/ReleaseNotesTests.swift
@@ -33852,7 +33888,7 @@ index 2f01c48ce..2ae0a347e 100644
      submenu {
 diff --git a/src/apprt/termsurf.zig b/src/apprt/termsurf.zig
 new file mode 100644
-index 000000000..bcf2ab34d
+index 000000000..0d3323fb7
 --- /dev/null
 +++ b/src/apprt/termsurf.zig
 @@ -0,0 +1,6843 @@
@@ -38364,7 +38400,7 @@ index 000000000..bcf2ab34d
 +    const safe_browser = sanitizeRenderServiceComponent(&browser_buf, browser);
 +    return std.fmt.bufPrint(
 +        buf,
-+        "com.termsurf.girlbat.render.{d}.{s}.{s}",
++        "com.astrohacker.terminal.ladybirdd.render.{d}.{s}.{s}",
 +        .{ ghostboard_pid, safe_profile, safe_browser },
 +    ) catch null;
 +}
@@ -40127,7 +40163,7 @@ index 000000000..bcf2ab34d
 +    var second_render_service_buf: [max_render_service_name_len]u8 = undefined;
 +    const second_render_service = buildRenderSurfaceServiceName(&second_render_service_buf, 12345, "default/profile", "ladybird") orelse return error.MissingRenderService;
 +    try testing.expectEqualStrings(render_service, second_render_service);
-+    try testing.expect(std.mem.startsWith(u8, render_service, "com.termsurf.girlbat.render.12345."));
++    try testing.expect(std.mem.startsWith(u8, render_service, "com.astrohacker.terminal.ladybirdd.render.12345."));
 +    try testing.expect(render_service.len < max_render_service_name_len);
 +    try testing.expect(std.mem.indexOfScalar(u8, render_service, '/') == null);
 +    try testing.expect(std.mem.indexOfScalar(u8, render_service, ' ') == null);
@@ -40179,7 +40215,7 @@ index 000000000..bcf2ab34d
 +        .test_iosurface_pointer = @ptrFromInt(0x5678),
 +        .test_owned_received_surface = true,
 +    };
-+    try testing.expect(copyText(&state.service_name, &state.service_name_len, "com.termsurf.girlbat.render.test"));
++    try testing.expect(copyText(&state.service_name, &state.service_name_len, "com.astrohacker.terminal.ladybirdd.render.test"));
 +    releaseRenderSideChannel(&state);
 +    try testing.expect(!state.in_use);
 +    try testing.expectEqual(@as(c.tsrc_port_t, 0), state.child_port);
@@ -40983,7 +41019,7 @@ index 65f144522..3402203ea 100644
              try writer.writeAll("```\n\n");
          }
 diff --git a/src/build_config.zig b/src/build_config.zig
-index c19f7372b..4542165db 100644
+index c19f7372b..3a9f167ef 100644
 --- a/src/build_config.zig
 +++ b/src/build_config.zig
 @@ -55,7 +55,7 @@ pub const i18n: bool = config.i18n;
@@ -40991,7 +41027,7 @@ index c19f7372b..4542165db 100644
  /// this variable is NOT ENOUGH to change the bundle ID. I just wanted to
  /// avoid it in Zig coe as much as possible.
 -pub const bundle_id = "com.mitchellh.ghostty";
-+pub const bundle_id = "com.termsurf";
++pub const bundle_id = "com.astrohacker.terminal";
  
  /// True if we should have "slow" runtime safety checks. The initial motivation
  /// for this was terminal page/pagelist integrity checks. These were VERY

@@ -232,7 +232,7 @@ pub fn real_frame_attachment_smoke(exported: RenderSurfaceExport) -> bool {
     }
 
     let service_name = format!(
-        "com.termsurf.girlbat.real-frame-smoke.{}",
+        "com.astrohacker.terminal.ladybirdd.real-frame-smoke.{}",
         std::process::id()
     );
     let service = match CString::new(service_name.clone()) {

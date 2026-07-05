@@ -228,7 +228,7 @@ topology:
 
 - Ghostboard builds browser spawn argv through a testable helper.
 - Only Girlbat receives
-  `--render-surface-service=com.termsurf.girlbat.render.<pid>.<profile>.<browser>`.
+  `--render-surface-service=com.astrohacker.terminal.ladybirdd.render.<pid>.<profile>.<browser>`.
 - The service token is bounded, reverse-DNS-like, and sanitizes profile/browser
   components to avoid embedding raw filesystem or socket paths.
 - Roamium and Surfari do not receive the argument and continue using the

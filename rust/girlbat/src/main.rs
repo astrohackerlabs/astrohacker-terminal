@@ -262,12 +262,12 @@ mod tests {
     #[test]
     fn parse_render_surface_service_arg() {
         let args = parse_args_from([
-            "--render-surface-service=com.termsurf.girlbat.render.123.default.girlbat",
+            "--render-surface-service=com.astrohacker.terminal.ladybirdd.render.123.default.girlbat",
         ]);
 
         assert_eq!(
             args.render_surface_service.as_deref(),
-            Some("com.termsurf.girlbat.render.123.default.girlbat")
+            Some("com.astrohacker.terminal.ladybirdd.render.123.default.girlbat")
         );
     }
 
