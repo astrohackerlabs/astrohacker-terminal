@@ -34,6 +34,9 @@ fn main() {
         let version = ffi::runtime_version();
         let ok = ffi::warmup();
         eprintln!("[Girlbat] warmup runtime={runtime} version={version} ok={ok}");
+        if !ok {
+            std::process::exit(1);
+        }
         return;
     }
 

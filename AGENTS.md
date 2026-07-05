@@ -47,7 +47,6 @@ Relevant public patch docs:
 - `docs/` — product docs and public Terminal records.
 - `scripts/` — public build/install/test helpers.
 - `rust/` — Astrohacker Terminal Rust workspace.
-- `bun/astrohacker-terminal-website/` — public Terminal website.
 - `bun/gtui-app/` — GTUI app assets.
 - `patches/` — fork patch archives and reconstruction notes.
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="${TERMSURF_SMOKE_VERSION:-0.1.0}"
+VERSION="${ASTROHACKER_TERMINAL_SMOKE_VERSION:-${TERMSURF_SMOKE_VERSION:-0.1.0}}"
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 START_EPOCH="$(date +%s)"
 LOG_DIR="$ROOT/logs/issue-869-exp1-installed-homebrew"
@@ -126,8 +126,10 @@ start_app() {
   env \
     -u TERMSURF_ROAMIUM_PATH \
     -u TERMSURF_SURFARI_PATH \
+    -u TERMSURF_GIRLBAT_PATH \
     -u TERMSURF_INSTALLED_ROAMIUM_PATH \
     -u TERMSURF_INSTALLED_SURFARI_PATH \
+    -u TERMSURF_INSTALLED_GIRLBAT_PATH \
     -u DYLD_FRAMEWORK_PATH \
     GHOSTTY_LOG=stderr \
     TERMSURF_GEOMETRY_TRACE=1 \
@@ -247,8 +249,10 @@ EOF
 
 require_unset TERMSURF_ROAMIUM_PATH
 require_unset TERMSURF_SURFARI_PATH
+require_unset TERMSURF_GIRLBAT_PATH
 require_unset TERMSURF_INSTALLED_ROAMIUM_PATH
 require_unset TERMSURF_INSTALLED_SURFARI_PATH
+require_unset TERMSURF_INSTALLED_GIRLBAT_PATH
 require_unset DYLD_FRAMEWORK_PATH
 
 require_executable "$APP_BIN"
@@ -280,6 +284,7 @@ log "PASS: installed ah-ladybirdd resource root=$girlbat_resource_root"
 
 run_browser_smoke "webkit" "$SURFARI" "TERMSURF_SURFARI_PATH" "TERMSURF_INSTALLED_SURFARI_PATH"
 run_browser_smoke "chromium" "$ROAMIUM" "TERMSURF_ROAMIUM_PATH" "TERMSURF_INSTALLED_ROAMIUM_PATH"
+run_browser_smoke "ladybird" "$GIRLBAT" "TERMSURF_GIRLBAT_PATH" "TERMSURF_INSTALLED_GIRLBAT_PATH"
 
 END_EPOCH="$(date +%s)"
 DURATION_SECONDS="$((END_EPOCH - START_EPOCH))"

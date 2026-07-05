@@ -239,13 +239,12 @@ cargo build --workspace
 cd ../bun
 bun install
 bun run build:website
-bun run build:terminal-website
 bun run build:terminal-cloud
 ```
 
 `rust/` builds the `web`, `termsurf`, `ah-chromiumd`, `ah-webkitd`, `ah-ladybirdd`, and
 Roastty support targets. `bun/` builds the Astrohacker website, Astrohacker
-Terminal website, Terminal Cloud package, and GTUI app support code.
+Terminal Cloud package, and GTUI app support code.
 
 The build helper under `scripts/build.sh` uses the monorepo paths while
 preserving the historical component selectors:
@@ -277,9 +276,8 @@ web google.com
 
 ## Documentation
 
-Current public documentation still lives at the legacy
-[termsurf.com/docs](https://termsurf.com/docs) domain while the Astrohacker
-Terminal rename is completed.
+Current public product information for Astrohacker Terminal lives on the main
+Astrohacker website.
 
 ## Contributing
 

@@ -3,10 +3,6 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "astrohacker-terminal-website",
     "gtui-app"
-  ],
-  "scripts": {
-    "build:terminal-website": "bun run --cwd astrohacker-terminal-website build"
-  }
+  ]
 }

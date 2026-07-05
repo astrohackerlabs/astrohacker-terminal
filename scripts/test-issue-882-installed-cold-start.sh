@@ -9,22 +9,23 @@ RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-issue882-exp1.XXXXXX")"
 APP="/Applications/Astrohacker Terminal.app"
 APP_BIN="$APP/Contents/MacOS/aht"
 WEB="/opt/homebrew/bin/web"
-ROAMIUM="/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd"
-SURFARI="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd"
-POSTFLIGHT_WARMUP_LOG="/opt/homebrew/var/log/termsurf/postflight-warmup.log"
+CHROMIUM="/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd"
+WEBKIT="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd"
+LADYBIRD="/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd"
+POSTFLIGHT_WARMUP_LOG="/opt/homebrew/var/log/astrohacker/terminal-postflight-warmup.log"
 SUMMARY="$LOG_DIR/summary-$RUN_ID.tsv"
 HARNESS_LOG="$LOG_DIR/harness-$RUN_ID.log"
 BROWSER="all"
 REINSTALL=false
 FRESH_SPAWN=false
-EXPECT_POSTFLIGHT_WARMUP="${TERMSURF_ISSUE882_EXPECT_POSTFLIGHT_WARMUP:-0}"
+EXPECT_POSTFLIGHT_WARMUP="${ASTROHACKER_TERMINAL_EXPECT_POSTFLIGHT_WARMUP:-${TERMSURF_ISSUE882_EXPECT_POSTFLIGHT_WARMUP:-0}}"
 PID=""
 
 mkdir -p "$LOG_DIR"
 
 usage() {
   cat >&2 <<'USAGE'
-usage: scripts/test-issue-882-installed-cold-start.sh [--browser roamium|surfari|all] [--reinstall] [--fresh-spawn]
+usage: scripts/test-issue-882-installed-cold-start.sh [--browser chromium|webkit|ladybird|all] [--reinstall] [--fresh-spawn]
 
 Measures installed Homebrew browser startup timing for Issue 882.
 
@@ -63,7 +64,12 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$BROWSER" in
-  roamium | surfari | all) ;;
+  roamium) BROWSER="chromium" ;;
+  surfari) BROWSER="webkit" ;;
+esac
+
+case "$BROWSER" in
+  chromium | webkit | ladybird | all) ;;
   *)
     echo "invalid --browser: $BROWSER" >&2
     exit 1
@@ -146,17 +152,31 @@ verify_postflight_warmup() {
   [ -f "$POSTFLIGHT_WARMUP_LOG" ] || fail "missing postflight warmup log: $POSTFLIGHT_WARMUP_LOG"
   cp "$POSTFLIGHT_WARMUP_LOG" "$copy_path"
 
-  for engine in roamium surfari; do
-    start_line="$(grep -E "TermSurfPostflightWarmup event=start engine=${engine} " "$copy_path" | tail -1 || true)"
-    main_line="$(grep -F "TermSurfEngineStartup event=main_entry" "$copy_path" | grep -F "engine=${engine}" | grep -F "browser=${engine}" | tail -1 || true)"
-    exit_line="$(grep -F "TermSurfEngineStartup event=warmup_exit" "$copy_path" | grep -F "engine=${engine}" | grep -F "browser=${engine}" | tail -1 || true)"
-    done_line="$(grep -E "TermSurfPostflightWarmup event=done engine=${engine} " "$copy_path" | tail -1 || true)"
+  for engine in chromium webkit ladybird; do
+    start_line="$(grep -E "AstrohackerTerminalPostflightWarmup event=start engine=${engine} " "$copy_path" | tail -1 || true)"
+    done_line="$(grep -E "AstrohackerTerminalPostflightWarmup event=done engine=${engine} " "$copy_path" | tail -1 || true)"
     [ -n "$start_line" ] || fail "missing postflight warmup start for $engine in $copy_path"
-    [ -n "$main_line" ] || fail "missing postflight warmup main_entry for $engine in $copy_path"
-    [ -n "$exit_line" ] || fail "missing postflight warmup warmup_exit for $engine in $copy_path"
     [ -n "$done_line" ] || fail "missing postflight warmup done for $engine in $copy_path"
     printf '%s\n' "$done_line" | grep -F "success=true" >/dev/null ||
       fail "postflight warmup did not report success for $engine in $copy_path"
+    case "$engine" in
+      chromium)
+        main_line="$(grep -F "TermSurfEngineStartup event=main_entry" "$copy_path" | grep -F "engine=roamium" | grep -F "browser=roamium" | tail -1 || true)"
+        exit_line="$(grep -F "TermSurfEngineStartup event=warmup_exit" "$copy_path" | grep -F "engine=roamium" | grep -F "browser=chromium" | tail -1 || true)"
+        [ -n "$main_line" ] || fail "missing postflight warmup Chromium main_entry in $copy_path"
+        [ -n "$exit_line" ] || fail "missing postflight warmup Chromium warmup_exit in $copy_path"
+        ;;
+      webkit)
+        main_line="$(grep -F "TermSurfEngineStartup event=main_entry" "$copy_path" | grep -F "engine=surfari" | grep -F "browser=surfari" | tail -1 || true)"
+        exit_line="$(grep -F "TermSurfEngineStartup event=warmup_exit" "$copy_path" | grep -F "engine=surfari" | grep -F "browser=webkit" | tail -1 || true)"
+        [ -n "$main_line" ] || fail "missing postflight warmup WebKit main_entry in $copy_path"
+        [ -n "$exit_line" ] || fail "missing postflight warmup WebKit warmup_exit in $copy_path"
+        ;;
+      ladybird)
+        grep -F "[Girlbat] warmup " "$copy_path" | grep -F "ok=true" >/dev/null ||
+          fail "missing postflight warmup Ladybird ok=true output in $copy_path"
+        ;;
+    esac
     duration="$(extract_field "$done_line" "duration_ms")"
     validate_number "$duration" "postflight warmup duration for $engine"
     log "PASS: postflight warmup engine=$engine duration_ms=$duration log=$copy_path"
@@ -192,6 +212,7 @@ stop_app() {
 kill_engines() {
   pkill -x ah-chromiumd >/dev/null 2>&1 || true
   pkill -x ah-webkitd >/dev/null 2>&1 || true
+  pkill -x ah-ladybirdd >/dev/null 2>&1 || true
   pkill -x aht >/dev/null 2>&1 || true
   delay 1 || true
 }
@@ -205,15 +226,19 @@ capture_validation_context() {
     echo "== xattr Astrohacker Terminal.app quarantine =="
     xattr -p com.apple.quarantine "$APP" 2>&1 || true
     echo "== xattr ah-chromiumd quarantine =="
-    xattr -p com.apple.quarantine "$ROAMIUM" 2>&1 || true
+    xattr -p com.apple.quarantine "$CHROMIUM" 2>&1 || true
     echo "== xattr ah-webkitd quarantine =="
-    xattr -p com.apple.quarantine "$SURFARI" 2>&1 || true
+    xattr -p com.apple.quarantine "$WEBKIT" 2>&1 || true
+    echo "== xattr ah-ladybirdd quarantine =="
+    xattr -p com.apple.quarantine "$LADYBIRD" 2>&1 || true
     echo "== spctl Astrohacker Terminal.app =="
     spctl -a -vv "$APP" 2>&1 || true
     echo "== spctl ah-chromiumd =="
-    spctl -a -vv "$ROAMIUM" 2>&1 || true
+    spctl -a -vv "$CHROMIUM" 2>&1 || true
     echo "== spctl ah-webkitd =="
-    spctl -a -vv "$SURFARI" 2>&1 || true
+    spctl -a -vv "$WEBKIT" 2>&1 || true
+    echo "== spctl ah-ladybirdd =="
+    spctl -a -vv "$LADYBIRD" 2>&1 || true
     echo "== unified log validation hints =="
     log show --last 5m --style compact \
       --predicate 'process == "syspolicyd" OR process == "amfid" OR process == "XprotectService"' 2>&1 || true
@@ -308,7 +333,7 @@ append_summary() {
   local start_line="$5"
   local screenshot_ms="$6"
   local webtui_loaded_ms="$7"
-  local setoverlay spawn_start spawn_returned main_entry ts_entry init_entry ctx_created register_sent server_register create_tab tab_ready browser_ready webtui_loaded ca_context present_overlay engine_pid
+  local setoverlay spawn_start spawn_returned main_entry ts_entry init_entry ctx_created register_sent server_register create_tab tab_ready browser_ready webtui_loaded ca_context present_overlay engine_pid main_entry_browser
 
   setoverlay="$(field_ms_after "$app_log" "$start_line" "TermSurfBrowserStartup event=set_overlay .* browser=${browser}")"
   spawn_start="$(field_ms_after "$app_log" "$start_line" "TermSurfBrowserStartup event=spawn_start .* browser=${browser}")"
@@ -320,7 +345,12 @@ append_summary() {
   browser_ready="$(field_ms_after "$app_log" "$start_line" "TermSurfBrowserStartup event=browser_ready .* browser=${browser}")"
   ca_context="$(field_ms_after "$app_log" "$start_line" "TermSurfBrowserStartup event=ca_context .* browser=${browser}")"
   present_overlay="$(field_ms_after "$app_log" "$start_line" "TermSurfBrowserStartup event=present_overlay .* browser=${browser}")"
-  main_entry="$(field_ms_after "$engine_trace" 0 "TermSurfEngineStartup event=main_entry .* browser=${browser} .* pid=${engine_pid}")"
+  main_entry_browser="$browser"
+  case "$browser" in
+    chromium) main_entry_browser="roamium" ;;
+    webkit) main_entry_browser="surfari" ;;
+  esac
+  main_entry="$(field_ms_after "$engine_trace" 0 "TermSurfEngineStartup event=main_entry .* browser=${main_entry_browser} .* pid=${engine_pid}")"
   ts_entry="$(field_ms_after "$engine_trace" 0 "TermSurfEngineStartup event=ts_content_main_entry .* browser=${browser} .* pid=${engine_pid}")"
   init_entry="$(field_ms_after "$engine_trace" 0 "TermSurfEngineStartup event=on_initialized_entry .* browser=${browser} .* pid=${engine_pid}")"
   ctx_created="$(field_ms_after "$engine_trace" 0 "TermSurfEngineStartup event=browser_context_created .* browser=${browser} .* pid=${engine_pid}")"
@@ -362,7 +392,7 @@ run_browser_once() {
   local engine_trace="$LOG_DIR/engine-$scenario-$RUN_ID.log"
   local screenshot="$LOG_DIR/screenshot-$scenario-$RUN_ID.png"
   local validation="$LOG_DIR/validation-$scenario-$RUN_ID.log"
-  local start setoverlay ready presented pane spawn_line engine_pid first_engine_line process_start screenshot_ms webtui_loaded_ms
+  local start setoverlay ready presented pane spawn_line engine_pid first_engine_line process_start screenshot_ms webtui_loaded_ms main_entry_browser
 
   if $FRESH_SPAWN || [ "$mode" = "cold" ]; then
     kill_engines
@@ -400,7 +430,12 @@ EOF
   validate_number "$engine_pid" "$browser $mode engine pid"
   process_start="$(ps -o lstart= -p "$engine_pid" 2>/dev/null || true)"
   log "engine_process_start browser=$browser mode=$mode pid=$engine_pid lstart=$process_start"
-  first_engine_line="$(wait_for_line_after "$engine_trace" 0 "TermSurfEngineStartup event=main_entry .* browser=${browser} .* pid=${engine_pid}" "$browser $mode engine main entry" 180)"
+  main_entry_browser="$browser"
+  case "$browser" in
+    chromium) main_entry_browser="roamium" ;;
+    webkit) main_entry_browser="surfari" ;;
+  esac
+  first_engine_line="$(wait_for_line_after "$engine_trace" 0 "TermSurfEngineStartup event=main_entry .* browser=${main_entry_browser} .* pid=${engine_pid}" "$browser $mode engine main entry" 180)"
   log "engine_first_trace browser=$browser mode=$mode line=$first_engine_line"
   ready="$(wait_for_line_after "$app_log" "$start" "BrowserReady: pane_id=.* browser=${browser}" "$browser $mode BrowserReady" 180)"
   [ "$pane" = "$(extract_pane_id "$ready")" ] || fail "$browser $mode BrowserReady pane mismatch"
@@ -429,6 +464,20 @@ PY
 run_browser() {
   local browser="$1"
   local binary="$2"
+  if [ "$browser" = "ladybird" ]; then
+    if $REINSTALL; then
+      log "reinstalling astrohacker-terminal before ladybird warmup proof"
+      if expect_postflight_warmup; then
+        rm -f "$POSTFLIGHT_WARMUP_LOG"
+      fi
+      brew reinstall --cask astrohacker-terminal 2>&1 | tee -a "$HARNESS_LOG"
+      if expect_postflight_warmup; then
+        verify_postflight_warmup "ladybird-warmup-proof"
+      fi
+    fi
+    log "PASS: ladybird postflight warmup proof path"
+    return
+  fi
   run_browser_once "$browser" "cold" "$binary"
   run_browser_once "$browser" "warm-fresh" "$binary"
 }
@@ -437,12 +486,15 @@ require_unset TERMSURF_ROAMIUM_PATH
 require_unset TERMSURF_SURFARI_PATH
 require_unset TERMSURF_INSTALLED_ROAMIUM_PATH
 require_unset TERMSURF_INSTALLED_SURFARI_PATH
+require_unset TERMSURF_GIRLBAT_PATH
+require_unset TERMSURF_INSTALLED_GIRLBAT_PATH
 require_unset DYLD_FRAMEWORK_PATH
 
 require_executable "$APP_BIN"
 require_executable "$WEB"
-require_executable "$ROAMIUM"
-require_executable "$SURFARI"
+require_executable "$CHROMIUM"
+require_executable "$WEBKIT"
+require_executable "$LADYBIRD"
 
 printf 'mode\tbrowser\tsetoverlay_to_spawn_start_ms\tspawn_start_to_spawn_returned_ms\tspawn_returned_to_engine_main_ms\tengine_main_to_ts_content_main_ms\tts_content_main_to_on_initialized_ms\ton_initialized_to_browser_context_ms\tbrowser_context_to_server_register_sent_ms\tserver_register_to_create_tab_ms\tcreate_tab_to_tab_ready_ms\ttab_ready_to_browser_ready_ms\tbrowser_ready_to_webtui_loaded_ms\tbrowser_ready_to_visible_screenshot_ms\tbrowser_ready_to_ca_context_ms\tca_context_to_present_overlay_ms\tapp_log\tengine_trace\trun_id\n' >"$SUMMARY"
 
@@ -450,21 +502,26 @@ log "run_id=$RUN_ID"
 log "started_at_epoch=$START_EPOCH"
 log "app_bin=$APP_BIN"
 log "web=$WEB"
-log "roamium=$ROAMIUM"
-log "surfari=$SURFARI"
+log "chromium=$CHROMIUM"
+log "webkit=$WEBKIT"
+log "ladybird=$LADYBIRD"
 log "summary=$SUMMARY"
 log "reinstall=$REINSTALL fresh_spawn=$FRESH_SPAWN browser=$BROWSER"
 
 case "$BROWSER" in
-  roamium)
-    run_browser "roamium" "$ROAMIUM"
+  chromium)
+    run_browser "chromium" "$CHROMIUM"
     ;;
-  surfari)
-    run_browser "surfari" "$SURFARI"
+  webkit)
+    run_browser "webkit" "$WEBKIT"
+    ;;
+  ladybird)
+    run_browser "ladybird" "$LADYBIRD"
     ;;
   all)
-    run_browser "roamium" "$ROAMIUM"
-    run_browser "surfari" "$SURFARI"
+    run_browser "chromium" "$CHROMIUM"
+    run_browser "webkit" "$WEBKIT"
+    run_browser "ladybird" "$LADYBIRD"
     ;;
 esac
 
