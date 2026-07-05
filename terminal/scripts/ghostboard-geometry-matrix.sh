@@ -10,9 +10,9 @@ APP="${TERMSURF_GHOSTBOARD_APP:-$ROOT/ghostboard/macos/build/Debug/Astrohacker T
 if [ "$SCENARIO" = "installed-roamium-release-launch" ] && [ -z "${TERMSURF_GHOSTBOARD_APP:-}" ]; then
   APP="$ROOT/ghostboard/macos/build/Release/Astrohacker Terminal.app"
 fi
-APP_BIN="$APP/Contents/MacOS/ghostboard"
+APP_BIN="$APP/Contents/MacOS/aht"
 WEB="${TERMSURF_WEB:-$ROOT/target/debug/web}"
-ROAMIUM="${TERMSURF_ROAMIUM:-$ROOT/chromium/src/out/Default/roamium}"
+ROAMIUM="${TERMSURF_ROAMIUM:-$ROOT/chromium/src/out/Default/ah-chromiumd}"
 INSTALLED_ROAMIUM="${TERMSURF_INSTALLED_ROAMIUM:-$ROAMIUM}"
 ROAMIUM_PATH_FOR_APP="$ROAMIUM"
 POINTER_DRIVER="${TERMSURF_GEOMETRY_POINTER_DRIVER:-cgevent}"
@@ -5390,7 +5390,7 @@ if [ "$SCENARIO" = "named-roamium-debug-launch" ]; then
   require_log "SetOverlay: named browser resolved browser=roamium env=TERMSURF_ROAMIUM_PATH path=${ROAMIUM}" "Ghostboard resolved named Roamium to debug path"
   require_log "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" "Ghostboard spawned debug Roamium path"
   require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=roamium" "BrowserReady preserved named Roamium key"
-  if grep -E "spawned browser path=(/usr/local/roamium|/usr/local/bin/roamium|/opt/homebrew/opt/astrohacker-terminal-roamium)" "$APP_LOG" >/dev/null 2>&1; then
+  if grep -E "spawned browser path=(/usr/local/roamium|/usr/local/bin/roamium|/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd)" "$APP_LOG" >/dev/null 2>&1; then
     fail "named Roamium debug launch used a stale installed Roamium path"
   fi
   log "PASS: named Roamium debug launch did not use a stale installed path"

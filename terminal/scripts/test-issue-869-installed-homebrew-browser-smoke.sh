@@ -8,11 +8,13 @@ START_EPOCH="$(date +%s)"
 LOG_DIR="$ROOT/logs/issue-869-exp1-installed-homebrew"
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-issue869-exp1.XXXXXX")"
 APP="/Applications/Astrohacker Terminal.app"
-APP_BIN="$APP/Contents/MacOS/ghostboard"
+APP_BIN="$APP/Contents/MacOS/aht"
 WEB="/opt/homebrew/bin/web"
-ROAMIUM="/opt/homebrew/opt/astrohacker-terminal-roamium/roamium"
-SURFARI="/opt/homebrew/opt/astrohacker-terminal-surfari/surfari"
-SURFARI_LIB="/opt/homebrew/opt/astrohacker-terminal-surfari/libtermsurf_webkit.dylib"
+ROAMIUM="/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd"
+SURFARI="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd"
+SURFARI_LIB="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/libtermsurf_webkit.dylib"
+GIRLBAT="/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd"
+GIRLBAT_RESOURCE_ROOT="/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/Resources"
 HARNESS_LOG="$LOG_DIR/harness-$RUN_ID.log"
 PID=""
 
@@ -230,7 +232,7 @@ EOF
   wait_for_line_after "$app_log" "$start" "SetOverlay: named browser resolved browser=${browser} installed_path=${path}" "$browser installed default resolution" 60 >/dev/null
   wait_for_line_after "$app_log" "$start" "spawned browser path=${path} .* browser=${browser} " "$browser spawned installed binary" 60 >/dev/null
   if [ "$browser" = "surfari" ]; then
-    wait_for_line_after "$app_log" "$start" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-surfari" "surfari runtime env supplied by Ghostboard" 60 >/dev/null
+    wait_for_line_after "$app_log" "$start" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-ah-webkitd" "surfari runtime env supplied by Astrohacker Terminal" 60 >/dev/null
   fi
   ready="$(wait_for_line_after "$app_log" "$start" "BrowserReady: pane_id=.* browser=${browser}" "$browser BrowserReady" 160)"
   [ "$pane" = "$(extract_pane_id "$ready")" ] || fail "$browser BrowserReady pane mismatch"
@@ -253,6 +255,7 @@ require_executable "$APP_BIN"
 require_executable "$WEB"
 require_executable "$ROAMIUM"
 require_executable "$SURFARI"
+require_executable "$GIRLBAT"
 [ -f "$SURFARI_LIB" ] || fail "missing Surfari library: $SURFARI_LIB"
 
 log "run_id=$RUN_ID"
@@ -263,12 +266,17 @@ log "web=$WEB"
 log "roamium=$ROAMIUM"
 log "surfari=$SURFARI"
 log "surfari_lib=$SURFARI_LIB"
+log "girlbat=$GIRLBAT"
 log "harness_log=$HARNESS_LOG"
 log "network_url=https://example.com"
 
 require_version_identity
 require_no_build_tree_rpath "$SURFARI" "installed surfari binary"
 require_no_build_tree_rpath "$SURFARI_LIB" "installed libtermsurf_webkit.dylib"
+
+girlbat_resource_root="$("$GIRLBAT" --termsurf-resource-root-smoke 2>>"$HARNESS_LOG" | sed -n '1p')"
+[ "$girlbat_resource_root" = "$GIRLBAT_RESOURCE_ROOT" ] || fail "girlbat resource root mismatch: $girlbat_resource_root"
+log "PASS: installed ah-ladybirdd resource root=$girlbat_resource_root"
 
 run_browser_smoke "surfari" "$SURFARI" "TERMSURF_SURFARI_PATH" "TERMSURF_INSTALLED_SURFARI_PATH"
 run_browser_smoke "roamium" "$ROAMIUM" "TERMSURF_ROAMIUM_PATH" "TERMSURF_INSTALLED_ROAMIUM_PATH"

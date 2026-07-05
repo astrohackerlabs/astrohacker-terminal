@@ -20,7 +20,7 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: ghostboard, roamium, webtui, gtui, chromium, webkit, surfari-lib, surfari, girlbat-lib, girlbat, all"
+  echo "Components: aht, roamium, webtui, gtui, chromium, webkit, surfari-lib, surfari, girlbat-lib, girlbat, all"
 }
 
 configuration() {
@@ -126,13 +126,13 @@ build_roamium() {
   if $RELEASE; then
     echo "==> Building Roamium (release)..."
     cargo build --release -p roamium
-    cp "$RUST_DIR/target/release/roamium" "$CHROMIUM_OUT/roamium"
+    cp "$RUST_DIR/target/release/ah-chromiumd" "$CHROMIUM_OUT/ah-chromiumd"
   else
     echo "==> Building Roamium (debug)..."
     cargo build -p roamium
-    cp "$RUST_DIR/target/debug/roamium" "$CHROMIUM_OUT/roamium"
+    cp "$RUST_DIR/target/debug/ah-chromiumd" "$CHROMIUM_OUT/ah-chromiumd"
   fi
-  echo "  Roamium: $CHROMIUM_OUT/roamium"
+  echo "  Roamium: $CHROMIUM_OUT/ah-chromiumd"
 }
 
 build_webkit() {
@@ -215,11 +215,11 @@ build_surfari() {
   if $RELEASE; then
     echo "==> Building Surfari (release)..."
     cargo build --release -p surfari
-    echo "  Surfari: $RUST_DIR/target/release/surfari"
+    echo "  Surfari: $RUST_DIR/target/release/ah-webkitd"
   else
     echo "==> Building Surfari (debug)..."
     cargo build -p surfari
-    echo "  Surfari: $RUST_DIR/target/debug/surfari"
+    echo "  Surfari: $RUST_DIR/target/debug/ah-webkitd"
   fi
 }
 
@@ -234,11 +234,11 @@ build_girlbat() {
   if $RELEASE; then
     echo "==> Building Girlbat (release)..."
     cargo build --release -p girlbat
-    echo "  Girlbat: $RUST_DIR/target/release/girlbat"
+    echo "  Girlbat: $RUST_DIR/target/release/ah-ladybirdd"
   else
     echo "==> Building Girlbat (debug)..."
     cargo build -p girlbat
-    echo "  Girlbat: $RUST_DIR/target/debug/girlbat"
+    echo "  Girlbat: $RUST_DIR/target/debug/ah-ladybirdd"
   fi
 }
 
@@ -252,11 +252,15 @@ build_girlbat_lib() {
   if $CLEAN; then
     args+=("--clean")
   fi
-  "$GIRLBAT_LIB_DIR/build.sh" "${args[@]}"
+  if $RELEASE && [ -z "${TERMSURF_LADYBIRD_BACKEND:-}" ]; then
+    TERMSURF_LADYBIRD_BACKEND=real "$GIRLBAT_LIB_DIR/build.sh" "${args[@]}"
+  else
+    "$GIRLBAT_LIB_DIR/build.sh" "${args[@]}"
+  fi
   echo "  libtermsurf_ladybird: $GIRLBAT_LIB_DIR/build/libtermsurf_ladybird.dylib"
 }
 
-build_ghostboard() {
+build_aht() {
   local CONFIGURATION="Debug"
   local ZIG_OPTIMIZE="Debug"
   if $RELEASE; then
@@ -264,7 +268,7 @@ build_ghostboard() {
     ZIG_OPTIMIZE="ReleaseFast"
   fi
 
-  echo "==> Building GhostboardKit ($ZIG_OPTIMIZE)..."
+  echo "==> Building AHTKit ($ZIG_OPTIMIZE)..."
   cd "$GHOSTTY_DIR"
   if [ -n "${TERMSURF_VERSION:-}" ]; then
     zig build -Demit-macos-app=false -Doptimize="$ZIG_OPTIMIZE" "-Dversion-string=$TERMSURF_VERSION"
@@ -274,11 +278,11 @@ build_ghostboard() {
 
   cd "$GHOSTTY_DIR/macos"
   if $CLEAN; then
-    echo "==> Cleaning Ghostboard ($CONFIGURATION)..."
+    echo "==> Cleaning AHT ($CONFIGURATION)..."
     ./build.nu --configuration "$CONFIGURATION" --action clean
   fi
 
-  echo "==> Building Ghostboard ($CONFIGURATION)..."
+  echo "==> Building AHT ($CONFIGURATION)..."
   if [ -n "${TERMSURF_VERSION:-}" ]; then
     ./build.nu --configuration "$CONFIGURATION" --action build --version "$TERMSURF_VERSION"
   else
@@ -287,8 +291,8 @@ build_ghostboard() {
   if $RELEASE; then
     codesign --force --deep --sign - "build/$CONFIGURATION/Astrohacker Terminal.app"
   fi
-  echo "  Ghostboard: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app"
-  echo "  Ghostboard executable: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app/Contents/MacOS/ghostboard"
+  echo "  AHT: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app"
+  echo "  AHT executable: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app/Contents/MacOS/aht"
 }
 
 case "$COMPONENT" in
@@ -301,7 +305,7 @@ case "$COMPONENT" in
   surfari)    build_surfari ;;
   girlbat-lib) build_girlbat_lib ;;
   girlbat)    build_girlbat ;;
-  ghostboard) build_ghostboard ;;
+  aht)        build_aht ;;
   all)
     build_chromium
     build_webtui
@@ -310,7 +314,7 @@ case "$COMPONENT" in
     build_webkit
     build_surfari
     build_girlbat
-    build_ghostboard
+    build_aht
     echo ""
     echo "Done (all)."
     ;;

@@ -27,7 +27,7 @@ PDF navigation depends on runtime pdf.js resources. In particular,
 abort the WebContent process.
 
 Girlbat's Cargo build stages pdf.js assets into the local runtime resource root
-used by `target/debug/girlbat` and `target/release/girlbat`:
+used by `target/debug/ah-ladybirdd` and `target/release/ah-ladybirdd`:
 
 ```text
 target/Resources/ladybird/pdfjs/

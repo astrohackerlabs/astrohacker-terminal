@@ -9,10 +9,10 @@ LOG_DIR="$ROOT/logs/issue-872-exp1-installed-homebrew-scroll"
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-issue872-exp1.XXXXXX")"
 SITE_DIR="$RUN_DIR/site"
 APP="/Applications/Astrohacker Terminal.app"
-APP_BIN="$APP/Contents/MacOS/ghostboard"
+APP_BIN="$APP/Contents/MacOS/aht"
 WEB="/opt/homebrew/bin/web"
-SURFARI="/opt/homebrew/opt/astrohacker-terminal-surfari/surfari"
-SURFARI_LIB="/opt/homebrew/opt/astrohacker-terminal-surfari/libtermsurf_webkit.dylib"
+SURFARI="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd"
+SURFARI_LIB="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/libtermsurf_webkit.dylib"
 COMMAND="$RUN_DIR/run-web.sh"
 APP_LOG="$LOG_DIR/app-$RUN_ID.log"
 WEBTUI_TRACE="$LOG_DIR/webtui-$RUN_ID.log"
@@ -331,9 +331,9 @@ log "pid=$PID"
 START_LINE="$(line_count "$APP_LOG")"
 wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "SetOverlay: pane_id=.* browser=surfari url=${URL}" "web requested surfari overlay" 90
 wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "SetOverlay: named browser resolved browser=surfari installed_path=${SURFARI}" "surfari resolved to installed Homebrew binary" 90
-wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-surfari" "Ghostboard supplied installed Surfari runtime" 90
-wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "spawned browser path=${SURFARI} .* browser=surfari " "Ghostboard spawned installed Surfari binary" 90
-wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "BrowserReady: pane_id=.* browser=surfari" "Ghostboard emitted surfari BrowserReady" 160
+wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-ah-webkitd" "Astrohacker Terminal supplied installed Surfari runtime" 90
+wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "spawned browser path=${SURFARI} .* browser=surfari " "Astrohacker Terminal spawned installed Surfari binary" 90
+wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "BrowserReady: pane_id=.* browser=surfari" "Astrohacker Terminal emitted surfari BrowserReady" 160
 wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "TermSurf geometry layer=appkit event=presented " "AppKit presented overlay" 90
 
 BROWSER_READY_LINE="$(extract_first_match "$APP_LOG" "BrowserReady: pane_id=.* browser=surfari")"

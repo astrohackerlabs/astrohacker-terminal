@@ -3,36 +3,36 @@ set -euo pipefail
 
 COMPONENT="${1:-}"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
-ROAMIUM_INSTALL_DIR="${TERMSURF_ROAMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-roamium}"
+CHROMIUMD_INSTALL_DIR="${TERMSURF_ROAMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
 GTUI_BIN_DIR="${TERMSURF_GTUI_BIN_DIR:-/usr/local/bin}"
 GTUI_INSTALL_DIR="${TERMSURF_GTUI_INSTALL_DIR:-/usr/local/share/termsurf/gtui}"
 
 if [ -z "$COMPONENT" ]; then
   echo "Usage: $0 <component>"
-  echo "Components: ghostboard, roamium, webtui, gtui, all"
+  echo "Components: aht, ah-chromiumd, webtui, gtui, all"
   exit 1
 fi
 
 case "$COMPONENT" in
-  roamium | ghostboard | webtui | gtui | all) ;;
+  ah-chromiumd | aht | webtui | gtui | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: ghostboard, roamium, webtui, gtui, all"
+    echo "Components: aht, ah-chromiumd, webtui, gtui, all"
     exit 1
     ;;
 esac
 
 needs_root() {
-  if [ "$COMPONENT" = "roamium" ] && [ "$ROAMIUM_INSTALL_DIR" != "/opt/homebrew/opt/astrohacker-terminal-roamium" ]; then
-    mkdir -p "$ROAMIUM_INSTALL_DIR" || {
-      echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $ROAMIUM_INSTALL_DIR"
+  if [ "$COMPONENT" = "ah-chromiumd" ] && [ "$CHROMIUMD_INSTALL_DIR" != "/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd" ]; then
+    mkdir -p "$CHROMIUMD_INSTALL_DIR" || {
+      echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
       exit 1
     }
-    [ -w "$ROAMIUM_INSTALL_DIR" ] && return 1
-    echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $ROAMIUM_INSTALL_DIR"
+    [ -w "$CHROMIUMD_INSTALL_DIR" ] && return 1
+    echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
     exit 1
   fi
-  if [ "$COMPONENT" = "ghostboard" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
+  if [ "$COMPONENT" = "aht" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
     mkdir -p "$APPLICATIONS_DIR" || {
       echo "Error: TERMSURF_APPLICATIONS_DIR is not writable: $APPLICATIONS_DIR"
       exit 1
@@ -48,7 +48,7 @@ needs_root() {
 if [ "$(id -u)" -ne 0 ] && needs_root; then
   exec sudo env \
     TERMSURF_APPLICATIONS_DIR="$APPLICATIONS_DIR" \
-    TERMSURF_ROAMIUM_INSTALL_DIR="$ROAMIUM_INSTALL_DIR" \
+    TERMSURF_ROAMIUM_INSTALL_DIR="$CHROMIUMD_INSTALL_DIR" \
     TERMSURF_GTUI_BIN_DIR="$GTUI_BIN_DIR" \
     TERMSURF_GTUI_INSTALL_DIR="$GTUI_INSTALL_DIR" \
     "$0" "$@"
@@ -56,24 +56,25 @@ fi
 
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
 
-uninstall_roamium() {
-  echo "==> Uninstalling Roamium..."
-  rm -rf "$ROAMIUM_INSTALL_DIR"
+uninstall_chromiumd() {
+  echo "==> Uninstalling ah-chromiumd..."
+  rm -rf "$CHROMIUMD_INSTALL_DIR"
   rm -rf /usr/local/roamium
   rm -f /usr/local/bin/roamium
   rm -rf /usr/local/lib/roamium
+  rm -rf /opt/homebrew/opt/astrohacker-terminal-roamium
 
-  echo "  Removed: $ROAMIUM_INSTALL_DIR"
+  echo "  Removed: $CHROMIUMD_INSTALL_DIR"
 }
 
-uninstall_ghostboard() {
+uninstall_aht() {
   local APP_DIR="/Applications"
-  if [ "$COMPONENT" = "ghostboard" ]; then
+  if [ "$COMPONENT" = "aht" ]; then
     APP_DIR="$APPLICATIONS_DIR"
   fi
   local APP="$APP_DIR/Astrohacker Terminal.app"
 
-  echo "==> Uninstalling Ghostboard..."
+  echo "==> Uninstalling Astrohacker Terminal..."
   rm -rf "$APP"
 
   echo "  Removed: $APP"
@@ -96,13 +97,13 @@ uninstall_gtui() {
 }
 
 case "$COMPONENT" in
-  roamium)    uninstall_roamium ;;
-  ghostboard) uninstall_ghostboard ;;
-  webtui)     uninstall_webtui ;;
-  gtui)       uninstall_gtui ;;
+  ah-chromiumd) uninstall_chromiumd ;;
+  aht)          uninstall_aht ;;
+  webtui)       uninstall_webtui ;;
+  gtui)         uninstall_gtui ;;
   all)
-    uninstall_roamium
-    uninstall_ghostboard
+    uninstall_chromiumd
+    uninstall_aht
     uninstall_webtui
     uninstall_gtui
     echo ""

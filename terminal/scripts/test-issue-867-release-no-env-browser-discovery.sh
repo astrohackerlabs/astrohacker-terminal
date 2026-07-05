@@ -6,10 +6,10 @@ RUN_ID="$(date +%Y%m%d-%H%M%S)"
 LOG_DIR="$ROOT/logs/issue-867-exp3-release-no-env"
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-issue867-exp3.XXXXXX")"
 APP="${TERMSURF_RELEASE_GHOSTBOARD_APP:-$ROOT/ghostboard/macos/build/Release/Astrohacker Terminal.app}"
-APP_BIN="$APP/Contents/MacOS/ghostboard"
+APP_BIN="$APP/Contents/MacOS/aht"
 WEB="${TERMSURF_RELEASE_WEB:-$ROOT/target/release/web}"
-ROAMIUM="/opt/homebrew/opt/astrohacker-terminal-roamium/roamium"
-SURFARI="/opt/homebrew/opt/astrohacker-terminal-surfari/surfari"
+ROAMIUM="/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd"
+SURFARI="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd"
 HARNESS_LOG="$LOG_DIR/harness-$RUN_ID.log"
 PID=""
 
@@ -193,7 +193,7 @@ EOF
   wait_for_line_after "$app_log" "$start" "SetOverlay: named browser resolved browser=${browser} installed_path=${path}" "$browser installed default resolution" 60 >/dev/null
   wait_for_line_after "$app_log" "$start" "spawned browser path=${path} .* browser=${browser} " "$browser spawned installed binary" 60 >/dev/null
   if [ "$browser" = "surfari" ]; then
-    wait_for_line_after "$app_log" "$start" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-surfari" "surfari runtime env supplied by Ghostboard" 60 >/dev/null
+    wait_for_line_after "$app_log" "$start" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-ah-webkitd" "surfari runtime env supplied by Astrohacker Terminal" 60 >/dev/null
   fi
   ready="$(wait_for_line_after "$app_log" "$start" "BrowserReady: pane_id=.* browser=${browser}" "$browser BrowserReady" 160)"
   [ "$pane" = "$(extract_pane_id "$ready")" ] || fail "$browser BrowserReady pane mismatch"
@@ -213,7 +213,7 @@ require_unset TERMSURF_INSTALLED_SURFARI_PATH
 require_unset DYLD_FRAMEWORK_PATH
 
 case "$APP_BIN" in
-  "$ROOT/ghostboard/macos/build/Release/Astrohacker Terminal.app/Contents/MacOS/ghostboard") ;;
+  "$ROOT/ghostboard/macos/build/Release/Astrohacker Terminal.app/Contents/MacOS/aht") ;;
   *) fail "expected repo Release app binary, got: $APP_BIN" ;;
 esac
 

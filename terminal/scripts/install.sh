@@ -6,9 +6,9 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 CHROMIUM_OUT="$REPO_DIR/chromium/src/out/Default"
 source "$SCRIPT_DIR/roamium-resources.sh"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
-GHOSTBOARD_RELEASE_APP="$REPO_DIR/ghostboard/macos/build/Release/Astrohacker Terminal.app"
+AHT_RELEASE_APP="$REPO_DIR/ghostboard/macos/build/Release/Astrohacker Terminal.app"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
-ROAMIUM_INSTALL_DIR="${TERMSURF_ROAMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-roamium}"
+CHROMIUMD_INSTALL_DIR="${TERMSURF_ROAMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
 GTUI_BIN_DIR="${TERMSURF_GTUI_BIN_DIR:-/usr/local/bin}"
 GTUI_INSTALL_DIR="${TERMSURF_GTUI_INSTALL_DIR:-/usr/local/share/termsurf/gtui}"
 
@@ -16,36 +16,36 @@ COMPONENT="${1:-}"
 
 if [ -z "$COMPONENT" ]; then
   echo "Usage: $0 <component>"
-  echo "Components: ghostboard, roamium, webtui, gtui, all"
+  echo "Components: aht, ah-chromiumd, webtui, gtui, all"
   exit 1
 fi
 
 case "$COMPONENT" in
-  roamium | ghostboard | webtui | gtui | all) ;;
+  ah-chromiumd | aht | webtui | gtui | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: ghostboard, roamium, webtui, gtui, all"
+    echo "Components: aht, ah-chromiumd, webtui, gtui, all"
     exit 1
     ;;
 esac
 
-if [ "$COMPONENT" = "ghostboard" ] && [ ! -x "$GHOSTBOARD_RELEASE_APP/Contents/MacOS/ghostboard" ]; then
-  echo "Error: Release app not found at $GHOSTBOARD_RELEASE_APP"
-  echo "Run: scripts/build.sh ghostboard --release"
+if [ "$COMPONENT" = "aht" ] && [ ! -x "$AHT_RELEASE_APP/Contents/MacOS/aht" ]; then
+  echo "Error: Release app not found at $AHT_RELEASE_APP"
+  echo "Run: scripts/build.sh aht --release"
   exit 1
 fi
 
 needs_root() {
-  if [ "$COMPONENT" = "roamium" ] && [ "$ROAMIUM_INSTALL_DIR" != "/opt/homebrew/opt/astrohacker-terminal-roamium" ]; then
-    mkdir -p "$ROAMIUM_INSTALL_DIR" || {
-      echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $ROAMIUM_INSTALL_DIR"
+  if [ "$COMPONENT" = "ah-chromiumd" ] && [ "$CHROMIUMD_INSTALL_DIR" != "/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd" ]; then
+    mkdir -p "$CHROMIUMD_INSTALL_DIR" || {
+      echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
       exit 1
     }
-    [ -w "$ROAMIUM_INSTALL_DIR" ] && return 1
-    echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $ROAMIUM_INSTALL_DIR"
+    [ -w "$CHROMIUMD_INSTALL_DIR" ] && return 1
+    echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
     exit 1
   fi
-  if [ "$COMPONENT" = "ghostboard" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
+  if [ "$COMPONENT" = "aht" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
     mkdir -p "$APPLICATIONS_DIR" || {
       echo "Error: TERMSURF_APPLICATIONS_DIR is not writable: $APPLICATIONS_DIR"
       exit 1
@@ -66,55 +66,56 @@ needs_root() {
 if [ "$(id -u)" -ne 0 ] && needs_root; then
   exec sudo env \
     TERMSURF_APPLICATIONS_DIR="$APPLICATIONS_DIR" \
-    TERMSURF_ROAMIUM_INSTALL_DIR="$ROAMIUM_INSTALL_DIR" \
+    TERMSURF_ROAMIUM_INSTALL_DIR="$CHROMIUMD_INSTALL_DIR" \
     TERMSURF_GTUI_BIN_DIR="$GTUI_BIN_DIR" \
     TERMSURF_GTUI_INSTALL_DIR="$GTUI_INSTALL_DIR" \
     "$0" "$@"
 fi
 
-install_roamium() {
-  local ROAMIUM_SRC="$REPO_DIR/target/release/roamium"
-  local INSTALL_DIR="$ROAMIUM_INSTALL_DIR"
+install_chromiumd() {
+  local CHROMIUMD_SRC="$REPO_DIR/target/release/ah-chromiumd"
+  local INSTALL_DIR="$CHROMIUMD_INSTALL_DIR"
 
-  if [ ! -f "$ROAMIUM_SRC" ]; then
-    echo "Error: Release build not found at $ROAMIUM_SRC"
+  if [ ! -f "$CHROMIUMD_SRC" ]; then
+    echo "Error: Release build not found at $CHROMIUMD_SRC"
     echo "Run: scripts/build.sh roamium --release"
     exit 1
   fi
 
-  echo "==> Installing Roamium to $INSTALL_DIR..."
+  echo "==> Installing ah-chromiumd to $INSTALL_DIR..."
   mkdir -p "$INSTALL_DIR"
-  cp "$ROAMIUM_SRC" "$INSTALL_DIR/roamium"
+  cp "$CHROMIUMD_SRC" "$INSTALL_DIR/ah-chromiumd"
 
   copy_roamium_runtime_resources "$CHROMIUM_OUT" "$INSTALL_DIR"
 
-  echo "==> Codesigning Roamium..."
-  codesign --force --sign - "$INSTALL_DIR/roamium" || true
+  echo "==> Codesigning ah-chromiumd..."
+  codesign --force --sign - "$INSTALL_DIR/ah-chromiumd" || true
 
   # Clean up old install locations.
   rm -rf /usr/local/roamium
   rm -f /usr/local/bin/roamium
   rm -rf /usr/local/lib/roamium
+  rm -rf /opt/homebrew/opt/astrohacker-terminal-roamium
 
   echo "  Dir: $INSTALL_DIR"
-  echo "  Bin: $INSTALL_DIR/roamium"
+  echo "  Bin: $INSTALL_DIR/ah-chromiumd"
 }
 
-install_ghostboard() {
-  local APP_SRC="$GHOSTBOARD_RELEASE_APP"
+install_aht() {
+  local APP_SRC="$AHT_RELEASE_APP"
   local APP_DIR="/Applications"
-  if [ "$COMPONENT" = "ghostboard" ]; then
+  if [ "$COMPONENT" = "aht" ]; then
     APP_DIR="$APPLICATIONS_DIR"
   fi
   local APP="$APP_DIR/Astrohacker Terminal.app"
 
-  if [ ! -x "$APP_SRC/Contents/MacOS/ghostboard" ]; then
+  if [ ! -x "$APP_SRC/Contents/MacOS/aht" ]; then
     echo "Error: Release app not found at $APP_SRC"
-    echo "Run: scripts/build.sh ghostboard --release"
+    echo "Run: scripts/build.sh aht --release"
     exit 1
   fi
 
-  echo "==> Installing Ghostboard to $APP..."
+  echo "==> Installing Astrohacker Terminal to $APP..."
   rm -rf "$APP"
   cp -R "$APP_SRC" "$APP"
 
@@ -165,13 +166,13 @@ install_gtui() {
 }
 
 case "$COMPONENT" in
-  roamium)    install_roamium ;;
-  ghostboard) install_ghostboard ;;
-  webtui)     install_webtui ;;
-  gtui)       install_gtui ;;
+  ah-chromiumd) install_chromiumd ;;
+  aht)          install_aht ;;
+  webtui)       install_webtui ;;
+  gtui)         install_gtui ;;
   all)
-    install_roamium
-    install_ghostboard
+    install_chromiumd
+    install_aht
     install_webtui
     install_gtui
     echo ""

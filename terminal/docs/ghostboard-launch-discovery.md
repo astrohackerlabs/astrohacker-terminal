@@ -15,7 +15,7 @@ old installed Roamium.
 The debug app binary is:
 
 ```bash
-ghostboard/macos/build/Debug/Astrohacker Terminal.app/Contents/MacOS/ghostboard
+ghostboard/macos/build/Debug/Astrohacker Terminal.app/Contents/MacOS/aht
 ```
 
 The geometry harness launches this binary directly from
@@ -50,7 +50,7 @@ In debug builds, named browser paths are intentionally explicit:
 - `TERMSURF_SURFARI_PATH` must be set for named `surfari`;
 - `TERMSURF_GIRLBAT_PATH` must be set for named `girlbat`;
 - each value must be an absolute path;
-- debug harnesses set Roamium to `chromium/src/out/Default/roamium`;
+- debug harnesses set Roamium to `chromium/src/out/Default/ah-chromiumd`;
 - debug harnesses set Surfari to the intended Surfari binary path and, when
   needed for debug-only WebKit framework discovery, configure the matching
   runtime environment in the Ghostboard app process;
@@ -58,8 +58,8 @@ In debug builds, named browser paths are intentionally explicit:
 - missing, empty, or relative values fail with a clear
   `SetOverlay: named browser unresolved` log line; and
 - Ghostboard must not fall through to `/usr/local/roamium`,
-  `/usr/local/bin/roamium`, `/opt/homebrew/opt/astrohacker-terminal-roamium`, or
-  `/opt/homebrew/opt/astrohacker-terminal-surfari`, or `/opt/homebrew/opt/astrohacker-terminal-girlbat`
+  `/usr/local/bin/roamium`, `/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd`, or
+  `/opt/homebrew/opt/astrohacker-terminal-ah-webkitd`, or `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd`
   during debug testing.
 
 In non-debug builds, named browsers first accept their developer override if one
@@ -67,9 +67,9 @@ is present, then resolve through installed discovery:
 
 | Browser   | Developer override      | Installed override                | Installed default                                |
 | --------- | ----------------------- | --------------------------------- | ------------------------------------------------ |
-| `roamium` | `TERMSURF_ROAMIUM_PATH` | `TERMSURF_INSTALLED_ROAMIUM_PATH` | `/opt/homebrew/opt/astrohacker-terminal-roamium/roamium`     |
-| `surfari` | `TERMSURF_SURFARI_PATH` | `TERMSURF_INSTALLED_SURFARI_PATH` | `/opt/homebrew/opt/astrohacker-terminal-surfari/surfari`     |
-| `girlbat` | `TERMSURF_GIRLBAT_PATH` | `TERMSURF_INSTALLED_GIRLBAT_PATH` | `/opt/homebrew/opt/astrohacker-terminal-girlbat/bin/girlbat` |
+| `roamium` | `TERMSURF_ROAMIUM_PATH` | `TERMSURF_INSTALLED_ROAMIUM_PATH` | `/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd`     |
+| `surfari` | `TERMSURF_SURFARI_PATH` | `TERMSURF_INSTALLED_SURFARI_PATH` | `/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd`         |
+| `girlbat` | `TERMSURF_GIRLBAT_PATH` | `TERMSURF_INSTALLED_GIRLBAT_PATH` | `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd` |
 
 The `TERMSURF_ROAMIUM_PATH`, `TERMSURF_SURFARI_PATH`, and
 `TERMSURF_GIRLBAT_PATH` variables are Ghostboard-process developer overrides.
@@ -90,7 +90,7 @@ Ghostboard sets the Surfari child process `DYLD_FRAMEWORK_PATH` to the directory
 containing the resolved Surfari executable. This is not a shell-local `web`
 lookup override and users should not set it themselves for normal Homebrew
 usage. It lets installed Surfari load the WebKit frameworks beside
-`/opt/homebrew/opt/astrohacker-terminal-surfari/surfari`.
+`/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd`.
 
 Ghostboard keeps the pane/server/browser key as the requested browser name
 (`roamium`) even when it spawns the executable from `TERMSURF_ROAMIUM_PATH`.
@@ -131,7 +131,7 @@ is being tested from the repository.
 
 Issue 819 owns packaging identity and normal installed distribution behavior. It
 defines the installed Roamium location as
-`/opt/homebrew/opt/astrohacker-terminal-roamium/roamium` and the installed Surfari location
-as `/opt/homebrew/opt/astrohacker-terminal-surfari/surfari`. Issue 885 adds the installed
-Girlbat prototype location as `/opt/homebrew/opt/astrohacker-terminal-girlbat/bin/girlbat`,
+`/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd` and the installed Surfari location
+as `/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd`. Issue 885 adds the installed
+Girlbat prototype location as `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd`,
 matching the Homebrew cask and manual install scripts.

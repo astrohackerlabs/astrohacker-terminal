@@ -7,10 +7,10 @@ START_EPOCH="$(date +%s)"
 LOG_DIR="${TERMSURF_ISSUE882_LOG_DIR:-$ROOT/logs/issue-882-exp1-installed-cold-start}"
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-issue882-exp1.XXXXXX")"
 APP="/Applications/Astrohacker Terminal.app"
-APP_BIN="$APP/Contents/MacOS/ghostboard"
+APP_BIN="$APP/Contents/MacOS/aht"
 WEB="/opt/homebrew/bin/web"
-ROAMIUM="/opt/homebrew/opt/astrohacker-terminal-roamium/roamium"
-SURFARI="/opt/homebrew/opt/astrohacker-terminal-surfari/surfari"
+ROAMIUM="/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd"
+SURFARI="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd"
 POSTFLIGHT_WARMUP_LOG="/opt/homebrew/var/log/termsurf/postflight-warmup.log"
 SUMMARY="$LOG_DIR/summary-$RUN_ID.tsv"
 HARNESS_LOG="$LOG_DIR/harness-$RUN_ID.log"
@@ -190,9 +190,9 @@ stop_app() {
 }
 
 kill_engines() {
-  pkill -x roamium >/dev/null 2>&1 || true
-  pkill -x surfari >/dev/null 2>&1 || true
-  pkill -x ghostboard >/dev/null 2>&1 || true
+  pkill -x ah-chromiumd >/dev/null 2>&1 || true
+  pkill -x ah-webkitd >/dev/null 2>&1 || true
+  pkill -x aht >/dev/null 2>&1 || true
   delay 1 || true
 }
 
@@ -204,15 +204,15 @@ capture_validation_context() {
     echo "captured_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     echo "== xattr Astrohacker Terminal.app quarantine =="
     xattr -p com.apple.quarantine "$APP" 2>&1 || true
-    echo "== xattr roamium quarantine =="
+    echo "== xattr ah-chromiumd quarantine =="
     xattr -p com.apple.quarantine "$ROAMIUM" 2>&1 || true
-    echo "== xattr surfari quarantine =="
+    echo "== xattr ah-webkitd quarantine =="
     xattr -p com.apple.quarantine "$SURFARI" 2>&1 || true
     echo "== spctl Astrohacker Terminal.app =="
     spctl -a -vv "$APP" 2>&1 || true
-    echo "== spctl roamium =="
+    echo "== spctl ah-chromiumd =="
     spctl -a -vv "$ROAMIUM" 2>&1 || true
-    echo "== spctl surfari =="
+    echo "== spctl ah-webkitd =="
     spctl -a -vv "$SURFARI" 2>&1 || true
     echo "== unified log validation hints =="
     log show --last 5m --style compact \

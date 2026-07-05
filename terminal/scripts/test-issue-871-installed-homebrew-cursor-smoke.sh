@@ -9,9 +9,9 @@ LOG_DIR="$ROOT/logs/issue-871-exp1-installed-homebrew-cursor"
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-issue871-exp1.XXXXXX")"
 SITE_DIR="$RUN_DIR/site"
 APP="/Applications/Astrohacker Terminal.app"
-APP_BIN="$APP/Contents/MacOS/ghostboard"
+APP_BIN="$APP/Contents/MacOS/aht"
 WEB="/opt/homebrew/bin/web"
-SURFARI="/opt/homebrew/opt/astrohacker-terminal-surfari/surfari"
+SURFARI="/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd"
 COMMAND="$RUN_DIR/run-web.sh"
 APP_LOG="$LOG_DIR/app-$RUN_ID.log"
 WEBTUI_TRACE="$LOG_DIR/webtui-$RUN_ID.log"
@@ -333,9 +333,9 @@ log "pid=$PID"
 START_LINE="$(line_count "$APP_LOG")"
 wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "SetOverlay: pane_id=.* browser=surfari url=${URL}" "web requested surfari overlay" 90
 wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "SetOverlay: named browser resolved browser=surfari installed_path=${SURFARI}" "surfari resolved to installed Homebrew binary" 90
-wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-surfari" "Ghostboard supplied installed Surfari runtime" 90
-wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "spawned browser path=${SURFARI} .* browser=surfari " "Ghostboard spawned installed Surfari binary" 90
-wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "BrowserReady: pane_id=.* browser=surfari" "Ghostboard emitted surfari BrowserReady" 160
+wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-ah-webkitd" "Astrohacker Terminal supplied installed Surfari runtime" 90
+wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "spawned browser path=${SURFARI} .* browser=surfari " "Astrohacker Terminal spawned installed Surfari binary" 90
+wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "BrowserReady: pane_id=.* browser=surfari" "Astrohacker Terminal emitted surfari BrowserReady" 160
 wait_for_file_pattern_after "$APP_LOG" "$START_LINE" "TermSurf geometry layer=appkit event=presented " "AppKit presented overlay" 90
 
 BROWSER_READY_LINE="$(extract_first_match "$APP_LOG" "BrowserReady: pane_id=.* browser=surfari")"
@@ -356,11 +356,11 @@ log "pane_id=$PANE_ID"
 log "browser_tab_id=$BROWSER_TAB_ID"
 log "presented_window_bounds=$WIN_LINE"
 
-activate_pid "$PID" "pre-browse Ghostboard activation"
+activate_pid "$PID" "pre-browse Astrohacker Terminal activation"
 MODE_START="$(line_count "$APP_LOG")"
 swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
 wait_for_file_pattern_after "$APP_LOG" "$MODE_START" "ModeChanged: pane_id=${PANE_ID} browsing=true" "webtui entered Browse mode" 45
-activate_pid "$PID" "post-browse Ghostboard activation"
+activate_pid "$PID" "post-browse Astrohacker Terminal activation"
 
 read -r BG_X BG_Y <<<"$(global_point_for_web_point "$WIN_LINE" "$PRESENTED_LINE" 45 45)"
 read -r BG2_X BG2_Y <<<"$(global_point_for_web_point "$WIN_LINE" "$PRESENTED_LINE" 50 48)"

@@ -89,7 +89,7 @@ engine build:
 
 ```bash
 ./rust/target/debug/web \
-  --browser ./forks/chromium/src/out/Default/roamium \
+  --browser ./forks/chromium/src/out/Default/ah-chromiumd \
   https://example.com
 ```
 

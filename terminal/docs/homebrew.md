@@ -38,12 +38,12 @@ The cask installs:
 - `Astrohacker Terminal.app` to `/Applications/Astrohacker Terminal.app`;
 - `web` to the Homebrew binary path;
 - `termsurf` to the Homebrew binary path;
-- Roamium and Chromium runtime resources to
-  `/opt/homebrew/opt/astrohacker-terminal-roamium/`;
-- Surfari and WebKit runtime resources to
-  `/opt/homebrew/opt/astrohacker-terminal-surfari/`;
-- Girlbat prototype and Ladybird runtime resources to
-  `/opt/homebrew/opt/astrohacker-terminal-girlbat/`;
+- `ah-chromiumd` and Chromium runtime resources to
+  `/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/`;
+- `ah-webkitd` and WebKit runtime resources to
+  `/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/`;
+- `ah-ladybirdd` prototype and Ladybird runtime resources to
+  `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/`;
 - GTUI Deno app assets to
   `/opt/homebrew/opt/astrohacker-terminal-gtui/`.
 
@@ -53,9 +53,9 @@ The release tarball contains the same top-level package contract:
 - `web`;
 - `termsurf`;
 - `gtui/`;
-- `roamium/`;
-- `surfari/`;
-- `girlbat/`.
+- `ah-chromiumd/`;
+- `ah-webkitd/`;
+- `ah-ladybirdd/`.
 
 ## Verification
 
@@ -71,19 +71,19 @@ evidence such as logs or screenshots showing:
 - `Astrohacker Terminal.app` launched from the installed app path;
 - the TermSurf socket was created;
 - `web --browser roamium https://example.com` opened and rendered the page;
-- Ghostboard resolved the installed Roamium path:
-  `/opt/homebrew/opt/astrohacker-terminal-roamium/roamium`;
+- Astrohacker Terminal resolved the installed `ah-chromiumd` path:
+  `/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd`;
 - `web --browser surfari https://example.com` opened and rendered the page;
-- Ghostboard resolved the installed Surfari path:
-  `/opt/homebrew/opt/astrohacker-terminal-surfari/surfari`;
+- Astrohacker Terminal resolved the installed `ah-webkitd` path:
+  `/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd`;
 - `web --browser girlbat http://127.0.0.1:<fixture>/` opened the local fixture
   through the installed Girlbat prototype;
-- Ghostboard resolved the installed Girlbat path:
-  `/opt/homebrew/opt/astrohacker-terminal-girlbat/bin/girlbat`;
+- Astrohacker Terminal resolved the installed `ah-ladybirdd` path:
+  `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd`;
 - the installed Girlbat prototype loaded its resources from
-  `/opt/homebrew/opt/astrohacker-terminal-girlbat/Resources` and all non-system
+  `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/Resources` and all non-system
   dylib dependencies resolved from
-  `/opt/homebrew/opt/astrohacker-terminal-girlbat/lib`;
+  `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/lib`;
 - no smoke required `TERMSURF_ROAMIUM_PATH`, `TERMSURF_SURFARI_PATH`,
   `TERMSURF_GIRLBAT_PATH`, `TERMSURF_INSTALLED_ROAMIUM_PATH`,
   `TERMSURF_INSTALLED_SURFARI_PATH`, or `TERMSURF_INSTALLED_GIRLBAT_PATH`.
