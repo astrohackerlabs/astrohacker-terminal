@@ -226,14 +226,17 @@ fn browser_name() -> io::Result<String> {
     }
 
     let repo_root = repo_root_from_exe()?;
-    let roamium = repo_root.join("chromium/src/out/Default/ah-chromiumd");
-    if roamium.exists() {
-        return roamium.to_str().map(str::to_string).ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidData, "Roamium path is not UTF-8")
+    let chromium = repo_root.join("chromium/src/out/Default/ah-chromiumd");
+    if chromium.exists() {
+        return chromium.to_str().map(str::to_string).ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Chromium helper path is not UTF-8",
+            )
         });
     }
 
-    Ok("roamium".to_string())
+    Ok("chromium".to_string())
 }
 
 fn repo_root_from_exe() -> io::Result<PathBuf> {

@@ -371,7 +371,7 @@ struct Cli {
     #[arg(long, global = true)]
     incognito: bool,
 
-    /// Browser binary to use ("chromium", "plusium", or absolute path)
+    /// Browser engine to use ("chromium", "webkit", "ladybird", "gecko") or absolute path
     #[arg(short, long, global = true)]
     browser: Option<String>,
 
@@ -643,8 +643,7 @@ fn main() -> io::Result<()> {
     loop {
         let mut viewport_rect = Rect::default();
         let mut frame_area = Rect::default();
-        // Extract display name from browser (last path component for absolute paths).
-        let browser_label = browser.rsplit('/').next().unwrap_or(&browser);
+        let browser_label = browser_display_label(&browser);
         terminal.draw(|frame| {
             frame_area = frame.area();
             viewport_rect = ui(
@@ -1698,6 +1697,17 @@ fn viewport_identity_label(
     }
 }
 
+fn browser_display_label(browser: &str) -> &str {
+    let basename = browser.rsplit('/').next().unwrap_or(browser);
+    match basename {
+        "chromium" | "ah-chromiumd" => "chromium",
+        "webkit" | "ah-webkitd" => "webkit",
+        "ladybird" | "ah-ladybirdd" => "ladybird",
+        "gecko" | "ah-geckod" => "gecko",
+        _ => basename,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct BrowserLayout {
     viewport_area: Rect,
@@ -2244,7 +2254,7 @@ mod tests {
                     -1,
                     1,
                     &None,
-                    "roamium",
+                    "chromium",
                     "",
                     &None,
                     &None,
@@ -2486,7 +2496,7 @@ mod tests {
 
     #[test]
     fn loading_screen_uses_browser_label_and_immediate_warning() {
-        for browser_label in ["surfari", "roamium"] {
+        for browser_label in ["webkit", "chromium", "ladybird"] {
             let rendered = render_loading_probe(browser_label);
             assert!(
                 rendered
@@ -2507,6 +2517,26 @@ mod tests {
                 "loading screen should not mention Chromium\n{}",
                 rendered.capture
             );
+        }
+    }
+
+    #[test]
+    fn browser_display_label_maps_known_engines_and_helpers() {
+        for (input, expected) in [
+            ("chromium", "chromium"),
+            ("webkit", "webkit"),
+            ("ladybird", "ladybird"),
+            ("gecko", "gecko"),
+            ("ah-chromiumd", "chromium"),
+            ("ah-webkitd", "webkit"),
+            ("ah-ladybirdd", "ladybird"),
+            ("ah-geckod", "gecko"),
+            ("/opt/homebrew/bin/ah-chromiumd", "chromium"),
+            ("/opt/homebrew/bin/ah-webkitd", "webkit"),
+            ("/opt/homebrew/bin/ah-ladybirdd", "ladybird"),
+            ("/tmp/custom-engine", "custom-engine"),
+        ] {
+            assert_eq!(browser_display_label(input), expected, "{input}");
         }
     }
 

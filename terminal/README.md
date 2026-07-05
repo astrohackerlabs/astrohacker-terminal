@@ -133,8 +133,8 @@ logging into Google in one profile doesn't affect the others.
 
 The Homebrew cask currently supports Apple silicon macOS and installs the
 current Astrohacker Terminal app, the `web` CLI, the `termsurf` GTUI CLI,
-Roamium with Chromium runtime resources, Surfari with WebKit runtime resources,
-and the Girlbat/Ladybird prototype:
+`ah-chromiumd` with Chromium runtime resources, `ah-webkitd` with WebKit runtime
+resources, and the `ah-ladybirdd` Ladybird prototype:
 
 ```bash
 brew tap astrohackerlabs/astrohacker
@@ -243,12 +243,12 @@ bun run build:terminal-website
 bun run build:terminal-cloud
 ```
 
-`rust/` builds the `web`, `termsurf`, `roamium`, `surfari`, `girlbat`, and
+`rust/` builds the `web`, `termsurf`, `ah-chromiumd`, `ah-webkitd`, `ah-ladybirdd`, and
 Roastty support targets. `bun/` builds the Astrohacker website, Astrohacker
 Terminal website, Terminal Cloud package, and GTUI app support code.
 
 The compatibility build helper under `terminal/scripts/build.sh` uses the new
-monorepo paths while preserving the old component names:
+monorepo paths while preserving the historical component selectors:
 
 ```bash
 terminal/scripts/build.sh webtui

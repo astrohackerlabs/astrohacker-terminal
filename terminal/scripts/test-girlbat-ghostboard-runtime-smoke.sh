@@ -75,6 +75,20 @@ wait_for_literal() {
   fail "timed out waiting for $label text=$text app_log=$APP_LOG"
 }
 
+wait_for_trace_pattern() {
+  local pattern="$1"
+  local label="$2"
+  local attempts="${3:-60}"
+  for _ in $(seq 1 "$attempts"); do
+    if grep -E "$pattern" "$WEBTUI_TRACE" >/dev/null 2>&1; then
+      log "PASS: $label"
+      return 0
+    fi
+    delay 1
+  done
+  fail "timed out waiting for $label pattern=$pattern webtui_trace=$WEBTUI_TRACE"
+}
+
 pick_port() {
   python3 - <<'PY'
 import socket
@@ -151,18 +165,12 @@ with urllib.request.urlopen(sys.argv[1], timeout=1) as response:
 PY
 
 COMMAND="$RUN_DIR/run-web.sh"
-CONFIG="$RUN_DIR/config"
 XDG_CONFIG_HOME="$RUN_DIR/xdg"
 cat >"$COMMAND" <<EOF
 #!/usr/bin/env bash
-exec "$WEB" --browser girlbat "$URL"
+exec "$WEB" --browser ladybird "$URL"
 EOF
 chmod +x "$COMMAND"
-
-cat >"$CONFIG" <<EOF
-window-save-state = never
-initial-command = direct:$COMMAND
-EOF
 
 log "app=$APP"
 log "web=$WEB"
@@ -172,25 +180,29 @@ log "app_log=$APP_LOG"
 log "harness_log=$HARNESS_LOG"
 log "webtui_trace=$WEBTUI_TRACE"
 
-XDG_CONFIG_HOME="$XDG_CONFIG_HOME" \
-GHOSTTY_CONFIG_PATH="$CONFIG" \
-GHOSTTY_LOG=stderr \
-TERMSURF_GEOMETRY_TRACE=1 \
-TERMSURF_GEOMETRY_SCENARIO=issue-884-girlbat-runtime \
-TERMSURF_GIRLBAT_PATH="$GIRLBAT" \
-TERMSURF_WEBTUI_STATE_TRACE_FILE="$WEBTUI_TRACE" \
-  "$APP_BIN" >"$APP_LOG" 2>&1 &
+env \
+  XDG_CONFIG_HOME="$XDG_CONFIG_HOME" \
+  GHOSTTY_LOG=stderr \
+  TERMSURF_GEOMETRY_TRACE=1 \
+  TERMSURF_GEOMETRY_SCENARIO=issue-884-girlbat-runtime \
+  TERMSURF_GIRLBAT_PATH="$GIRLBAT" \
+  TERMSURF_WEBTUI_STATE_TRACE_FILE="$WEBTUI_TRACE" \
+  "$APP_BIN" \
+  --window-save-state=never \
+  --confirm-close-surface=false \
+  --initial-command="direct:$COMMAND" >"$APP_LOG" 2>&1 &
 PID="$!"
 log "pid=$PID"
 
 wait_for_pattern "TermSurf message decoded type=HelloRequest" "WebTUI connected to Astrohacker Terminal"
-wait_for_pattern "SetOverlay: pane_id=.* profile=default browser=girlbat url=${URL}" "SetOverlay names Girlbat"
-wait_for_literal "SetOverlay: named browser resolved browser=girlbat env=TERMSURF_GIRLBAT_PATH path=${GIRLBAT}" "Astrohacker Terminal resolved named Girlbat"
-wait_for_pattern "spawned browser path=${GIRLBAT} pid=[0-9]+ profile=default browser=girlbat .*render_surface_service=com\\.termsurf\\.girlbat\\.render\\." "Astrohacker Terminal spawned Girlbat with render side-channel"
+wait_for_pattern "SetOverlay: pane_id=.* profile=default browser=ladybird url=${URL}" "SetOverlay names Ladybird"
+wait_for_literal "SetOverlay: named browser resolved browser=ladybird env=TERMSURF_GIRLBAT_PATH path=${GIRLBAT}" "Astrohacker Terminal resolved named Ladybird"
+wait_for_pattern "spawned browser path=${GIRLBAT} pid=[0-9]+ profile=default browser=ladybird .*render_surface_service=com\\.termsurf\\.girlbat\\.render\\." "Astrohacker Terminal spawned Ladybird with render side-channel"
 wait_for_literal "[Girlbat] render side-channel global connected=true" "Girlbat connected render side-channel"
-wait_for_pattern "ServerRegister: profile=default browser=girlbat" "Astrohacker Terminal registered Girlbat"
+wait_for_pattern "ServerRegister: profile=default browser=ladybird" "Astrohacker Terminal registered Ladybird"
 wait_for_pattern "TabReady: pane_id=.* tab_id=[0-9]+" "Astrohacker Terminal mapped Girlbat TabReady"
-wait_for_pattern "BrowserReady: pane_id=.* tab_id=[0-9]+ socket=.* browser=girlbat" "Astrohacker Terminal sent BrowserReady for Girlbat"
+wait_for_pattern "BrowserReady: pane_id=.* tab_id=[0-9]+ socket=.* browser=ladybird" "Astrohacker Terminal sent BrowserReady for Ladybird"
+wait_for_trace_pattern "event=render_state[[:space:]].*browser_label=ladybird" "WebTUI footer labels Ladybird" 90
 wait_for_pattern "\\[Girlbat\\] engine load finished tab_id=[0-9]+ url=${URL}" "Girlbat finished normal HTTP page load" 90
 wait_for_pattern "\\[Girlbat\\] engine RenderSurface metadata sent_to=[1-9][0-9]* tab_id=[0-9]+ generation=[0-9]+ attachment_id=[1-9][0-9]*" "Girlbat emitted nonzero RenderSurface metadata"
 wait_for_pattern "RenderSurface: tab_id=[0-9]+ pane_id=.* generation=[0-9]+ pixel=[1-9][0-9]*x[1-9][0-9]* .* attachment_id=[1-9][0-9]*" "Astrohacker Terminal received matched Girlbat RenderSurface"

@@ -19,7 +19,7 @@ POINTER_DRIVER="${TERMSURF_GEOMETRY_POINTER_DRIVER:-cgevent}"
 URL="${TERMSURF_GEOMETRY_URL:-https://example.com}"
 BORDER_CONFIG_CASE="${TERMSURF_SPLIT_BORDER_CONFIG_CASE:-enabled}"
 HELLO_CONFIG_HOMEPAGE="${TERMSURF_HELLO_CONFIG_HOMEPAGE:-https://example.net/issue-815-homepage}"
-HELLO_CONFIG_SECOND_BROWSER="${TERMSURF_HELLO_CONFIG_SECOND_BROWSER:-debug-roamium}"
+HELLO_CONFIG_SECOND_BROWSER="${TERMSURF_HELLO_CONFIG_SECOND_BROWSER:-webkit}"
 URL_B="${TERMSURF_GEOMETRY_SECOND_URL:-https://example.org}"
 URL_C="${TERMSURF_GEOMETRY_THIRD_URL:-https://example.net}"
 APP_LOG="$LOG_DIR/ghostboard-geometry-${SCENARIO}-app-${TS}.log"
@@ -2932,7 +2932,7 @@ EOF
 fi
 
 if [ "$SCENARIO" = "named-roamium-invalid-env" ]; then
-  ROAMIUM_PATH_FOR_APP="roamium"
+  ROAMIUM_PATH_FOR_APP="chromium"
 fi
 
 if [ "$SCENARIO" = "launch-discovery-contract" ]; then
@@ -2957,7 +2957,7 @@ EOF
   log "named_command=$NAMED_COMMAND"
   log "invalid_env_command=$INVALID_ENV_COMMAND"
   log "named_roamium_env=$ROAMIUM"
-  log "invalid_roamium_env=roamium"
+  log "invalid_roamium_env=chromium"
   grep -F -- "exec \"$WEB\" --browser \"$ROAMIUM\" \"$URL\"" "$COMMAND" >/dev/null 2>&1 || fail "absolute launch command does not use explicit --browser path"
   log "PASS: absolute launch command uses explicit --browser path"
   grep -F -- "--browser" "$NAMED_COMMAND" >/dev/null 2>&1 && fail "named launch command unexpectedly contains --browser"
@@ -2966,8 +2966,8 @@ EOF
   [ "${ROAMIUM:0:1}" = "/" ] || fail "debug Roamium path is not absolute: $ROAMIUM"
   log "PASS: named Roamium debug env is absolute"
   grep -F -- "--browser" "$INVALID_ENV_COMMAND" >/dev/null 2>&1 && fail "invalid-env command unexpectedly contains --browser"
-  [ "roamium" != "${ROAMIUM}" ] || fail "invalid-env sentinel equals debug Roamium path"
-  case "roamium" in
+  [ "chromium" != "${ROAMIUM}" ] || fail "invalid-env sentinel equals debug Chromium helper path"
+  case "chromium" in
     /*) fail "invalid-env sentinel is unexpectedly absolute" ;;
   esac
   log "PASS: invalid named Roamium env sentinel is relative"
@@ -3039,7 +3039,7 @@ fi
 
 if [ "$SCENARIO" = "hello-config-browser-list" ]; then
   cat >>"$CONFIG" <<EOF
-browser = roamium
+browser = chromium
 browser = $HELLO_CONFIG_SECOND_BROWSER
 EOF
 fi
@@ -3237,12 +3237,12 @@ EOF
       log "PASS: $label did not consume any fallback sentinel homepage"
     else
       wait_for_config_path_log "reading configuration file path=$expected_path" "$label loaded expected config path" 45
-      wait_for_config_path_log "TermSurf Hello config homepage=$expected_homepage browsers=roamium" "$label loaded expected homepage" 45
-      wait_for_config_path_log "TermSurf HelloReply sent homepage=$expected_homepage browsers=roamium" "$label sent expected HelloReply homepage" 45
-      wait_for_log "SetOverlay: pane_id=.* profile=default browser=roamium url=${expected_homepage}" "$label webtui consumed expected homepage" 45
+      wait_for_config_path_log "TermSurf Hello config homepage=$expected_homepage browsers=chromium" "$label loaded expected homepage" 45
+      wait_for_config_path_log "TermSurf HelloReply sent homepage=$expected_homepage browsers=chromium" "$label sent expected HelloReply homepage" 45
+      wait_for_log "SetOverlay: pane_id=.* profile=default browser=chromium url=${expected_homepage}" "$label webtui consumed expected homepage" 45
 
       require_no_config_path_log "reading configuration file path=.*(ghostty/config\\.ghostty|Application Support)" "$label did not load inherited Ghostty or Application Support config paths"
-      require_config_path_log "SetOverlay: named browser resolved browser=roamium env=TERMSURF_ROAMIUM_PATH path=${ROAMIUM}" "$label used debug Roamium resolver"
+      require_config_path_log "SetOverlay: named browser resolved browser=chromium env=TERMSURF_ROAMIUM_PATH path=${ROAMIUM}" "$label used debug Chromium helper resolver"
     fi
 
     kill "$PID" >/dev/null 2>&1 || true
@@ -4021,7 +4021,7 @@ if [ "$SCENARIO" = "hello-config-homepage" ]; then
   log "hello_config_homepage=$HELLO_CONFIG_HOMEPAGE"
 fi
 if [ "$SCENARIO" = "hello-config-browser-list" ]; then
-  log "hello_config_browsers=roamium,$HELLO_CONFIG_SECOND_BROWSER"
+  log "hello_config_browsers=chromium,$HELLO_CONFIG_SECOND_BROWSER"
 fi
 log "app_log=$APP_LOG"
 log "roamium_trace=$ROAMIUM_TRACE"
@@ -4205,16 +4205,16 @@ log "pid=$PID"
 
 if [ "$SCENARIO" = "named-roamium-invalid-env" ]; then
   wait_for_log "TermSurf message decoded type=HelloRequest" "HelloRequest over TERMSURF_SOCKET" 45
-  wait_for_log "SetOverlay: pane_id=.* profile=default browser=roamium url=${URL}" "named Roamium SetOverlay with invalid env" 45
-  wait_for_log "SetOverlay: named browser unresolved browser=roamium env=TERMSURF_ROAMIUM_PATH value=roamium" "clear named Roamium invalid-env failure" 45
-  if grep -E "SetOverlay: created pending server key=default/roamium" "$APP_LOG" >/dev/null 2>&1; then
-    fail "invalid named Roamium env left a pending default/roamium server"
+  wait_for_log "SetOverlay: pane_id=.* profile=default browser=chromium url=${URL}" "named Chromium SetOverlay with invalid env" 45
+  wait_for_log "SetOverlay: named browser unresolved browser=chromium env=TERMSURF_ROAMIUM_PATH value=chromium" "clear named Chromium invalid-env failure" 45
+  if grep -E "SetOverlay: created pending server key=default/chromium" "$APP_LOG" >/dev/null 2>&1; then
+    fail "invalid named Chromium env left a pending default/chromium server"
   fi
-  log "PASS: invalid named Roamium env did not create a pending server"
+  log "PASS: invalid named Chromium env did not create a pending server"
   if grep -E "spawned browser path=" "$APP_LOG" >/dev/null 2>&1; then
-    fail "invalid named Roamium env spawned a browser"
+    fail "invalid named Chromium env spawned a browser"
   fi
-  log "PASS: invalid named Roamium env did not spawn a browser"
+  log "PASS: invalid named Chromium env did not spawn a browser"
   log "PASS: scenario named-roamium-invalid-env"
   exit 0
 fi
@@ -4816,7 +4816,7 @@ if [ "$SCENARIO" = "visible-profile-identity" ]; then
 
   require_log "SetOverlay: pane_id=${A_PANE_ID} profile=default browser=${ROAMIUM}" "browser A SetOverlay uses default profile and absolute Roamium path"
   require_trace "tab-ready tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} inspected_tab_id=0" "browser A Roamium tab-ready identity"
-  wait_for_state_trace "event=render_state.*identity_label=roamium/default#${A_BROWSER_TAB_ID}.*browser_label=roamium.*profile=default.*is_devtools=false.*current_tab_id=${A_BROWSER_TAB_ID}.*inspected_tab_id=-1" "browser A visible default-profile identity label" 45
+  wait_for_state_trace "event=render_state.*identity_label=chromium/default#${A_BROWSER_TAB_ID}.*browser_label=chromium.*profile=default.*is_devtools=false.*current_tab_id=${A_BROWSER_TAB_ID}.*inspected_tab_id=-1" "browser A visible default-profile identity label" 45
 
   B_TAB_START_LINE="$(log_line_count)"
   B_TAB_TRACE_START_LINE="$(trace_line_count)"
@@ -4850,7 +4850,7 @@ if [ "$SCENARIO" = "visible-profile-identity" ]; then
   [ -n "$B_BROWSER_TAB_ID" ] || fail "failed to extract browser B browser tab id"
   log "identity_browser_b_pane_id=$B_PANE_ID"
   log "identity_browser_b_browser_tab_id=$B_BROWSER_TAB_ID"
-  wait_for_state_trace_after "$B_TAB_STATE_START_LINE" "event=render_state.*identity_label=roamium/profilea#${B_BROWSER_TAB_ID}.*browser_label=roamium.*profile=profilea.*is_devtools=false.*current_tab_id=${B_BROWSER_TAB_ID}.*inspected_tab_id=-1" "browser B visible profilea identity label" 45
+  wait_for_state_trace_after "$B_TAB_STATE_START_LINE" "event=render_state.*identity_label=chromium/profilea#${B_BROWSER_TAB_ID}.*browser_label=chromium.*profile=profilea.*is_devtools=false.*current_tab_id=${B_BROWSER_TAB_ID}.*inspected_tab_id=-1" "browser B visible profilea identity label" 45
 
   DEVTOOLS_START_LINE="$(log_line_count)"
   DEVTOOLS_TRACE_START_LINE="$(trace_line_count)"
@@ -4874,7 +4874,7 @@ if [ "$SCENARIO" = "visible-profile-identity" ]; then
   [ "$DT_BROWSER_TAB_ID" != "$B_BROWSER_TAB_ID" ] || fail "identity DevTools browser tab id reused inspected browser tab id"
   log "identity_devtools_pane_id=$DT_PANE_ID"
   log "identity_devtools_browser_tab_id=$DT_BROWSER_TAB_ID"
-  wait_for_state_trace_after "$DEVTOOLS_STATE_START_LINE" "event=render_state.*identity_label=roamium/profilea#${B_BROWSER_TAB_ID}.*browser_label=roamium.*profile=profilea.*is_devtools=true.*current_tab_id=${DT_BROWSER_TAB_ID}.*inspected_tab_id=${B_BROWSER_TAB_ID}" "DevTools visible inspected-tab profile identity label" 45
+  wait_for_state_trace_after "$DEVTOOLS_STATE_START_LINE" "event=render_state.*identity_label=chromium/profilea#${B_BROWSER_TAB_ID}.*browser_label=chromium.*profile=profilea.*is_devtools=true.*current_tab_id=${DT_BROWSER_TAB_ID}.*inspected_tab_id=${B_BROWSER_TAB_ID}" "DevTools visible inspected-tab profile identity label" 45
 
   log "PASS: scenario visible-profile-identity"
 fi
@@ -5385,11 +5385,11 @@ if [ "$SCENARIO" = "named-roamium-debug-launch" ]; then
   fi
   log "PASS: named Roamium debug launch command omits --browser"
   require_log "TermSurf message decoded type=HelloRequest" "named Roamium webtui discovered TERMSURF_SOCKET"
-  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=roamium" "Ghostboard sent HelloReply homepage and browser defaults"
-  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=roamium url=${URL}" "Ghostboard received named Roamium SetOverlay"
-  require_log "SetOverlay: named browser resolved browser=roamium env=TERMSURF_ROAMIUM_PATH path=${ROAMIUM}" "Ghostboard resolved named Roamium to debug path"
+  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=chromium" "Ghostboard sent HelloReply homepage and browser defaults"
+  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "Ghostboard received named Chromium SetOverlay"
+  require_log "SetOverlay: named browser resolved browser=chromium env=TERMSURF_ROAMIUM_PATH path=${ROAMIUM}" "Ghostboard resolved named Chromium to debug path"
   require_log "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" "Ghostboard spawned debug Roamium path"
-  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=roamium" "BrowserReady preserved named Roamium key"
+  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "BrowserReady preserved named Chromium key"
   if grep -E "spawned browser path=(/usr/local/roamium|/usr/local/bin/roamium|/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd)" "$APP_LOG" >/dev/null 2>&1; then
     fail "named Roamium debug launch used a stale installed Roamium path"
   fi
@@ -5402,14 +5402,14 @@ if [ "$SCENARIO" = "installed-roamium-release-launch" ]; then
   fi
   log "PASS: installed Roamium release launch command omits --browser"
   require_log "TermSurf message decoded type=HelloRequest" "release webtui discovered TERMSURF_SOCKET"
-  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=roamium url=${URL}" "release named Roamium SetOverlay"
+  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "release named Chromium SetOverlay"
   if grep -F "env=TERMSURF_ROAMIUM_PATH path=" "$APP_LOG" >/dev/null 2>&1; then
     fail "release installed Roamium scenario unexpectedly resolved through TERMSURF_ROAMIUM_PATH"
   fi
   log "PASS: release installed Roamium scenario did not resolve through TERMSURF_ROAMIUM_PATH"
-  require_log "SetOverlay: named browser resolved browser=roamium env=TERMSURF_INSTALLED_ROAMIUM_PATH path=${INSTALLED_ROAMIUM}" "release Ghostboard resolved Roamium through installed override"
+  require_log "SetOverlay: named browser resolved browser=chromium env=TERMSURF_INSTALLED_ROAMIUM_PATH path=${INSTALLED_ROAMIUM}" "release Ghostboard resolved Chromium through installed override"
   require_log "spawned browser path=${INSTALLED_ROAMIUM} pid=[0-9]+ profile=default" "release Ghostboard spawned installed override Roamium path"
-  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=roamium" "release BrowserReady preserved named Roamium key"
+  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "release BrowserReady preserved named Chromium key"
 fi
 
 if [ "$SCENARIO" = "hello-config-homepage" ]; then
@@ -5422,9 +5422,9 @@ if [ "$SCENARIO" = "hello-config-homepage" ]; then
   fi
   log "PASS: hello config homepage command omits positional URL"
   require_log "TermSurf Hello config homepage=${HELLO_CONFIG_HOMEPAGE}" "Ghostboard loaded configured HelloReply homepage"
-  require_log "TermSurf HelloReply sent homepage=${HELLO_CONFIG_HOMEPAGE} browsers=roamium" "Ghostboard sent configured HelloReply homepage"
-  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=roamium url=${HELLO_CONFIG_HOMEPAGE}" "webtui consumed configured homepage from HelloReply"
-  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=roamium" "BrowserReady preserved named Roamium key with configured homepage"
+  require_log "TermSurf HelloReply sent homepage=${HELLO_CONFIG_HOMEPAGE} browsers=chromium" "Ghostboard sent configured HelloReply homepage"
+  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${HELLO_CONFIG_HOMEPAGE}" "webtui consumed configured homepage from HelloReply"
+  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "BrowserReady preserved named Chromium key with configured homepage"
 fi
 
 if [ "$SCENARIO" = "hello-config-browser-list" ]; then
@@ -5432,10 +5432,10 @@ if [ "$SCENARIO" = "hello-config-browser-list" ]; then
     fail "hello config browser-list command unexpectedly contains --browser"
   fi
   log "PASS: hello config browser-list command omits --browser"
-  require_log "TermSurf Hello config homepage=https://termsurf.com/welcome browsers=roamium,${HELLO_CONFIG_SECOND_BROWSER}" "Ghostboard loaded configured HelloReply browser list"
-  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=roamium,${HELLO_CONFIG_SECOND_BROWSER}" "Ghostboard sent configured HelloReply browser list"
-  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=roamium url=${URL}" "webtui consumed first configured browser from HelloReply"
-  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=roamium" "BrowserReady preserved first configured browser key"
+  require_log "TermSurf Hello config homepage=https://termsurf.com/welcome browsers=chromium,${HELLO_CONFIG_SECOND_BROWSER}" "Ghostboard loaded configured HelloReply browser list"
+  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=chromium,${HELLO_CONFIG_SECOND_BROWSER}" "Ghostboard sent configured HelloReply browser list"
+  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "webtui consumed first configured browser from HelloReply"
+  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "BrowserReady preserved first configured browser key"
 fi
 
 if [ "$SCENARIO" = "hello-empty-browser-list" ]; then
@@ -5443,10 +5443,10 @@ if [ "$SCENARIO" = "hello-empty-browser-list" ]; then
     fail "hello empty browser-list command unexpectedly contains --browser"
   fi
   log "PASS: hello empty browser-list command omits --browser"
-  require_log "TermSurf Hello config homepage=https://termsurf.com/welcome browsers=roamium" "Ghostboard fell back to default HelloReply browser list"
-  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=roamium" "Ghostboard sent fallback HelloReply browser list"
-  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=roamium url=${URL}" "webtui consumed fallback browser from HelloReply"
-  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=roamium" "BrowserReady preserved fallback browser key"
+  require_log "TermSurf Hello config homepage=https://termsurf.com/welcome browsers=chromium" "Ghostboard fell back to default HelloReply browser list"
+  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=chromium" "Ghostboard sent fallback HelloReply browser list"
+  require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "webtui consumed fallback browser from HelloReply"
+  require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "BrowserReady preserved fallback browser key"
 fi
 
 if [ "$SCENARIO" = "display-move-backing-scale" ]; then

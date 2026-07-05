@@ -192,8 +192,8 @@ EOF
   pane="$(extract_pane_id "$setoverlay")"
   wait_for_line_after "$app_log" "$start" "SetOverlay: named browser resolved browser=${browser} installed_path=${path}" "$browser installed default resolution" 60 >/dev/null
   wait_for_line_after "$app_log" "$start" "spawned browser path=${path} .* browser=${browser} " "$browser spawned installed binary" 60 >/dev/null
-  if [ "$browser" = "surfari" ]; then
-    wait_for_line_after "$app_log" "$start" "browser spawn runtime env browser=surfari DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-ah-webkitd" "surfari runtime env supplied by Astrohacker Terminal" 60 >/dev/null
+  if [ "$browser" = "webkit" ]; then
+    wait_for_line_after "$app_log" "$start" "browser spawn runtime env browser=webkit DYLD_FRAMEWORK_PATH=/opt/homebrew/opt/astrohacker-terminal-ah-webkitd" "webkit runtime env supplied by Astrohacker Terminal" 60 >/dev/null
   fi
   ready="$(wait_for_line_after "$app_log" "$start" "BrowserReady: pane_id=.* browser=${browser}" "$browser BrowserReady" 160)"
   [ "$pane" = "$(extract_pane_id "$ready")" ] || fail "$browser BrowserReady pane mismatch"
@@ -225,15 +225,15 @@ require_executable "$SURFARI"
 log "run_id=$RUN_ID"
 log "app_bin=$APP_BIN"
 log "web=$WEB"
-log "roamium=$ROAMIUM"
-log "surfari=$SURFARI"
+log "chromium_helper=$ROAMIUM"
+log "webkit_helper=$SURFARI"
 log "harness_log=$HARNESS_LOG"
 log "network_url=https://example.com"
 
 "$APP_BIN" +version >>"$HARNESS_LOG" 2>&1 || true
 "$WEB" --version >>"$HARNESS_LOG" 2>&1 || true
 
-run_browser_smoke "surfari" "$SURFARI" "TERMSURF_SURFARI_PATH" "TERMSURF_INSTALLED_SURFARI_PATH"
-run_browser_smoke "roamium" "$ROAMIUM" "TERMSURF_ROAMIUM_PATH" "TERMSURF_INSTALLED_ROAMIUM_PATH"
+run_browser_smoke "webkit" "$SURFARI" "TERMSURF_SURFARI_PATH" "TERMSURF_INSTALLED_SURFARI_PATH"
+run_browser_smoke "chromium" "$ROAMIUM" "TERMSURF_ROAMIUM_PATH" "TERMSURF_INSTALLED_ROAMIUM_PATH"
 
 log "PASS: issue 867 experiment 3 release no-env browser discovery"

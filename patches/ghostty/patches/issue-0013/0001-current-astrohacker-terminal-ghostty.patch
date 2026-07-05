@@ -23435,7 +23435,7 @@ index 018122760..583357077 100644
              }
  
 diff --git a/macos/Sources/Ghostty/Ghostty.Config.swift b/macos/Sources/Ghostty/Ghostty.Config.swift
-index 9b094f21c..42d329269 100644
+index 9b094f21c..65551a32f 100644
 --- a/macos/Sources/Ghostty/Ghostty.Config.swift
 +++ b/macos/Sources/Ghostty/Ghostty.Config.swift
 @@ -95,13 +95,13 @@ extension Ghostty {
@@ -23470,7 +23470,7 @@ index 9b094f21c..42d329269 100644
 +        }
 +
 +        var browserList: [String] {
-+            let defaultValue = ["roamium"]
++            let defaultValue = ["chromium"]
 +            guard let config = self.config else { return defaultValue }
 +
 +            let key = "browser"
@@ -34210,7 +34210,7 @@ index 2f01c48ce..2ae0a347e 100644
      submenu {
 diff --git a/src/apprt/termsurf.zig b/src/apprt/termsurf.zig
 new file mode 100644
-index 000000000..e9fcc4c77
+index 000000000..803788193
 --- /dev/null
 +++ b/src/apprt/termsurf.zig
 @@ -0,0 +1,6725 @@
@@ -34254,7 +34254,7 @@ index 000000000..e9fcc4c77
 +const max_health_response_len: usize = 2048;
 +const max_homepage_len: usize = max_url_len;
 +const max_listen_socket_len: usize = std.fs.max_path_bytes;
-+const default_browser = "roamium";
++const default_browser = "chromium";
 +const default_homepage = "https://termsurf.com/welcome";
 +const fallback_cell_width: u64 = 10;
 +const fallback_cell_height: u64 = 20;
@@ -36247,7 +36247,7 @@ index 000000000..e9fcc4c77
 +        return installed_roamium_path;
 +    }
 +
-+    if (std.mem.eql(u8, browser, "surfari")) {
++    if (std.mem.eql(u8, browser, "webkit")) {
 +        if (std.posix.getenv(surfari_path_env)) |resolved| {
 +            if (resolved.len != 0 and isAbsolutePath(resolved)) {
 +                log.info(
@@ -36291,7 +36291,7 @@ index 000000000..e9fcc4c77
 +        return installed_surfari_path;
 +    }
 +
-+    if (std.mem.eql(u8, browser, "girlbat")) {
++    if (std.mem.eql(u8, browser, "ladybird")) {
 +        if (std.posix.getenv(girlbat_path_env)) |resolved| {
 +            if (resolved.len != 0 and isAbsolutePath(resolved)) {
 +                log.info(
@@ -37573,9 +37573,9 @@ index 000000000..e9fcc4c77
 +    };
 +    const profile = servers[server_index].profileName();
 +    const browser = servers[server_index].browserName();
-+    if (!std.mem.eql(u8, browser, "girlbat")) {
++    if (!std.mem.eql(u8, browser, "ladybird")) {
 +        log.warn(
-+            "RenderSurface: rejected non-Girlbat browser={s} profile={s} tab_id={}",
++            "RenderSurface: rejected non-Ladybird browser={s} profile={s} tab_id={}",
 +            .{ browser, profile, surface.*.tab_id },
 +        );
 +        state_mutex.unlock();
@@ -38568,7 +38568,7 @@ index 000000000..e9fcc4c77
 +    if (child_env) |*env| {
 +        const inherited_framework_path = env.get("DYLD_FRAMEWORK_PATH");
 +        if (inherited_framework_path) |framework_path| {
-+            if (std.mem.eql(u8, browser_name_z, "surfari")) {
++            if (std.mem.eql(u8, browser_name_z, "webkit")) {
 +                log.info(
 +                    "browser spawn runtime env browser={s} inherited DYLD_FRAMEWORK_PATH={s}",
 +                    .{ browser_name_z, framework_path },
@@ -38712,7 +38712,7 @@ index 000000000..e9fcc4c77
 +}
 +
 +fn renderSurfaceSideChannelBrowser(browser: []const u8) bool {
-+    return std.mem.eql(u8, browser, "girlbat");
++    return std.mem.eql(u8, browser, "ladybird");
 +}
 +
 +fn buildRenderSurfaceServiceName(buf: []u8, ghostboard_pid: i32, profile: []const u8, browser: []const u8) ?[]const u8 {
@@ -38747,11 +38747,11 @@ index 000000000..e9fcc4c77
 +}
 +
 +fn shouldSupplySurfariRuntimeFrameworkPath(browser: []const u8, inherited_framework_path: ?[]const u8) bool {
-+    return std.mem.eql(u8, browser, "surfari") and inherited_framework_path == null;
++    return std.mem.eql(u8, browser, "webkit") and inherited_framework_path == null;
 +}
 +
 +fn surfariRuntimeFrameworkPath(browser: []const u8, browser_executable: []const u8) ?[]const u8 {
-+    if (!std.mem.eql(u8, browser, "surfari")) return null;
++    if (!std.mem.eql(u8, browser, "webkit")) return null;
 +    return std.fs.path.dirname(browser_executable);
 +}
 +
@@ -38769,7 +38769,7 @@ index 000000000..e9fcc4c77
 +}
 +
 +fn browserProfileDirName(browser: []const u8) []const u8 {
-+    if (std.mem.eql(u8, browser, "surfari")) return "webkit-profiles";
++    if (std.mem.eql(u8, browser, "webkit")) return "webkit-profiles";
 +    if (std.mem.eql(u8, browser, default_browser)) return "chromium-profiles";
 +    return "browser-profiles";
 +}
@@ -39806,103 +39806,103 @@ index 000000000..e9fcc4c77
 +    defer resetTermsurfStateForTest();
 +
 +    const profile: [:0]const u8 = "default";
-+    const surfari: [:0]const u8 = "surfari";
-+    const roamium: [:0]const u8 = "roamium";
++    const webkit: [:0]const u8 = "webkit";
++    const chromium: [:0]const u8 = "chromium";
 +
 +    try testBrowserResolutionWithRestoredEnv();
 +
-+    var surfari_data_dir_buf: [std.fs.max_path_bytes]u8 = undefined;
-+    const surfari_data_dir = buildUserDataDir(&surfari_data_dir_buf, surfari, profile) orelse return error.UserDataDirFailed;
-+    try testing.expect(std.mem.indexOf(u8, surfari_data_dir, "webkit-profiles") != null);
-+    try testing.expect(std.mem.indexOf(u8, surfari_data_dir, "chromium-profiles") == null);
++    var webkit_data_dir_buf: [std.fs.max_path_bytes]u8 = undefined;
++    const webkit_data_dir = buildUserDataDir(&webkit_data_dir_buf, webkit, profile) orelse return error.UserDataDirFailed;
++    try testing.expect(std.mem.indexOf(u8, webkit_data_dir, "webkit-profiles") != null);
++    try testing.expect(std.mem.indexOf(u8, webkit_data_dir, "chromium-profiles") == null);
 +
-+    var roamium_data_dir_buf: [std.fs.max_path_bytes]u8 = undefined;
-+    const roamium_data_dir = buildUserDataDir(&roamium_data_dir_buf, roamium, profile) orelse return error.UserDataDirFailed;
-+    try testing.expect(std.mem.indexOf(u8, roamium_data_dir, "chromium-profiles") != null);
++    var chromium_data_dir_buf: [std.fs.max_path_bytes]u8 = undefined;
++    const chromium_data_dir = buildUserDataDir(&chromium_data_dir_buf, chromium, profile) orelse return error.UserDataDirFailed;
++    try testing.expect(std.mem.indexOf(u8, chromium_data_dir, "chromium-profiles") != null);
 +
-+    var surfari_browser = try testSocketPair();
-+    defer testCloseSocketPair(&surfari_browser);
-+    var roamium_browser = try testSocketPair();
-+    defer testCloseSocketPair(&roamium_browser);
-+    var surfari_tui = try testSocketPair();
-+    defer testCloseSocketPair(&surfari_tui);
-+    var roamium_tui = try testSocketPair();
-+    defer testCloseSocketPair(&roamium_tui);
++    var webkit_browser = try testSocketPair();
++    defer testCloseSocketPair(&webkit_browser);
++    var chromium_browser = try testSocketPair();
++    defer testCloseSocketPair(&chromium_browser);
++    var webkit_tui = try testSocketPair();
++    defer testCloseSocketPair(&webkit_tui);
++    var chromium_tui = try testSocketPair();
++    defer testCloseSocketPair(&chromium_tui);
 +
-+    try testSetPendingServer(0, profile, surfari);
-+    try testSetPendingServer(1, profile, roamium);
-+    try testSetPane(0, "pane-surfari", profile, surfari, "https://example.test/surfari", surfari_tui[0]);
-+    try testSetPane(1, "pane-roamium", profile, roamium, "https://example.test/roamium", roamium_tui[0]);
++    try testSetPendingServer(0, profile, webkit);
++    try testSetPendingServer(1, profile, chromium);
++    try testSetPane(0, "pane-webkit", profile, webkit, "https://example.test/webkit", webkit_tui[0]);
++    try testSetPane(1, "pane-chromium", profile, chromium, "https://example.test/chromium", chromium_tui[0]);
 +
-+    var roamium_register: c.Termsurf__ServerRegister = undefined;
-+    c.termsurf__server_register__init(&roamium_register);
-+    roamium_register.profile = @constCast(profile.ptr);
-+    roamium_register.browser = @constCast(roamium.ptr);
-+    handleServerRegister(roamium_browser[0], &roamium_register);
++    var chromium_register: c.Termsurf__ServerRegister = undefined;
++    c.termsurf__server_register__init(&chromium_register);
++    chromium_register.profile = @constCast(profile.ptr);
++    chromium_register.browser = @constCast(chromium.ptr);
++    handleServerRegister(chromium_browser[0], &chromium_register);
 +
 +    try testing.expectEqual(@as(std.posix.fd_t, -1), servers[0].attached_fd);
-+    try testing.expectEqual(roamium_browser[0], servers[1].attached_fd);
++    try testing.expectEqual(chromium_browser[0], servers[1].attached_fd);
 +
-+    const roamium_create = try readTestMessage(roamium_browser[1], testing.allocator);
-+    defer c.termsurf__term_surf_message__free_unpacked(roamium_create, null);
++    const chromium_create = try readTestMessage(chromium_browser[1], testing.allocator);
++    defer c.termsurf__term_surf_message__free_unpacked(chromium_create, null);
 +    try testing.expectEqual(
 +        @as(c.Termsurf__TermSurfMessage__MsgCase, c.TERMSURF__TERM_SURF_MESSAGE__MSG_CREATE_TAB),
-+        roamium_create.*.msg_case,
++        chromium_create.*.msg_case,
 +    );
-+    try testing.expectEqualStrings("pane-roamium", cString(roamium_create.*.unnamed_0.create_tab.*.pane_id));
++    try testing.expectEqualStrings("pane-chromium", cString(chromium_create.*.unnamed_0.create_tab.*.pane_id));
 +
-+    var surfari_register: c.Termsurf__ServerRegister = undefined;
-+    c.termsurf__server_register__init(&surfari_register);
-+    surfari_register.profile = @constCast(profile.ptr);
-+    surfari_register.browser = @constCast(surfari.ptr);
-+    handleServerRegister(surfari_browser[0], &surfari_register);
++    var webkit_register: c.Termsurf__ServerRegister = undefined;
++    c.termsurf__server_register__init(&webkit_register);
++    webkit_register.profile = @constCast(profile.ptr);
++    webkit_register.browser = @constCast(webkit.ptr);
++    handleServerRegister(webkit_browser[0], &webkit_register);
 +
-+    try testing.expectEqual(surfari_browser[0], servers[0].attached_fd);
-+    try testing.expectEqual(roamium_browser[0], servers[1].attached_fd);
++    try testing.expectEqual(webkit_browser[0], servers[0].attached_fd);
++    try testing.expectEqual(chromium_browser[0], servers[1].attached_fd);
 +
-+    const surfari_create = try readTestMessage(surfari_browser[1], testing.allocator);
-+    defer c.termsurf__term_surf_message__free_unpacked(surfari_create, null);
++    const webkit_create = try readTestMessage(webkit_browser[1], testing.allocator);
++    defer c.termsurf__term_surf_message__free_unpacked(webkit_create, null);
 +    try testing.expectEqual(
 +        @as(c.Termsurf__TermSurfMessage__MsgCase, c.TERMSURF__TERM_SURF_MESSAGE__MSG_CREATE_TAB),
-+        surfari_create.*.msg_case,
++        webkit_create.*.msg_case,
 +    );
-+    try testing.expectEqualStrings("pane-surfari", cString(surfari_create.*.unnamed_0.create_tab.*.pane_id));
++    try testing.expectEqualStrings("pane-webkit", cString(webkit_create.*.unnamed_0.create_tab.*.pane_id));
 +
-+    var surfari_ready: c.Termsurf__TabReady = undefined;
-+    c.termsurf__tab_ready__init(&surfari_ready);
-+    surfari_ready.tab_id = 42;
-+    surfari_ready.pane_id = @constCast("pane-surfari");
-+    handleTabReady(&surfari_ready);
++    var webkit_ready: c.Termsurf__TabReady = undefined;
++    c.termsurf__tab_ready__init(&webkit_ready);
++    webkit_ready.tab_id = 42;
++    webkit_ready.pane_id = @constCast("pane-webkit");
++    handleTabReady(&webkit_ready);
 +
-+    const ready = try readTestMessage(surfari_tui[1], testing.allocator);
++    const ready = try readTestMessage(webkit_tui[1], testing.allocator);
 +    defer c.termsurf__term_surf_message__free_unpacked(ready, null);
 +    try testing.expectEqual(
 +        @as(c.Termsurf__TermSurfMessage__MsgCase, c.TERMSURF__TERM_SURF_MESSAGE__MSG_BROWSER_READY),
 +        ready.*.msg_case,
 +    );
-+    try testing.expectEqualStrings("surfari", cString(ready.*.unnamed_0.browser_ready.*.browser));
++    try testing.expectEqualStrings("webkit", cString(ready.*.unnamed_0.browser_ready.*.browser));
 +    try testing.expectEqualStrings(servers[0].listenSocket(), cString(ready.*.unnamed_0.browser_ready.*.browser_socket));
 +
-+    var surfari_context: c.Termsurf__CaContext = undefined;
-+    c.termsurf__ca_context__init(&surfari_context);
-+    surfari_context.tab_id = 42;
-+    surfari_context.ca_context_id = 1234;
-+    surfari_context.pixel_width = 800;
-+    surfari_context.pixel_height = 600;
-+    handleCaContext(surfari_browser[0], &surfari_context);
++    var webkit_context: c.Termsurf__CaContext = undefined;
++    c.termsurf__ca_context__init(&webkit_context);
++    webkit_context.tab_id = 42;
++    webkit_context.ca_context_id = 1234;
++    webkit_context.pixel_width = 800;
++    webkit_context.pixel_height = 600;
++    handleCaContext(webkit_browser[0], &webkit_context);
 +
 +    try testing.expectEqual(@as(u64, 1234), panes[0].ca_context_id);
 +    try testing.expectEqual(@as(u64, 0), panes[1].ca_context_id);
 +}
 +
-+test "termsurf render surface stores Girlbat metadata only" {
++test "termsurf render surface stores Ladybird metadata only" {
 +    const testing = std.testing;
 +
 +    resetTermsurfStateForTest();
 +    defer resetTermsurfStateForTest();
 +
 +    const profile: [:0]const u8 = "default";
-+    const girlbat: [:0]const u8 = "girlbat";
++    const girlbat: [:0]const u8 = "ladybird";
 +
 +    var browser = try testSocketPair();
 +    defer testCloseSocketPair(&browser);
@@ -39910,7 +39910,7 @@ index 000000000..e9fcc4c77
 +    defer testCloseSocketPair(&tui);
 +
 +    try testSetPendingServer(0, profile, girlbat);
-+    try testSetPane(0, "pane-girlbat", profile, girlbat, "https://example.test/girlbat", tui[0]);
++    try testSetPane(0, "pane-ladybird", profile, girlbat, "https://example.test/ladybird", tui[0]);
 +
 +    var register: c.Termsurf__ServerRegister = undefined;
 +    c.termsurf__server_register__init(&register);
@@ -39921,7 +39921,7 @@ index 000000000..e9fcc4c77
 +    var ready: c.Termsurf__TabReady = undefined;
 +    c.termsurf__tab_ready__init(&ready);
 +    ready.tab_id = 77;
-+    ready.pane_id = @constCast("pane-girlbat");
++    ready.pane_id = @constCast("pane-ladybird");
 +    handleTabReady(&ready);
 +
 +    var surface: c.Termsurf__RenderSurface = undefined;
@@ -39944,14 +39944,14 @@ index 000000000..e9fcc4c77
 +    try testing.expectEqual(@as(u64, 0), panes[0].ca_context_id);
 +}
 +
-+test "termsurf render surface stores matched Girlbat attachment metadata" {
++test "termsurf render surface stores matched Ladybird attachment metadata" {
 +    const testing = std.testing;
 +
 +    resetTermsurfStateForTest();
 +    defer resetTermsurfStateForTest();
 +
 +    const profile: [:0]const u8 = "default";
-+    const girlbat: [:0]const u8 = "girlbat";
++    const girlbat: [:0]const u8 = "ladybird";
 +
 +    var browser = try testSocketPair();
 +    defer testCloseSocketPair(&browser);
@@ -39959,7 +39959,7 @@ index 000000000..e9fcc4c77
 +    defer testCloseSocketPair(&tui);
 +
 +    try testSetPendingServer(0, profile, girlbat);
-+    try testSetPane(0, "pane-girlbat", profile, girlbat, "https://example.test/girlbat", tui[0]);
++    try testSetPane(0, "pane-ladybird", profile, girlbat, "https://example.test/ladybird", tui[0]);
 +
 +    var register: c.Termsurf__ServerRegister = undefined;
 +    c.termsurf__server_register__init(&register);
@@ -39970,7 +39970,7 @@ index 000000000..e9fcc4c77
 +    var ready: c.Termsurf__TabReady = undefined;
 +    c.termsurf__tab_ready__init(&ready);
 +    ready.tab_id = 77;
-+    ready.pane_id = @constCast("pane-girlbat");
++    ready.pane_id = @constCast("pane-ladybird");
 +    handleTabReady(&ready);
 +
 +    servers[0].render_side_channel.in_use = true;
@@ -40012,14 +40012,14 @@ index 000000000..e9fcc4c77
 +    try testing.expectEqual(@as(usize, 1), test_iosurface_bridge_release_count);
 +}
 +
-+test "termsurf render surface defers Girlbat attachment until side-channel handshake" {
++test "termsurf render surface defers Ladybird attachment until side-channel handshake" {
 +    const testing = std.testing;
 +
 +    resetTermsurfStateForTest();
 +    defer resetTermsurfStateForTest();
 +
 +    const profile: [:0]const u8 = "default";
-+    const girlbat: [:0]const u8 = "girlbat";
++    const girlbat: [:0]const u8 = "ladybird";
 +
 +    var browser = try testSocketPair();
 +    defer testCloseSocketPair(&browser);
@@ -40027,7 +40027,7 @@ index 000000000..e9fcc4c77
 +    defer testCloseSocketPair(&tui);
 +
 +    try testSetPendingServer(0, profile, girlbat);
-+    try testSetPane(0, "pane-girlbat", profile, girlbat, "https://example.test/girlbat", tui[0]);
++    try testSetPane(0, "pane-ladybird", profile, girlbat, "https://example.test/ladybird", tui[0]);
 +
 +    var register: c.Termsurf__ServerRegister = undefined;
 +    c.termsurf__server_register__init(&register);
@@ -40038,7 +40038,7 @@ index 000000000..e9fcc4c77
 +    var ready: c.Termsurf__TabReady = undefined;
 +    c.termsurf__tab_ready__init(&ready);
 +    ready.tab_id = 77;
-+    ready.pane_id = @constCast("pane-girlbat");
++    ready.pane_id = @constCast("pane-ladybird");
 +    handleTabReady(&ready);
 +
 +    servers[0].render_side_channel.in_use = true;
@@ -40082,14 +40082,14 @@ index 000000000..e9fcc4c77
 +    try testing.expectEqual(@as(usize, 1), test_iosurface_bridge_release_count);
 +}
 +
-+test "termsurf render surface rejects unmatched Girlbat attachment metadata" {
++test "termsurf render surface rejects unmatched Ladybird attachment metadata" {
 +    const testing = std.testing;
 +
 +    resetTermsurfStateForTest();
 +    defer resetTermsurfStateForTest();
 +
 +    const profile: [:0]const u8 = "default";
-+    const girlbat: [:0]const u8 = "girlbat";
++    const girlbat: [:0]const u8 = "ladybird";
 +
 +    var browser = try testSocketPair();
 +    defer testCloseSocketPair(&browser);
@@ -40097,7 +40097,7 @@ index 000000000..e9fcc4c77
 +    defer testCloseSocketPair(&tui);
 +
 +    try testSetPendingServer(0, profile, girlbat);
-+    try testSetPane(0, "pane-girlbat", profile, girlbat, "https://example.test/girlbat", tui[0]);
++    try testSetPane(0, "pane-ladybird", profile, girlbat, "https://example.test/ladybird", tui[0]);
 +
 +    var register: c.Termsurf__ServerRegister = undefined;
 +    c.termsurf__server_register__init(&register);
@@ -40108,7 +40108,7 @@ index 000000000..e9fcc4c77
 +    var ready: c.Termsurf__TabReady = undefined;
 +    c.termsurf__tab_ready__init(&ready);
 +    ready.tab_id = 77;
-+    ready.pane_id = @constCast("pane-girlbat");
++    ready.pane_id = @constCast("pane-ladybird");
 +    handleTabReady(&ready);
 +
 +    var surface: c.Termsurf__RenderSurface = undefined;
@@ -40155,7 +40155,7 @@ index 000000000..e9fcc4c77
 +    defer resetTermsurfStateForTest();
 +
 +    const profile: [:0]const u8 = "default";
-+    const girlbat: [:0]const u8 = "girlbat";
++    const girlbat: [:0]const u8 = "ladybird";
 +
 +    var browser = try testSocketPair();
 +    defer testCloseSocketPair(&browser);
@@ -40163,7 +40163,7 @@ index 000000000..e9fcc4c77
 +    defer testCloseSocketPair(&tui);
 +
 +    try testSetPendingServer(0, profile, girlbat);
-+    try testSetPane(0, "pane-girlbat", profile, girlbat, "https://example.test/girlbat", tui[0]);
++    try testSetPane(0, "pane-ladybird", profile, girlbat, "https://example.test/ladybird", tui[0]);
 +
 +    var register: c.Termsurf__ServerRegister = undefined;
 +    c.termsurf__server_register__init(&register);
@@ -40174,7 +40174,7 @@ index 000000000..e9fcc4c77
 +    var ready: c.Termsurf__TabReady = undefined;
 +    c.termsurf__tab_ready__init(&ready);
 +    ready.tab_id = 77;
-+    ready.pane_id = @constCast("pane-girlbat");
++    ready.pane_id = @constCast("pane-ladybird");
 +    handleTabReady(&ready);
 +
 +    handleRenderSurface(browser[0], null);
@@ -40201,14 +40201,14 @@ index 000000000..e9fcc4c77
 +    try testing.expectEqual(@as(u64, 0), panes[0].render_surface_pixel_height);
 +}
 +
-+test "termsurf render surface rejects non-Girlbat browser" {
++test "termsurf render surface rejects non-Ladybird browser" {
 +    const testing = std.testing;
 +
 +    resetTermsurfStateForTest();
 +    defer resetTermsurfStateForTest();
 +
 +    const profile: [:0]const u8 = "default";
-+    const roamium: [:0]const u8 = "roamium";
++    const roamium: [:0]const u8 = "chromium";
 +
 +    var browser = try testSocketPair();
 +    defer testCloseSocketPair(&browser);
@@ -40216,7 +40216,7 @@ index 000000000..e9fcc4c77
 +    defer testCloseSocketPair(&tui);
 +
 +    try testSetPendingServer(0, profile, roamium);
-+    try testSetPane(0, "pane-roamium", profile, roamium, "https://example.test/roamium", tui[0]);
++    try testSetPane(0, "pane-chromium", profile, roamium, "https://example.test/chromium", tui[0]);
 +
 +    var register: c.Termsurf__ServerRegister = undefined;
 +    c.termsurf__server_register__init(&register);
@@ -40227,7 +40227,7 @@ index 000000000..e9fcc4c77
 +    var ready: c.Termsurf__TabReady = undefined;
 +    c.termsurf__tab_ready__init(&ready);
 +    ready.tab_id = 88;
-+    ready.pane_id = @constCast("pane-roamium");
++    ready.pane_id = @constCast("pane-chromium");
 +    handleTabReady(&ready);
 +
 +    var context: c.Termsurf__CaContext = undefined;
@@ -40279,15 +40279,15 @@ index 000000000..e9fcc4c77
 +
 +fn testBrowserResolution() !void {
 +    const testing = std.testing;
-+    const surfari: [:0]const u8 = "surfari";
-+    const roamium: [:0]const u8 = "roamium";
-+    const girlbat: [:0]const u8 = "girlbat";
-+    const fake_surfari_path: [:0]const u8 = "/tmp/termsurf-test-surfari";
-+    const fake_roamium_path: [:0]const u8 = "/tmp/termsurf-test-roamium";
-+    const fake_girlbat_path: [:0]const u8 = "/tmp/termsurf-test-girlbat";
-+    const installed_surfari_override: [:0]const u8 = "/tmp/termsurf-installed-surfari";
-+    const installed_roamium_override: [:0]const u8 = "/tmp/termsurf-installed-roamium";
-+    const installed_girlbat_override: [:0]const u8 = "/tmp/termsurf-installed-girlbat";
++    const surfari: [:0]const u8 = "webkit";
++    const roamium: [:0]const u8 = "chromium";
++    const girlbat: [:0]const u8 = "ladybird";
++    const fake_surfari_path: [:0]const u8 = "/tmp/termsurf-test-webkit";
++    const fake_roamium_path: [:0]const u8 = "/tmp/termsurf-test-chromium";
++    const fake_girlbat_path: [:0]const u8 = "/tmp/termsurf-test-ladybird";
++    const installed_surfari_override: [:0]const u8 = "/tmp/termsurf-installed-webkit";
++    const installed_roamium_override: [:0]const u8 = "/tmp/termsurf-installed-chromium";
++    const installed_girlbat_override: [:0]const u8 = "/tmp/termsurf-installed-ladybird";
 +    const invalid_override: [:0]const u8 = "relative-browser";
 +
 +    _ = c.unsetenv(roamium_path_env);
@@ -40344,14 +40344,14 @@ index 000000000..e9fcc4c77
 +
 +test "Surfari runtime framework path follows executable directory" {
 +    const testing = std.testing;
-+    try testing.expect(shouldSupplySurfariRuntimeFrameworkPath("surfari", null));
-+    try testing.expect(!shouldSupplySurfariRuntimeFrameworkPath("surfari", "/tmp/WebKitBuild/Debug"));
-+    try testing.expect(!shouldSupplySurfariRuntimeFrameworkPath("roamium", null));
++    try testing.expect(shouldSupplySurfariRuntimeFrameworkPath("webkit", null));
++    try testing.expect(!shouldSupplySurfariRuntimeFrameworkPath("webkit", "/tmp/WebKitBuild/Debug"));
++    try testing.expect(!shouldSupplySurfariRuntimeFrameworkPath("chromium", null));
 +    try testing.expectEqualStrings(
 +        "/opt/homebrew/opt/astrohacker-terminal-ah-webkitd",
-+        surfariRuntimeFrameworkPath("surfari", "/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd").?,
++        surfariRuntimeFrameworkPath("webkit", "/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd").?,
 +    );
-+    try testing.expect(surfariRuntimeFrameworkPath("roamium", "/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd") == null);
++    try testing.expect(surfariRuntimeFrameworkPath("chromium", "/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd") == null);
 +}
 +
 +test "Girlbat spawn argv carries render surface service only for Girlbat" {
@@ -40360,20 +40360,20 @@ index 000000000..e9fcc4c77
 +    var girlbat_args: BrowserSpawnArgv = .{};
 +    const girlbat_argv = buildBrowserSpawnArgv(
 +        &girlbat_args,
-+        "/tmp/girlbat",
-+        "girlbat",
++        "/tmp/ah-ladybirdd",
++        "ladybird",
 +        "default/profile",
 +        "/tmp/termsurf-gui.sock",
-+        "/tmp/termsurf-girlbat.sock",
++        "/tmp/termsurf-ladybird.sock",
 +        12345,
 +    ) orelse return error.BuildGirlbatArgvFailed;
 +
 +    try testing.expectEqual(@as(usize, 10), girlbat_argv.len);
-+    try expectBaseBrowserArgv(girlbat_argv[0..9], "/tmp/girlbat", "girlbat");
++    try expectBaseBrowserArgv(girlbat_argv[0..9], "/tmp/ah-ladybirdd", "ladybird");
 +    try testing.expectEqual(@as(usize, 1), countArgPrefix(girlbat_argv, "--render-surface-service="));
 +    const render_service = girlbat_args.renderService() orelse return error.MissingRenderService;
 +    var second_render_service_buf: [max_render_service_name_len]u8 = undefined;
-+    const second_render_service = buildRenderSurfaceServiceName(&second_render_service_buf, 12345, "default/profile", "girlbat") orelse return error.MissingRenderService;
++    const second_render_service = buildRenderSurfaceServiceName(&second_render_service_buf, 12345, "default/profile", "ladybird") orelse return error.MissingRenderService;
 +    try testing.expectEqualStrings(render_service, second_render_service);
 +    try testing.expect(std.mem.startsWith(u8, render_service, "com.termsurf.girlbat.render.12345."));
 +    try testing.expect(render_service.len < max_render_service_name_len);
@@ -40384,38 +40384,38 @@ index 000000000..e9fcc4c77
 +    var roamium_args: BrowserSpawnArgv = .{};
 +    const roamium_argv = buildBrowserSpawnArgv(
 +        &roamium_args,
-+        "/tmp/roamium",
-+        "roamium",
++        "/tmp/ah-chromiumd",
++        "chromium",
 +        "default",
 +        "/tmp/termsurf-gui.sock",
-+        "/tmp/termsurf-roamium.sock",
++        "/tmp/termsurf-chromium.sock",
 +        12345,
 +    ) orelse return error.BuildRoamiumArgvFailed;
 +    try testing.expectEqual(@as(usize, 0), countArgPrefix(roamium_argv, "--render-surface-service="));
 +    try testing.expect(roamium_args.renderService() == null);
-+    try expectBaseBrowserArgv(roamium_argv, "/tmp/roamium", "roamium");
++    try expectBaseBrowserArgv(roamium_argv, "/tmp/ah-chromiumd", "chromium");
 +
 +    var surfari_args: BrowserSpawnArgv = .{};
 +    const surfari_argv = buildBrowserSpawnArgv(
 +        &surfari_args,
-+        "/tmp/surfari",
-+        "surfari",
++        "/tmp/ah-webkitd",
++        "webkit",
 +        "default",
 +        "/tmp/termsurf-gui.sock",
-+        "/tmp/termsurf-surfari.sock",
++        "/tmp/termsurf-webkit.sock",
 +        12345,
 +    ) orelse return error.BuildSurfariArgvFailed;
 +    try testing.expectEqual(@as(usize, 0), countArgPrefix(surfari_argv, "--render-surface-service="));
 +    try testing.expect(surfari_args.renderService() == null);
-+    try expectBaseBrowserArgv(surfari_argv, "/tmp/surfari", "surfari");
++    try expectBaseBrowserArgv(surfari_argv, "/tmp/ah-webkitd", "webkit");
 +}
 +
 +test "render side-channel state is Girlbat gated and cleanup is idempotent" {
 +    const testing = std.testing;
 +
-+    try testing.expect(renderSurfaceSideChannelBrowser("girlbat"));
-+    try testing.expect(!renderSurfaceSideChannelBrowser("roamium"));
-+    try testing.expect(!renderSurfaceSideChannelBrowser("surfari"));
++    try testing.expect(renderSurfaceSideChannelBrowser("ladybird"));
++    try testing.expect(!renderSurfaceSideChannelBrowser("chromium"));
++    try testing.expect(!renderSurfaceSideChannelBrowser("webkit"));
 +
 +    var state: RenderSideChannelState = .{
 +        .in_use = true,
@@ -40512,7 +40512,7 @@ index 000000000..e9fcc4c77
 +test "termsurf create tab uses tracked color scheme" {
 +    const testing = std.testing;
 +
-+    for ([_][]const u8{ "roamium", "surfari" }) |browser_name| {
++    for ([_][]const u8{ "chromium", "webkit" }) |browser_name| {
 +        for ([_]bool{ false, true }) |dark| {
 +            resetTermsurfStateForTest();
 +            defer resetTermsurfStateForTest();
@@ -40550,7 +40550,7 @@ index 000000000..e9fcc4c77
 +        defer testCloseSocketPair(&tui);
 +
 +        colorSchemeChanged(dark);
-+        try testSetPane(0, "pane-devtools", "default", "roamium", "", tui[0]);
++        try testSetPane(0, "pane-devtools", "default", "chromium", "", tui[0]);
 +        panes[0].inspected_tab_id = 42;
 +        const snapshot = snapshotCreateDevtoolsTab(&panes[0], browser[0]).?;
 +        colorSchemeChanged(!dark);
@@ -40585,7 +40585,7 @@ index 000000000..e9fcc4c77
 +    c.termsurf__open_app__init(&open_app);
 +    open_app.pane_id = @constCast("pane-app");
 +    open_app.app_id = @constCast("unknown");
-+    open_app.browser = @constCast("roamium");
++    open_app.browser = @constCast("chromium");
 +    open_app.profile = @constCast("default");
 +    handleOpenApp(tui[0], &open_app);
 +
@@ -40695,7 +40695,7 @@ index 000000000..e9fcc4c77
 +        10,
 +        "pane-b",
 +        gtui_app_id,
-+        "roamium",
++        "chromium",
 +        "default",
 +        "",
 +        &frontend_id_buf,
@@ -40839,7 +40839,7 @@ index 000000000..e9fcc4c77
 +        10,
 +        "pane-app",
 +        gtui_app_id,
-+        "roamium",
++        "chromium",
 +        "default",
 +        "/tmp/termsurf-gtui-test-server.ts",
 +        &frontend_id_buf,
@@ -41674,7 +41674,7 @@ index 7d3366c93..20cff6920 100644
      const testing = std.testing;
      const alloc = testing.allocator;
 diff --git a/src/config/Config.zig b/src/config/Config.zig
-index 380155127..60c7c8bc3 100644
+index 380155127..11331cc8e 100644
 --- a/src/config/Config.zig
 +++ b/src/config/Config.zig
 @@ -122,7 +122,7 @@ language: ?[:0]const u8 = null,
@@ -41756,7 +41756,7 @@ index 380155127..60c7c8bc3 100644
 +///
 +/// The first browser is used by `web` as the default when it is launched without
 +/// `--browser`. Repeat this option to advertise multiple browser names. Set it
-+/// to `""` to clear the list and use Ghostboard's default `roamium` fallback.
++/// to `""` to clear the list and use Ghostboard's default `chromium` fallback.
 +browser: RepeatableString = .{},
 +
  /// Data to send as input to the command on startup.

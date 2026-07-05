@@ -504,12 +504,12 @@ log "roamium_url=$ROAMIUM_URL"
 log "surfari_url=$SURFARI_URL"
 log "harness_log=$HARNESS_LOG"
 
-record_version roamium "$ROAMIUM"
-record_version surfari "$SURFARI"
+record_version chromium "$ROAMIUM"
+record_version webkit "$SURFARI"
 
-run_split_scenario "roamium-then-surfari-split" "roamium" "surfari" "$ROAMIUM_URL" "$SURFARI_URL"
-run_split_scenario "surfari-then-roamium-split" "surfari" "roamium" "$SURFARI_URL" "$ROAMIUM_URL"
-run_same_pane_scenario "roamium-then-surfari-same-pane" "roamium" "surfari" "$ROAMIUM_URL" "$SURFARI_URL"
-run_same_pane_scenario "surfari-then-roamium-same-pane" "surfari" "roamium" "$SURFARI_URL" "$ROAMIUM_URL"
+run_split_scenario "chromium-then-webkit-split" "chromium" "webkit" "$ROAMIUM_URL" "$SURFARI_URL"
+run_split_scenario "webkit-then-chromium-split" "webkit" "chromium" "$SURFARI_URL" "$ROAMIUM_URL"
+run_same_pane_scenario "chromium-then-webkit-same-pane" "chromium" "webkit" "$ROAMIUM_URL" "$SURFARI_URL"
+run_same_pane_scenario "webkit-then-chromium-same-pane" "webkit" "chromium" "$SURFARI_URL" "$ROAMIUM_URL"
 
 log "PASS: issue 867 experiment 2 installed cross-engine runtime"

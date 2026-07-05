@@ -70,17 +70,17 @@ evidence such as logs or screenshots showing:
 
 - `Astrohacker Terminal.app` launched from the installed app path;
 - the TermSurf socket was created;
-- `web --browser roamium https://example.com` opened and rendered the page;
+- `web --browser chromium https://example.com` opened and rendered the page;
 - Astrohacker Terminal resolved the installed `ah-chromiumd` path:
   `/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd`;
-- `web --browser surfari https://example.com` opened and rendered the page;
+- `web --browser webkit https://example.com` opened and rendered the page;
 - Astrohacker Terminal resolved the installed `ah-webkitd` path:
   `/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd`;
-- `web --browser girlbat http://127.0.0.1:<fixture>/` opened the local fixture
-  through the installed Girlbat prototype;
+- `web --browser ladybird http://127.0.0.1:<fixture>/` opened the local fixture
+  through the installed Ladybird prototype;
 - Astrohacker Terminal resolved the installed `ah-ladybirdd` path:
   `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd`;
-- the installed Girlbat prototype loaded its resources from
+- the installed Ladybird prototype loaded its resources from
   `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/Resources` and all non-system
   dylib dependencies resolved from
   `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/lib`;
@@ -88,7 +88,7 @@ evidence such as logs or screenshots showing:
   `TERMSURF_GIRLBAT_PATH`, `TERMSURF_INSTALLED_ROAMIUM_PATH`,
   `TERMSURF_INSTALLED_SURFARI_PATH`, or `TERMSURF_INSTALLED_GIRLBAT_PATH`.
 
-Girlbat is included as a prototype only. Its Homebrew presence proves installed
+Ladybird is included as a prototype only. Its Homebrew presence proves installed
 runtime packaging and gives us a testable Ladybird-backed engine, but it does
 not imply browser parity, PDF parity, visual screenshot parity, or production
 readiness.
