@@ -238,7 +238,7 @@ EOF
   fi
   ready="$(wait_for_line_after "$app_log" "$start" "BrowserReady: pane_id=.* browser=${browser}" "$browser BrowserReady" 160)"
   [ "$pane" = "$(extract_pane_id "$ready")" ] || fail "$browser BrowserReady pane mismatch"
-  presented="$(wait_for_line_after "$app_log" "$start" "TermSurf geometry layer=appkit event=presented .*pane_id:${pane} .*context_id=[1-9][0-9]*" "$browser AppKit presentation" 90)"
+  presented="$(wait_for_line_after "$app_log" "$start" "TermSurf geometry layer=appkit event=presented(_iosurface)? .*pane_id:${pane} .*context_id=[1-9][0-9]*" "$browser AppKit presentation" 90)"
   wait_webtui_loaded "$trace" "$browser" "$browser WebTUI loaded https://example.com"
   require_no_line_after "$app_log" "$start" "named browser resolved browser=${browser} env=${path_env}" "$browser did not resolve through $path_env"
   require_no_line_after "$app_log" "$start" "named browser resolved browser=${browser} env=${installed_env}" "$browser did not resolve through $installed_env"
