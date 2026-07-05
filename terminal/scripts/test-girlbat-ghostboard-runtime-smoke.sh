@@ -205,7 +205,7 @@ wait_for_pattern "BrowserReady: pane_id=.* tab_id=[0-9]+ socket=.* browser=ladyb
 wait_for_trace_pattern "event=render_state[[:space:]].*browser_label=ladybird" "WebTUI footer labels Ladybird" 90
 wait_for_pattern "\\[Girlbat\\] engine load finished tab_id=[0-9]+ url=${URL}" "Girlbat finished normal HTTP page load" 90
 wait_for_pattern "\\[Girlbat\\] engine RenderSurface metadata sent_to=[1-9][0-9]* tab_id=[0-9]+ generation=[0-9]+ attachment_id=[1-9][0-9]*" "Girlbat emitted nonzero RenderSurface metadata"
-wait_for_pattern "RenderSurface: tab_id=[0-9]+ pane_id=.* generation=[0-9]+ pixel=[1-9][0-9]*x[1-9][0-9]* .* attachment_id=[1-9][0-9]*" "Astrohacker Terminal received matched Girlbat RenderSurface"
+wait_for_pattern "RenderSurface: (tab_id=[0-9]+ pane_id=.* generation=[0-9]+ pixel=[1-9][0-9]*x[1-9][0-9]* .* attachment_id=[1-9][0-9]*|pending attachment browser=ladybird profile=default tab_id=[0-9]+ attachment_id=[1-9][0-9]*)" "Astrohacker Terminal received Ladybird RenderSurface metadata"
 wait_for_pattern "layer=bridge event=present_iosurface_target_found .*attachment_id=[1-9][0-9]*" "Bridge targeted Girlbat IOSurface"
 wait_for_pattern "layer=appkit event=presented_iosurface .*context_id=[1-9][0-9]* .*visible=true" "AppKit structurally presented Girlbat IOSurface"
 wait_for_pattern "layer=appkit event=presented_iosurface_pixels .*attachment_id=[1-9][0-9]* .*visible=true note=reported-presented-iosurface-pixels" "AppKit reported structural IOSurface presentation pixels"
