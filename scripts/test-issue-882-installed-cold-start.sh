@@ -6,6 +6,7 @@ RUN_ID="$(date +%Y%m%d-%H%M%S)"
 START_EPOCH="$(date +%s)"
 LOG_DIR="${TERMSURF_ISSUE882_LOG_DIR:-$ROOT/logs/issue-882-exp1-installed-cold-start}"
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-issue882-exp1.XXXXXX")"
+CASK_TOKEN="${ASTROHACKER_HOMEBREW_CASK:-astrohacker}"
 APP="/Applications/Astrohacker Terminal.app"
 APP_BIN="$APP/Contents/MacOS/aht"
 WEB="/opt/homebrew/bin/web"
@@ -30,7 +31,7 @@ usage: scripts/test-issue-882-installed-cold-start.sh [--browser chromium|webkit
 Measures installed Homebrew browser startup timing for Issue 882.
 
   --browser       Select engine(s). Default: all.
-  --reinstall     Run brew reinstall --cask astrohacker-terminal before each selected
+  --reinstall     Run brew reinstall --cask "$CASK_TOKEN" before each selected
                   engine's first measured launch.
   --fresh-spawn   Kill/reap app and engine processes before each launch so the
                   run measures fresh process startup, not server reuse.
@@ -403,7 +404,7 @@ run_browser_once() {
     if expect_postflight_warmup; then
       rm -f "$POSTFLIGHT_WARMUP_LOG"
     fi
-    brew reinstall --cask astrohacker-terminal 2>&1 | tee -a "$HARNESS_LOG"
+    brew reinstall --cask "$CASK_TOKEN" 2>&1 | tee -a "$HARNESS_LOG"
     if expect_postflight_warmup; then
       verify_postflight_warmup "$scenario"
     fi
@@ -466,11 +467,11 @@ run_browser() {
   local binary="$2"
   if [ "$browser" = "ladybird" ]; then
     if $REINSTALL; then
-      log "reinstalling astrohacker-terminal before ladybird warmup proof"
+      log "reinstalling $CASK_TOKEN before ladybird warmup proof"
       if expect_postflight_warmup; then
         rm -f "$POSTFLIGHT_WARMUP_LOG"
       fi
-      brew reinstall --cask astrohacker-terminal 2>&1 | tee -a "$HARNESS_LOG"
+      brew reinstall --cask "$CASK_TOKEN" 2>&1 | tee -a "$HARNESS_LOG"
       if expect_postflight_warmup; then
         verify_postflight_warmup "ladybird-warmup-proof"
       fi

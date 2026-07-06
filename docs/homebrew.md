@@ -1,19 +1,21 @@
 # Homebrew
 
-Astrohacker Terminal ships to macOS through the `astrohackerlabs/astrohacker`
-Homebrew tap. The cask currently targets Apple silicon macOS.
+Astrohacker ships to macOS through the `astrohackerlabs/astrohacker` Homebrew
+tap. The cask currently targets Apple silicon macOS and installs Astrohacker
+Terminal. Astrohacker Shell and Astrohacker Editor will join the same bundle
+later.
 
 ## Install
 
 ```bash
 brew tap astrohackerlabs/astrohacker
 brew trust astrohackerlabs/astrohacker
-brew install --cask astrohacker-terminal
+brew install --cask astrohacker
 ```
 
 ## Initial 0.1.0 Signing Model
 
-Astrohacker Terminal `0.1.0` is distributed through the Astrohacker Homebrew tap
+Astrohacker `0.1.0` is distributed through the Astrohacker Homebrew tap
 before Developer ID notarization is in place. The cask postflight clears
 quarantine attributes from the installed app and runtime artifacts, then applies
 ad-hoc signatures to the app bundle, CLI wrappers, and bundled browser runtime
@@ -28,7 +30,7 @@ To upgrade an existing install:
 
 ```bash
 brew update
-brew upgrade --cask astrohacker-terminal
+brew upgrade --cask astrohacker
 ```
 
 ## Installed Layout

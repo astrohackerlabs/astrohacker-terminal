@@ -22,19 +22,20 @@ developing browser integrations.
 
 ## Install
 
-The Homebrew cask currently targets Apple silicon macOS:
+The Astrohacker Homebrew cask currently targets Apple silicon macOS and
+installs Astrohacker Terminal:
 
 ```bash
 brew tap astrohackerlabs/astrohacker
 brew trust astrohackerlabs/astrohacker
-brew install --cask astrohacker-terminal
+brew install --cask astrohacker
 ```
 
 To upgrade:
 
 ```bash
 brew update
-brew upgrade --cask astrohacker-terminal
+brew upgrade --cask astrohacker
 ```
 
 ## Build

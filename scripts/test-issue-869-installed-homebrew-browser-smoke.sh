@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="${ASTROHACKER_TERMINAL_SMOKE_VERSION:-${TERMSURF_SMOKE_VERSION:-0.1.0}}"
+CASK_TOKEN="${ASTROHACKER_HOMEBREW_CASK:-astrohacker}"
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 START_EPOCH="$(date +%s)"
 LOG_DIR="$ROOT/logs/issue-869-exp1-installed-homebrew"
@@ -194,12 +195,12 @@ require_version_identity() {
   cli_version="$("$APP_BIN" +version 2>&1 | sed -n '1p')"
   short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")"
   build_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")"
-  brew_version="$(brew list --cask --versions astrohacker-terminal)"
+  brew_version="$(brew list --cask --versions "$CASK_TOKEN")"
 
   [ "$cli_version" = "Astrohacker Terminal $VERSION" ] || fail "CLI version mismatch: $cli_version"
   [ "$short_version" = "$VERSION" ] || fail "short version mismatch: $short_version"
   [ "$build_version" = "$VERSION" ] || fail "build version mismatch: $build_version"
-  [ "$brew_version" = "astrohacker-terminal $VERSION" ] || fail "brew version mismatch: $brew_version"
+  [ "$brew_version" = "$CASK_TOKEN $VERSION" ] || fail "brew version mismatch: $brew_version"
 
   log "PASS: installed CLI version=$cli_version"
   log "PASS: installed CFBundleShortVersionString=$short_version"

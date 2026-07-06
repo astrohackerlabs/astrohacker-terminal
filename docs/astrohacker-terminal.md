@@ -139,10 +139,10 @@ resources, and the `ah-ladybirdd` Ladybird prototype:
 ```bash
 brew tap astrohackerlabs/astrohacker
 brew trust astrohackerlabs/astrohacker
-brew install --cask astrohacker-terminal
+brew install --cask astrohacker
 ```
 
-To upgrade: `brew update && brew upgrade --cask astrohacker-terminal`
+To upgrade: `brew update && brew upgrade --cask astrohacker`
 
 ### Build from Source
 
