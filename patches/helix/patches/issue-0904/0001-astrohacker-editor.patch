@@ -2123,10 +2123,10 @@ index 6f6329db6..164c0cff4 100644
      let language = loader.language_for_scope(lang_scope).unwrap();
      let language_config = loader.language(language).config();
 diff --git a/helix-loader/build.rs b/helix-loader/build.rs
-index b954dfc68..198d01fb5 100644
+index b954dfc68..f1bb9c1e0 100644
 --- a/helix-loader/build.rs
 +++ b/helix-loader/build.rs
-@@ -1,12 +1,11 @@
+@@ -1,12 +1,14 @@
 -use std::borrow::Cow;
  use std::path::Path;
  use std::process::Command;
@@ -2137,12 +2137,15 @@ index b954dfc68..198d01fb5 100644
 +const VERSION: &str = env!("CARGO_PKG_VERSION");
  
  fn main() {
++    println!("cargo:rerun-if-env-changed=ASTROHACKER_VERSION");
++    println!("cargo:rerun-if-env-changed=ASTROHACKER_EDITOR_DEFAULT_RUNTIME");
++
 +    let version = std::env::var("ASTROHACKER_VERSION").unwrap_or_else(|_| VERSION.to_string());
 +
      let git_hash = Command::new("git")
          .args(["rev-parse", "HEAD"])
          .output()
-@@ -15,28 +14,12 @@ fn main() {
+@@ -15,28 +17,12 @@ fn main() {
          .and_then(|x| String::from_utf8(x.stdout).ok())
          .or_else(|| option_env!("HELIX_NIX_BUILD_REV").map(|s| s.to_string()));
  
@@ -2225,7 +2228,7 @@ index f1ee137f3..2fdd8f4c3 100644
          ));
      };
 diff --git a/helix-loader/src/lib.rs b/helix-loader/src/lib.rs
-index 47699196e..3347594ee 100644
+index 47699196e..efaf93570 100644
 --- a/helix-loader/src/lib.rs
 +++ b/helix-loader/src/lib.rs
 @@ -33,10 +33,10 @@ pub fn initialize_log_file(specified_file: Option<PathBuf>) {
@@ -2237,13 +2240,13 @@ index 47699196e..3347594ee 100644
 -/// 4. `HELIX_DEFAULT_RUNTIME` (if environment variable is set *at build time*)
 -/// 5. subdirectory of path to helix executable (always included)
 +/// 2. `ASTROHACKER_EDITOR_RUNTIME` (if environment variable is set)
-+/// 3. `ASTROHACKER_EDITOR_DEFAULT_RUNTIME` (if environment variable is set *at build time*)
-+/// 4. subdirectory of user config directory (always included)
++/// 3. subdirectory of user config directory (always included)
++/// 4. `ASTROHACKER_EDITOR_DEFAULT_RUNTIME` (if environment variable is set *at build time*)
 +/// 5. subdirectory of path to the editor executable (always included)
  ///
  /// Postcondition: returns at least two paths (they might not exist).
  fn prioritize_runtime_dirs() -> Vec<PathBuf> {
-@@ -50,10 +50,7 @@ fn prioritize_runtime_dirs() -> Vec<PathBuf> {
+@@ -50,19 +50,19 @@ fn prioritize_runtime_dirs() -> Vec<PathBuf> {
          rt_dirs.push(path);
      }
  
@@ -2255,7 +2258,11 @@ index 47699196e..3347594ee 100644
          let dir = path::expand_tilde(Path::new(&dir));
          rt_dirs.push(path::normalize(dir));
      }
-@@ -62,10 +59,13 @@ fn prioritize_runtime_dirs() -> Vec<PathBuf> {
+ 
++    let conf_rt_dir = config_dir().join(RT_DIR);
++    rt_dirs.push(conf_rt_dir);
++
+     // If this variable is set during build time, it will always be included
      // in the lookup list. This allows downstream packagers to set a fallback
      // directory to a location that is conventional on their distro so that they
      // need not resort to a wrapper script or a global environment variable.
@@ -2264,12 +2271,6 @@ index 47699196e..3347594ee 100644
          rt_dirs.push(dir.into());
      }
  
-+    let conf_rt_dir = config_dir().join(RT_DIR);
-+    rt_dirs.push(conf_rt_dir);
-+
-     // fallback to location of the executable being run
-     // canonicalize the path in case the executable is symlinked
-     let exe_rt_dir = std::env::current_exe()
 @@ -121,7 +121,8 @@ pub fn config_dir() -> PathBuf {
      // TODO: allow env var override
      let strategy = choose_base_strategy().expect("Unable to find the config directory!");

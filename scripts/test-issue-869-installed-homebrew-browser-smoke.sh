@@ -2,8 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="${ASTROHACKER_TERMINAL_SMOKE_VERSION:-${TERMSURF_SMOKE_VERSION:-0.1.0}}"
 CASK_TOKEN="${ASTROHACKER_HOMEBREW_CASK:-astrohacker}"
+INSTALLED_CASK_VERSION="$(brew list --cask --versions "$CASK_TOKEN" 2>/dev/null | awk '{print $2}')"
+VERSION="${ASTROHACKER_TERMINAL_SMOKE_VERSION:-${TERMSURF_SMOKE_VERSION:-$INSTALLED_CASK_VERSION}}"
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 START_EPOCH="$(date +%s)"
 LOG_DIR="$ROOT/logs/issue-869-exp1-installed-homebrew"

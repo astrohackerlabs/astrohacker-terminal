@@ -59,9 +59,10 @@ Astrohacker product edits on top of that overlay:
 - workspace-local paths become `.astrohacker/editor`;
 - runtime overrides become `ASTROHACKER_EDITOR_RUNTIME` and
   `ASTROHACKER_EDITOR_DEFAULT_RUNTIME`;
-- `ASTROHACKER_EDITOR_RUNTIME` and the packaged default runtime are searched
-  before the user config runtime so release grammar builds and package health
-  checks can target an explicit runtime directory;
+- `ASTROHACKER_EDITOR_RUNTIME` is searched before the user config runtime so
+  release grammar builds and package health checks can target an explicit
+  runtime directory, while user config runtime files still override the
+  packaged default runtime;
 - obsolete Velix workflow/release material remains excluded.
 
 After those edits, the committed patch below is the authoritative
