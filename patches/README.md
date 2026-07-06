@@ -22,6 +22,7 @@ Current fork areas:
 - `gecko/`
 - `nushell/`
 - `reedline/`
+- `helix/`
 
 Ghostty has a current path-aware patch archive under
 `patches/ghostty/patches/issue-0013/` generated from the current Astrohacker
@@ -32,3 +33,9 @@ that current checkout state for the future Waterwolf path.
 Nushell and Reedline support the Astrohacker Shell migration from Shannon.
 Nushell has an issue 0903 patch archive. Reedline currently records that the
 Shannon subtree matches upstream `v0.48.0` with no effective patch.
+
+Helix supports the Astrohacker Editor migration from Velix. The current audit
+records the selected upstream base and patch-generation method under
+`patches/helix/`; Issue 904 carries the current Astrohacker Editor patch
+archive with `ahe` naming, Astrohacker paths, runtime environment changes, and
+build support.

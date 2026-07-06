@@ -2,8 +2,7 @@
 
 Astrohacker ships to macOS through the `astrohackerlabs/astrohacker` Homebrew
 tap. The cask currently targets Apple silicon macOS and installs Astrohacker
-Terminal. Astrohacker Shell and Astrohacker Editor will join the same bundle
-later.
+Terminal, Astrohacker Shell, and Astrohacker Editor as one Astrohacker bundle.
 
 ## Install
 
@@ -40,6 +39,10 @@ The cask installs:
 - `Astrohacker Terminal.app` to `/Applications/Astrohacker Terminal.app`;
 - `web` to the Homebrew binary path;
 - `termsurf` to the Homebrew binary path;
+- `ahsh` to the Homebrew binary path;
+- `ahe` to the Homebrew binary path;
+- Astrohacker Editor runtime assets to
+  `/opt/homebrew/opt/astrohacker-terminal-editor/runtime/`;
 - `ah-chromiumd` and Chromium runtime resources to
   `/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/`;
 - `ah-webkitd` and WebKit runtime resources to
@@ -54,10 +57,18 @@ The release tarball contains the same top-level package contract:
 - `Astrohacker Terminal.app/`;
 - `web`;
 - `termsurf`;
+- `ahsh`;
+- `ahe`;
+- `ahe-runtime/runtime/`;
 - `gtui/`;
 - `ah-chromiumd/`;
 - `ah-webkitd/`;
 - `ah-ladybirdd/`.
+
+Astrohacker Editor is built with its default runtime path set to
+`/opt/homebrew/opt/astrohacker-terminal-editor/runtime`. Local package
+verification may override that path with `ASTROHACKER_EDITOR_RUNTIME`, but the
+installed cask should work without environment variables.
 
 ## Verification
 
@@ -89,6 +100,11 @@ evidence such as logs or screenshots showing:
 - no smoke required `TERMSURF_ROAMIUM_PATH`, `TERMSURF_SURFARI_PATH`,
   `TERMSURF_GIRLBAT_PATH`, `TERMSURF_INSTALLED_ROAMIUM_PATH`,
   `TERMSURF_INSTALLED_SURFARI_PATH`, or `TERMSURF_INSTALLED_GIRLBAT_PATH`.
+- `/opt/homebrew/bin/ahsh --version` succeeds;
+- `/opt/homebrew/bin/ahe --version` reports Astrohacker Editor;
+- `/opt/homebrew/bin/ahe --health rust` succeeds without
+  `ASTROHACKER_EDITOR_RUNTIME` and loads the packaged Rust parser and queries
+  from `/opt/homebrew/opt/astrohacker-terminal-editor/runtime`.
 
 Ladybird is included as a prototype only. Its Homebrew presence proves installed
 runtime packaging and gives us a testable Ladybird-backed engine, but it does

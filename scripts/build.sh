@@ -12,6 +12,7 @@ WEBKIT_SRC="$COMPANY_DIR/forks/webkit/src"
 SURFARI_LIB_DIR="$RUST_DIR/surfari/libtermsurf_webkit"
 GIRLBAT_LIB_DIR="$RUST_DIR/girlbat/libtermsurf_ladybird"
 GHOSTTY_DIR="$COMPANY_DIR/forks/ghostty"
+HELIX_DIR="$COMPANY_DIR/forks/helix"
 
 RELEASE=false
 CLEAN=false
@@ -21,7 +22,7 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: aht, ahsh, roamium, webtui, gtui, chromium, webkit, surfari-lib, surfari, girlbat-lib, girlbat, all"
+  echo "Components: aht, ahsh, ahe, roamium, webtui, gtui, chromium, webkit, surfari-lib, surfari, girlbat-lib, girlbat, all"
 }
 
 configuration() {
@@ -62,6 +63,7 @@ if $PRINT_PATHS; then
   printf 'CHROMIUM_SRC=%s\n' "$CHROMIUM_SRC"
   printf 'WEBKIT_SRC=%s\n' "$WEBKIT_SRC"
   printf 'GHOSTTY_DIR=%s\n' "$GHOSTTY_DIR"
+  printf 'HELIX_DIR=%s\n' "$HELIX_DIR"
   exit 0
 fi
 
@@ -150,6 +152,33 @@ build_ahsh() {
     echo "==> Building ahsh (debug)..."
     cargo build
     echo "  ahsh: $AHSH_DIR/target/debug/ahsh"
+  fi
+}
+
+build_ahe() {
+  if [ ! -d "$HELIX_DIR" ]; then
+    echo "Missing Helix fork checkout: $HELIX_DIR" >&2
+    echo "Reconstruct it from patches/helix before building ahe." >&2
+    exit 1
+  fi
+  if [ ! -f "$HELIX_DIR/helix-term/Cargo.toml" ]; then
+    echo "Invalid Helix fork checkout: $HELIX_DIR" >&2
+    echo "Expected helix-term/Cargo.toml under forks/helix." >&2
+    exit 1
+  fi
+  cd "$HELIX_DIR"
+  if $CLEAN; then
+    echo "==> Cleaning ahe..."
+    cargo clean
+  fi
+  if $RELEASE; then
+    echo "==> Building ahe (release)..."
+    HELIX_DISABLE_AUTO_GRAMMAR_BUILD=1 cargo build --release -p helix-term
+    echo "  ahe: $HELIX_DIR/target/release/ahe"
+  else
+    echo "==> Building ahe (debug)..."
+    HELIX_DISABLE_AUTO_GRAMMAR_BUILD=1 cargo build -p helix-term
+    echo "  ahe: $HELIX_DIR/target/debug/ahe"
   fi
 }
 
@@ -341,6 +370,7 @@ case "$COMPONENT" in
   webtui)     build_webtui ;;
   gtui)       build_gtui ;;
   ahsh)       build_ahsh ;;
+  ahe)        build_ahe ;;
   roamium)    build_roamium ;;
   webkit)     build_webkit ;;
   surfari-lib) build_surfari_lib ;;
