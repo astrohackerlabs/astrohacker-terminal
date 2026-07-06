@@ -21,7 +21,7 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: aht, roamium, webtui, gtui, chromium, webkit, surfari-lib, surfari, girlbat-lib, girlbat, all"
+  echo "Components: aht, ahsh, roamium, webtui, gtui, chromium, webkit, surfari-lib, surfari, girlbat-lib, girlbat, all"
 }
 
 configuration() {
@@ -122,6 +122,34 @@ build_gtui() {
     echo "==> Building gtui (debug)..."
     cargo build -p gtui
     echo "  gtui: $RUST_DIR/target/debug/termsurf"
+  fi
+}
+
+build_ahsh() {
+  local AHSH_DIR="$RUST_DIR/ahsh"
+  if [ ! -d "$COMPANY_DIR/forks/nushell" ]; then
+    echo "Missing Nushell fork checkout: $COMPANY_DIR/forks/nushell" >&2
+    echo "Reconstruct it from patches/nushell before building ahsh." >&2
+    exit 1
+  fi
+  if [ ! -d "$COMPANY_DIR/forks/reedline" ]; then
+    echo "Missing Reedline fork checkout: $COMPANY_DIR/forks/reedline" >&2
+    echo "Reconstruct it from patches/reedline before building ahsh." >&2
+    exit 1
+  fi
+  cd "$AHSH_DIR"
+  if $CLEAN; then
+    echo "==> Cleaning ahsh..."
+    cargo clean
+  fi
+  if $RELEASE; then
+    echo "==> Building ahsh (release)..."
+    cargo build --release
+    echo "  ahsh: $AHSH_DIR/target/release/ahsh"
+  else
+    echo "==> Building ahsh (debug)..."
+    cargo build
+    echo "  ahsh: $AHSH_DIR/target/debug/ahsh"
   fi
 }
 
@@ -312,6 +340,7 @@ case "$COMPONENT" in
   chromium)   build_chromium ;;
   webtui)     build_webtui ;;
   gtui)       build_gtui ;;
+  ahsh)       build_ahsh ;;
   roamium)    build_roamium ;;
   webkit)     build_webkit ;;
   surfari-lib) build_surfari_lib ;;
@@ -323,6 +352,7 @@ case "$COMPONENT" in
     build_chromium
     build_webtui
     build_gtui
+    build_ahsh
     build_roamium
     build_webkit
     build_surfari

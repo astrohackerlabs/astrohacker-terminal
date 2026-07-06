@@ -265,7 +265,7 @@ require_no_chromium_crash_markers() {
   local engine_trace="$2"
   local label="$3"
   delay 1
-  local pattern='Received signal 11|SEGV|TileTaskManagerImpl::Shutdown'
+  local pattern='Received signal [0-9]+|SEGV|TileTaskManagerImpl::Shutdown|Check failed:|FATAL:'
   if grep -E "$pattern" "$app_log" "$engine_trace" >/dev/null 2>&1; then
     fail "$label logged Chromium shutdown crash marker"
   fi

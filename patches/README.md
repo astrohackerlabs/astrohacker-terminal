@@ -20,9 +20,15 @@ Current fork areas:
 - `ladybird/`
 - `ghostty/`
 - `gecko/`
+- `nushell/`
+- `reedline/`
 
 Ghostty has a current path-aware patch archive under
 `patches/ghostty/patches/issue-0013/` generated from the current Astrohacker
 Terminal/Ghostboard state. Gecko has an ignored shallow/partial checkout under
 `forks/gecko`, but no implementation patch set yet; `patches/gecko/` records
 that current checkout state for the future Waterwolf path.
+
+Nushell and Reedline support the Astrohacker Shell migration from Shannon.
+Nushell has an issue 0903 patch archive. Reedline currently records that the
+Shannon subtree matches upstream `v0.48.0` with no effective patch.
