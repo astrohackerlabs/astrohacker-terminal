@@ -9,7 +9,7 @@ Current archive:
 - Patch:
   `patches/issue-0013/0001-current-astrohacker-terminal-ghostty.patch`
 - Upstream base commit: `2c62d182cec246764ff725096a70b9ef44996f7f`
-- Source snapshot: imported from the old `repos/terminal/ghostboard/` tree
+- Source snapshot: current ignored fork checkout at `forks/ghostty`
 
 This first archive captures the current Astrohacker Terminal/Ghostboard state
 only. Historical Ghostty patch reconstruction is intentionally out of scope for
