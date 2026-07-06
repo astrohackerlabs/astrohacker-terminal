@@ -135,6 +135,29 @@ wait_for_line_after() {
   fail "timed out waiting for $label"
 }
 
+wait_for_tab_ready_after() {
+  local file="$1"
+  local start_line="$2"
+  local browser="$3"
+  local pane="$4"
+  local label="$5"
+  local attempts="${6:-180}"
+  local line
+  for _ in $(seq 1 "$attempts"); do
+    line="$(tail -n +"$((start_line + 1))" "$file" 2>/dev/null | grep -E "TermSurfBrowserStartup event=tab_ready .* browser=${browser}" | tail -1 || true)"
+    if [ -z "$line" ]; then
+      line="$(tail -n +"$((start_line + 1))" "$file" 2>/dev/null | grep -E "TabReady: pane_id=${pane} tab_id=[0-9]+" | tail -1 || true)"
+    fi
+    if [ -n "$line" ]; then
+      log "PASS: $label"
+      printf '%s\n' "$line"
+      return 0
+    fi
+    delay 1
+  done
+  fail "timed out waiting for $label"
+}
+
 extract_field() {
   local line="$1"
   local name="$2"
@@ -216,6 +239,37 @@ kill_engines() {
   pkill -x ah-ladybirdd >/dev/null 2>&1 || true
   pkill -x aht >/dev/null 2>&1 || true
   delay 1 || true
+}
+
+process_alive() {
+  local pid="$1"
+  [ -n "$pid" ] && kill -0 "$pid" >/dev/null 2>&1
+}
+
+wait_for_process_exit() {
+  local pid="$1"
+  local label="$2"
+  local attempts="${3:-20}"
+  for _ in $(seq 1 "$attempts"); do
+    if ! process_alive "$pid"; then
+      log "PASS: $label exited"
+      return 0
+    fi
+    delay 1
+  done
+  fail "$label still running after ${attempts}s pid=$pid"
+}
+
+require_no_chromium_crash_markers() {
+  local app_log="$1"
+  local engine_trace="$2"
+  local label="$3"
+  delay 1
+  local pattern='Received signal 11|SEGV|TileTaskManagerImpl::Shutdown'
+  if grep -E "$pattern" "$app_log" "$engine_trace" >/dev/null 2>&1; then
+    fail "$label logged Chromium shutdown crash marker"
+  fi
+  log "PASS: $label did not log Chromium shutdown crash markers"
 }
 
 capture_validation_context() {
@@ -442,7 +496,7 @@ EOF
   [ "$pane" = "$(extract_pane_id "$ready")" ] || fail "$browser $mode BrowserReady pane mismatch"
   wait_for_line_after "$app_log" "$start" "TermSurfBrowserStartup event=server_register .* browser=${browser}" "$browser $mode startup server register" 180 >/dev/null
   wait_for_line_after "$app_log" "$start" "TermSurfBrowserStartup event=create_tab .* browser=${browser}" "$browser $mode startup CreateTab" 180 >/dev/null
-  wait_for_line_after "$app_log" "$start" "TermSurfBrowserStartup event=tab_ready .* browser=${browser}" "$browser $mode startup TabReady" 180 >/dev/null
+  wait_for_tab_ready_after "$app_log" "$start" "$browser" "$pane" "$browser $mode startup TabReady" 180 >/dev/null
   wait_for_line_after "$app_log" "$start" "TermSurfBrowserStartup event=ca_context .* browser=${browser}" "$browser $mode startup CaContext" 180 >/dev/null
   presented="$(wait_for_line_after "$app_log" "$start" "TermSurf geometry layer=appkit event=presented .*pane_id:${pane} .*context_id=[1-9][0-9]*" "$browser $mode AppKit presentation" 180)"
   wait_webtui_loaded "$trace" "$browser" "$browser $mode WebTUI loaded https://example.com"
@@ -460,6 +514,10 @@ PY
   append_summary "$mode" "$browser" "$app_log" "$engine_trace" "$start" "$screenshot_ms" "$webtui_loaded_ms"
   log "PASS: $browser $mode installed cold-start measurement app_log=$app_log engine_trace=$engine_trace trace=$trace validation=$validation screenshot=$screenshot"
   stop_app
+  if [ "$browser" = "chromium" ]; then
+    wait_for_process_exit "$engine_pid" "$browser $mode engine process" 20
+    require_no_chromium_crash_markers "$app_log" "$engine_trace" "$browser $mode"
+  fi
 }
 
 run_browser() {

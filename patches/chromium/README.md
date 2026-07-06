@@ -7,7 +7,7 @@ branch notes that are safe to commit.
 
 ## Current State
 
-- Current archived baseline: `148.0.7778.271-issue-860`
+- Current archived baseline: `148.0.7778.271-issue-901`
 - Base version: `148.0.7778.271`
 - Main build target: `libtermsurf_chromium`
 - Working tree: `forks/chromium/src`
@@ -35,8 +35,8 @@ For the current fully archived baseline:
 ```bash
 cd forks/chromium/src
 git checkout 148.0.7778.271
-git checkout -b 148.0.7778.271-issue-860
-git am ../../../patches/chromium/patches/issue-860/*.patch
+git checkout -b 148.0.7778.271-issue-901
+git am ../../../patches/chromium/patches/issue-901/*.patch
 ```
 
 Some historical patch directories after issue 794 are incremental rather than
