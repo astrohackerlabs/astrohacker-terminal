@@ -7,14 +7,14 @@ TS="$(date +%Y%m%d-%H%M%S)"
 LOG_DIR="$ROOT/logs"
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/termsurf-ghostboard-geometry-${SCENARIO}.XXXXXX")"
 APP="${TERMSURF_GHOSTBOARD_APP:-$ROOT/forks/ghostty/macos/build/Debug/Astrohacker Terminal.app}"
-if [ "$SCENARIO" = "installed-roamium-release-launch" ] && [ -z "${TERMSURF_GHOSTBOARD_APP:-}" ]; then
+if [ "$SCENARIO" = "installed-chromium-release-launch" ] && [ -z "${TERMSURF_GHOSTBOARD_APP:-}" ]; then
   APP="$ROOT/forks/ghostty/macos/build/Release/Astrohacker Terminal.app"
 fi
 APP_BIN="$APP/Contents/MacOS/aht"
 WEB="${TERMSURF_WEB:-$ROOT/rust/target/debug/web}"
-ROAMIUM="${TERMSURF_ROAMIUM:-$ROOT/forks/chromium/src/out/Default/ah-chromiumd}"
-INSTALLED_ROAMIUM="${TERMSURF_INSTALLED_ROAMIUM:-$ROAMIUM}"
-ROAMIUM_PATH_FOR_APP="$ROAMIUM"
+CHROMIUM="${ASTROHACKER_CHROMIUM:-$ROOT/forks/chromium/src/out/Default/ah-chromiumd}"
+INSTALLED_CHROMIUM="${TERMSURF_INSTALLED_CHROMIUM:-$CHROMIUM}"
+CHROMIUM_PATH_FOR_APP="$CHROMIUM"
 POINTER_DRIVER="${TERMSURF_GEOMETRY_POINTER_DRIVER:-cgevent}"
 URL="${TERMSURF_GEOMETRY_URL:-https://example.com}"
 BORDER_CONFIG_CASE="${TERMSURF_SPLIT_BORDER_CONFIG_CASE:-enabled}"
@@ -58,7 +58,7 @@ SCREENSHOT_DEVTOOLS_SPLIT="$LOG_DIR/ghostboard-geometry-${SCENARIO}-devtools-spl
 SCREENSHOT_BROWSER_STATE_HOVER="$LOG_DIR/ghostboard-geometry-${SCENARIO}-hover-screenshot-${TS}.png"
 SCREENSHOT_BROWSER_STATE_RELOAD="$LOG_DIR/ghostboard-geometry-${SCENARIO}-reload-screenshot-${TS}.png"
 SCREENSHOT_BROWSER_STATE_BLANK="$LOG_DIR/ghostboard-geometry-${SCENARIO}-blank-screenshot-${TS}.png"
-ROAMIUM_TRACE="$LOG_DIR/ghostboard-geometry-${SCENARIO}-roamium-${TS}.log"
+CHROMIUM_TRACE="$LOG_DIR/ghostboard-geometry-${SCENARIO}-chromium-${TS}.log"
 WEBTUI_STATE_TRACE="$LOG_DIR/ghostboard-geometry-${SCENARIO}-webtui-${TS}.log"
 SIBLING_ALIVE_COMMAND="$RUN_DIR/sibling-alive-command.txt"
 SIBLING_FOCUS_COMMAND="$RUN_DIR/sibling-focus-command.txt"
@@ -307,7 +307,7 @@ wait_for_log_after_ordered() {
 require_trace() {
   local needle="$1"
   local label="$2"
-  if grep -F "$needle" "$ROAMIUM_TRACE" >/dev/null 2>&1; then
+  if grep -F "$needle" "$CHROMIUM_TRACE" >/dev/null 2>&1; then
     log "PASS: $label"
   else
     fail "missing $label"
@@ -470,8 +470,8 @@ PY
 }
 
 trace_line_count() {
-  if [ -r "$ROAMIUM_TRACE" ]; then
-    wc -l <"$ROAMIUM_TRACE" | tr -d ' '
+  if [ -r "$CHROMIUM_TRACE" ]; then
+    wc -l <"$CHROMIUM_TRACE" | tr -d ' '
   else
     printf '0\n'
   fi
@@ -481,7 +481,7 @@ require_trace_after() {
   local start_line="$1"
   local needle="$2"
   local label="$3"
-  if tail -n +"$((start_line + 1))" "$ROAMIUM_TRACE" | grep -F "$needle" >/dev/null 2>&1; then
+  if tail -n +"$((start_line + 1))" "$CHROMIUM_TRACE" | grep -F "$needle" >/dev/null 2>&1; then
     log "PASS: $label"
   else
     fail "missing $label"
@@ -490,7 +490,7 @@ require_trace_after() {
 
 has_trace() {
   local needle="$1"
-  grep -F "$needle" "$ROAMIUM_TRACE" >/dev/null 2>&1
+  grep -F "$needle" "$CHROMIUM_TRACE" >/dev/null 2>&1
 }
 
 wait_for_trace_regex() {
@@ -498,7 +498,7 @@ wait_for_trace_regex() {
   local label="$2"
   local attempts="${3:-30}"
   for _ in $(seq 1 "$attempts"); do
-    if grep -E "$pattern" "$ROAMIUM_TRACE" >/dev/null 2>&1; then
+    if grep -E "$pattern" "$CHROMIUM_TRACE" >/dev/null 2>&1; then
       log "PASS: observed $label"
       return 0
     fi
@@ -511,7 +511,7 @@ require_no_trace_after() {
   local start_line="$1"
   local needle="$2"
   local label="$3"
-  if tail -n +"$((start_line + 1))" "$ROAMIUM_TRACE" | grep -F "$needle" >/dev/null 2>&1; then
+  if tail -n +"$((start_line + 1))" "$CHROMIUM_TRACE" | grep -F "$needle" >/dev/null 2>&1; then
     fail "$label"
   fi
   log "PASS: $label"
@@ -524,7 +524,7 @@ wait_for_trace_line_after() {
   local attempts="${4:-30}"
   local line
   for _ in $(seq 1 "$attempts"); do
-    line="$(tail -n +"$((start_line + 1))" "$ROAMIUM_TRACE" |
+    line="$(tail -n +"$((start_line + 1))" "$CHROMIUM_TRACE" |
       grep -E "$pattern" |
       tail -1 || true)"
     if [ -n "$line" ]; then
@@ -539,7 +539,7 @@ wait_for_trace_line_after() {
 optional_trace_line_after() {
   local start_line="$1"
   local pattern="$2"
-  tail -n +"$((start_line + 1))" "$ROAMIUM_TRACE" |
+  tail -n +"$((start_line + 1))" "$CHROMIUM_TRACE" |
     grep -E "$pattern" |
     tail -1 || true
 }
@@ -907,11 +907,11 @@ assert_mouse_click_matches_hit() {
   web_point="$(extract_web_point "$hit_line")"
   mouse_coords="$(extract_mouse_coords "$mouse_line")"
   [ -n "$web_point" ] && [ "$web_point" != "$hit_line" ] || fail "$label missing AppKit web_point"
-  [ -n "$mouse_coords" ] && [ "$mouse_coords" != "$mouse_line" ] || fail "$label missing Roamium mouse coords"
+  [ -n "$mouse_coords" ] && [ "$mouse_coords" != "$mouse_line" ] || fail "$label missing Chromium mouse coords"
   if compare_points_within_tolerance "$mouse_coords" "$web_point" 1; then
-    log "PASS: $label Roamium mouse coords match AppKit web_point within 1 CSS pixel web_point=$web_point mouse_coords=$mouse_coords"
+    log "PASS: $label Chromium mouse coords match AppKit web_point within 1 CSS pixel web_point=$web_point mouse_coords=$mouse_coords"
   else
-    fail "$label Roamium mouse coords mismatch: web_point=$web_point mouse_coords=$mouse_coords"
+    fail "$label Chromium mouse coords mismatch: web_point=$web_point mouse_coords=$mouse_coords"
   fi
 }
 
@@ -934,7 +934,7 @@ assert_mouse_after_click() {
   hit_line="$(wait_for_hit_after "$log_start" "$context_id" "$assert_label AppKit hit-test")"
   require_text "$hit_line" "overlay_frame=${expected_frame}" "$assert_label hit-test uses current AppKit frame"
   require_text "$hit_line" "web_point={" "$assert_label hit-test includes webview-relative point"
-  mouse_line="$(wait_for_mouse_down_after "$trace_start" "$tab_id" "$pane_id" "$assert_label Roamium mouse down")"
+  mouse_line="$(wait_for_mouse_down_after "$trace_start" "$tab_id" "$pane_id" "$assert_label Chromium mouse down")"
   assert_mouse_click_matches_hit "$hit_line" "$mouse_line" "$assert_label"
 }
 
@@ -968,7 +968,7 @@ assert_stale_click_misses_browser() {
   trace_start="$(trace_line_count)"
   click_global_point "$x" "$y" "$click_label"
   wait_for_negative_hit_after "$log_start" "$context_id" "$assert_label AppKit stale-coordinate hit-test" require-hit-false 5
-  require_no_trace_after "$trace_start" "mouse-event tab=${tab_id} pane=${pane_id}" "$assert_label stale coordinate did not reach Roamium mouse input"
+  require_no_trace_after "$trace_start" "mouse-event tab=${tab_id} pane=${pane_id}" "$assert_label stale coordinate did not reach Chromium mouse input"
 }
 
 compare_split_right_pair() {
@@ -1799,7 +1799,7 @@ enter_browser_browse() {
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   if try_wait_log_after "$mode_start_line" "ModeChanged: pane_id=${pane_id} browsing=true" 10; then
     log "PASS: $label webtui entered browse mode"
-    require_trace_after "$mode_trace_start_line" "focus-changed tab=${browser_tab_id} pane=${pane_id} ffi=ts_set_focus focused=true" "Roamium observed $label focus=true after browse mode"
+    require_trace_after "$mode_trace_start_line" "focus-changed tab=${browser_tab_id} pane=${pane_id} ffi=ts_set_focus focused=true" "Chromium observed $label focus=true after browse mode"
   elif tail -n +"$((mode_start_line + 1))" "$APP_LOG" | grep -E "KeyEvent: pane_id=${pane_id} tab_id=${browser_tab_id} type=down .*windows_key_code=13" >/dev/null 2>&1 &&
     has_trace "focus-changed tab=${browser_tab_id} pane=${pane_id} ffi=ts_set_focus focused=true"; then
     log "PASS: $label webtui was already in browse mode"
@@ -1819,7 +1819,7 @@ leave_browser_browse() {
   log "${label}_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$control_start_line" "ModeChanged: pane_id=${pane_id} browsing=false" "$label webtui returned to control mode"
-  require_trace_after "$control_trace_start_line" "focus-changed tab=${browser_tab_id} pane=${pane_id} ffi=ts_set_focus focused=false" "Roamium observed $label focus=false after control mode"
+  require_trace_after "$control_trace_start_line" "focus-changed tab=${browser_tab_id} pane=${pane_id} ffi=ts_set_focus focused=false" "Chromium observed $label focus=false after control mode"
 }
 
 edit_url_replace() {
@@ -1895,10 +1895,10 @@ assert_gui_active_cycle() {
   delay 1
 
   require_log_after "$app_start_line" "SetGuiActive: tab_id=0 active=false reason=gui_deactivated" "$label Ghostboard sent inactive broadcast"
-  require_trace_after "$trace_start_line" "set-gui-active tab=0 active=false reason=gui_deactivated" "$label Roamium received inactive broadcast"
+  require_trace_after "$trace_start_line" "set-gui-active tab=0 active=false reason=gui_deactivated" "$label Chromium received inactive broadcast"
   require_log_after "$app_start_line" "SetGuiActive: pane_id=${active_pane_id} tab_id=${active_tab_id} active=true reason=gui_activated" "$label Ghostboard sent active state to focused browser"
-  require_trace_after "$trace_start_line" "set-gui-active tab=${active_tab_id} pane=${active_pane_id} active=true reason=gui_activated target_count=1" "$label Roamium received active state for focused browser"
-  require_no_trace_after "$trace_start_line" "set-gui-active tab=${inactive_tab_id} pane=${inactive_pane_id} active=true reason=gui_activated" "$label Roamium did not receive stale active state for unfocused browser"
+  require_trace_after "$trace_start_line" "set-gui-active tab=${active_tab_id} pane=${active_pane_id} active=true reason=gui_activated target_count=1" "$label Chromium received active state for focused browser"
+  require_no_trace_after "$trace_start_line" "set-gui-active tab=${inactive_tab_id} pane=${inactive_pane_id} active=true reason=gui_activated" "$label Chromium did not receive stale active state for unfocused browser"
 }
 
 devtools_probe() {
@@ -1920,14 +1920,14 @@ devtools_overlay_probe() {
 }
 
 case "$SCENARIO" in
-  initial-open|launch-discovery-contract|named-roamium-debug-launch|named-roamium-invalid-env|installed-roamium-release-launch|hello-config-homepage|hello-config-browser-list|hello-empty-browser-list|ghostboard-config-paths|browser-state-smoke|browser-command-navigation|back-navigation-focus-theft|javascript-dialog-smoke|http-auth-smoke|renderer-crash-smoke|color-scheme-smoke|copy-current-url-smoke|browser-input-granularity|click-driven-browse-mode|webapp-clipboard-copy|multi-profile-isolation|same-profile-server-lifecycle|tui-disconnect-reconnect|visible-profile-identity|two-browser-split-routing|window-resize|performance-window-resize|split-right|split-right-border-config|performance-split-right|split-down|split-right-resize|split-right-equalize|split-right-zoom|split-right-close-sibling|split-right-close-browser-pane|split-right-focus-switch|new-terminal-tab-visibility|open-browser-in-new-tab|close-browser-tab|open-browser-in-new-window|multiple-windows-with-browsers|display-move-backing-scale|fullscreen-unfullscreen|minimize-hide-restore|font-size-cell-metrics|tui-overlay-resize-command|terminal-scrollback-movement|browser-navigation-geometry|devtools-split-geometry|devtools-singleton-guard|mouse-after-geometry-change|keyboard-after-tab-window-switch|gui-active-multi-tab) ;;
+  initial-open|launch-discovery-contract|named-chromium-debug-launch|named-chromium-invalid-env|installed-chromium-release-launch|hello-config-homepage|hello-config-browser-list|hello-empty-browser-list|ghostboard-config-paths|browser-state-smoke|browser-command-navigation|back-navigation-focus-theft|javascript-dialog-smoke|http-auth-smoke|renderer-crash-smoke|color-scheme-smoke|copy-current-url-smoke|browser-input-granularity|click-driven-browse-mode|webapp-clipboard-copy|multi-profile-isolation|same-profile-server-lifecycle|tui-disconnect-reconnect|visible-profile-identity|two-browser-split-routing|window-resize|performance-window-resize|split-right|split-right-border-config|performance-split-right|split-down|split-right-resize|split-right-equalize|split-right-zoom|split-right-close-sibling|split-right-close-browser-pane|split-right-focus-switch|new-terminal-tab-visibility|open-browser-in-new-tab|close-browser-tab|open-browser-in-new-window|multiple-windows-with-browsers|display-move-backing-scale|fullscreen-unfullscreen|minimize-hide-restore|font-size-cell-metrics|tui-overlay-resize-command|terminal-scrollback-movement|browser-navigation-geometry|devtools-split-geometry|devtools-singleton-guard|mouse-after-geometry-change|keyboard-after-tab-window-switch|gui-active-multi-tab) ;;
   *)
     fail "unsupported scenario: $SCENARIO"
     ;;
 esac
 
 RESOLVER_ONLY_SCENARIO=0
-if [ "$SCENARIO" = "named-roamium-debug-launch" ] || [ "$SCENARIO" = "installed-roamium-release-launch" ]; then
+if [ "$SCENARIO" = "named-chromium-debug-launch" ] || [ "$SCENARIO" = "installed-chromium-release-launch" ]; then
   RESOLVER_ONLY_SCENARIO=1
 fi
 
@@ -1944,9 +1944,9 @@ fi
 
 require_file "$APP_BIN"
 require_file "$WEB"
-require_file "$ROAMIUM"
-if [ "$SCENARIO" = "installed-roamium-release-launch" ]; then
-  require_file "$INSTALLED_ROAMIUM"
+require_file "$CHROMIUM"
+if [ "$SCENARIO" = "installed-chromium-release-launch" ]; then
+  require_file "$INSTALLED_CHROMIUM"
 fi
 require_readable "$ROOT/scripts/ghostty-app/inject.swift"
 require_readable "$ROOT/scripts/ghostty-app/winid.swift"
@@ -2887,19 +2887,19 @@ HIDE_APP="$RUN_DIR/hide-app.swift"
 RESIZE_WINDOW="$RUN_DIR/resize-window.swift"
 cat >"$COMMAND" <<EOF
 #!/usr/bin/env bash
-exec "$WEB" --browser "$ROAMIUM" "$URL"
+exec "$WEB" --browser "$CHROMIUM" "$URL"
 EOF
 chmod +x "$COMMAND"
 
 if [ "$SCENARIO" = "multi-profile-isolation" ]; then
   cat >"$COMMAND" <<EOF
 #!/usr/bin/env bash
-exec "$WEB" --browser "$ROAMIUM" --profile profilea "$PROFILE_URL_A"
+exec "$WEB" --browser "$CHROMIUM" --profile profilea "$PROFILE_URL_A"
 EOF
   chmod +x "$COMMAND"
 fi
 
-if [ "$SCENARIO" = "named-roamium-debug-launch" ] || [ "$SCENARIO" = "named-roamium-invalid-env" ] || [ "$SCENARIO" = "installed-roamium-release-launch" ]; then
+if [ "$SCENARIO" = "named-chromium-debug-launch" ] || [ "$SCENARIO" = "named-chromium-invalid-env" ] || [ "$SCENARIO" = "installed-chromium-release-launch" ]; then
   cat >"$COMMAND" <<EOF
 #!/usr/bin/env bash
 exec "$WEB" "$URL"
@@ -2931,8 +2931,8 @@ EOF
   chmod +x "$COMMAND"
 fi
 
-if [ "$SCENARIO" = "named-roamium-invalid-env" ]; then
-  ROAMIUM_PATH_FOR_APP="chromium"
+if [ "$SCENARIO" = "named-chromium-invalid-env" ]; then
+  CHROMIUM_PATH_FOR_APP="chromium"
 fi
 
 if [ "$SCENARIO" = "launch-discovery-contract" ]; then
@@ -2951,26 +2951,26 @@ EOF
   log "run_dir=$RUN_DIR"
   log "app=$APP"
   log "web=$WEB"
-  log "roamium=$ROAMIUM"
+  log "chromium=$CHROMIUM"
   log "url=$URL"
   log "absolute_command=$COMMAND"
   log "named_command=$NAMED_COMMAND"
   log "invalid_env_command=$INVALID_ENV_COMMAND"
-  log "named_roamium_env=$ROAMIUM"
-  log "invalid_roamium_env=chromium"
-  grep -F -- "exec \"$WEB\" --browser \"$ROAMIUM\" \"$URL\"" "$COMMAND" >/dev/null 2>&1 || fail "absolute launch command does not use explicit --browser path"
+  log "named_chromium_env=$CHROMIUM"
+  log "invalid_chromium_env=chromium"
+  grep -F -- "exec \"$WEB\" --browser \"$CHROMIUM\" \"$URL\"" "$COMMAND" >/dev/null 2>&1 || fail "absolute launch command does not use explicit --browser path"
   log "PASS: absolute launch command uses explicit --browser path"
   grep -F -- "--browser" "$NAMED_COMMAND" >/dev/null 2>&1 && fail "named launch command unexpectedly contains --browser"
   grep -F -- "exec \"$WEB\" \"$URL\"" "$NAMED_COMMAND" >/dev/null 2>&1 || fail "named launch command does not omit --browser"
   log "PASS: named/default launch command omits --browser"
-  [ "${ROAMIUM:0:1}" = "/" ] || fail "debug Roamium path is not absolute: $ROAMIUM"
-  log "PASS: named Roamium debug env is absolute"
+  [ "${CHROMIUM:0:1}" = "/" ] || fail "debug Chromium path is not absolute: $CHROMIUM"
+  log "PASS: named Chromium debug env is absolute"
   grep -F -- "--browser" "$INVALID_ENV_COMMAND" >/dev/null 2>&1 && fail "invalid-env command unexpectedly contains --browser"
-  [ "chromium" != "${ROAMIUM}" ] || fail "invalid-env sentinel equals debug Chromium helper path"
+  [ "chromium" != "${CHROMIUM}" ] || fail "invalid-env sentinel equals debug Chromium helper path"
   case "chromium" in
     /*) fail "invalid-env sentinel is unexpectedly absolute" ;;
   esac
-  log "PASS: invalid named Roamium env sentinel is relative"
+  log "PASS: invalid named Chromium env sentinel is relative"
   log "PASS: scenario launch-discovery-contract"
   exit 0
 fi
@@ -2981,7 +2981,7 @@ if [ "$SCENARIO" = "terminal-scrollback-movement" ]; then
 for i in \$(seq 1 180); do
   printf 'ISSUE809_EXP22_SCROLLBACK_HISTORY_%03d\\n' "\$i"
 done
-exec "$WEB" --primary-screen --browser "$ROAMIUM" "$URL"
+exec "$WEB" --primary-screen --browser "$CHROMIUM" "$URL"
 EOF
   chmod +x "$COMMAND"
 fi
@@ -2992,7 +2992,7 @@ if [ "$SCENARIO" = "new-terminal-tab-visibility" ] || [ "$SCENARIO" = "open-brow
 #!/usr/bin/env bash
 set -euo pipefail
 if mkdir "$FIRST_RUN_MARKER" 2>/dev/null; then
-  exec "$WEB" --browser "$ROAMIUM" "$URL"
+  exec "$WEB" --browser "$CHROMIUM" "$URL"
 fi
 printf 'new-tab-command invocation pid=%s\\n' "\$\$" >>"$NEW_TAB_COMMAND_LOG"
 exec /bin/zsh -f -c 'printf "ISSUE809_EXP12_NEW_TAB_READY\\n"; while :; do sleep 60; done'
@@ -3005,7 +3005,7 @@ if [ "$SCENARIO" = "multi-profile-isolation" ]; then
 #!/usr/bin/env bash
 set -euo pipefail
 if mkdir "$FIRST_RUN_MARKER" 2>/dev/null; then
-  exec "$WEB" --browser "$ROAMIUM" --profile profilea "$PROFILE_URL_A"
+  exec "$WEB" --browser "$CHROMIUM" --profile profilea "$PROFILE_URL_A"
 fi
 printf 'new-tab-command invocation pid=%s\\n' "\$\$" >>"$NEW_TAB_COMMAND_LOG"
 exec /bin/zsh -f -c 'printf "ISSUE809_EXP12_NEW_TAB_READY\\n"; while :; do sleep 60; done'
@@ -3018,7 +3018,7 @@ if [ "$SCENARIO" = "same-profile-server-lifecycle" ] || [ "$SCENARIO" = "tui-dis
 #!/usr/bin/env bash
 set -euo pipefail
 if mkdir "$FIRST_RUN_MARKER" 2>/dev/null; then
-  exec "$WEB" --browser "$ROAMIUM" --profile default "$URL"
+  exec "$WEB" --browser "$CHROMIUM" --profile default "$URL"
 fi
 printf 'new-tab-command invocation pid=%s\\n' "\$\$" >>"$NEW_TAB_COMMAND_LOG"
 exec /bin/zsh -f -c 'printf "ISSUE809_EXP12_NEW_TAB_READY\\n"; while :; do sleep 60; done'
@@ -3186,7 +3186,7 @@ EOF
 
     APP_LOG="$LOG_DIR/ghostboard-geometry-${SCENARIO}-${label}-app-${TS}.log"
     WEBTUI_STATE_TRACE="$LOG_DIR/ghostboard-geometry-${SCENARIO}-${label}-webtui-${TS}.log"
-    ROAMIUM_TRACE="$LOG_DIR/ghostboard-geometry-${SCENARIO}-${label}-roamium-${TS}.log"
+    CHROMIUM_TRACE="$LOG_DIR/ghostboard-geometry-${SCENARIO}-${label}-chromium-${TS}.log"
     log "config_path_case=$label"
     log "config_path_case_app_log=$APP_LOG"
     log "config_path_case_expected_path=$expected_path"
@@ -3200,11 +3200,11 @@ EOF
         GHOSTTY_LOG=stderr \
         TERMSURF_GEOMETRY_TRACE=1 \
         TERMSURF_GEOMETRY_SCENARIO="${SCENARIO}-${label}" \
-        TERMSURF_ROAMIUM_PATH="$ROAMIUM_PATH_FOR_APP" \
+        ASTROHACKER_CHROMIUM_PATH="$CHROMIUM_PATH_FOR_APP" \
         TERMSURF_WEBTUI_STATE_TRACE_FILE="$WEBTUI_STATE_TRACE" \
         TERMSURF_INPUT_TRACE=1 \
         TERMSURF_PDF_INPUT_TRACE=1 \
-        TERMSURF_PDF_INPUT_TRACE_FILE="$ROAMIUM_TRACE" \
+        TERMSURF_PDF_INPUT_TRACE_FILE="$CHROMIUM_TRACE" \
         "$APP_BIN" >"$APP_LOG" 2>&1 &
     else
       env \
@@ -3213,11 +3213,11 @@ EOF
         GHOSTTY_LOG=stderr \
         TERMSURF_GEOMETRY_TRACE=1 \
         TERMSURF_GEOMETRY_SCENARIO="${SCENARIO}-${label}" \
-        TERMSURF_ROAMIUM_PATH="$ROAMIUM_PATH_FOR_APP" \
+        ASTROHACKER_CHROMIUM_PATH="$CHROMIUM_PATH_FOR_APP" \
         TERMSURF_WEBTUI_STATE_TRACE_FILE="$WEBTUI_STATE_TRACE" \
         TERMSURF_INPUT_TRACE=1 \
         TERMSURF_PDF_INPUT_TRACE=1 \
-        TERMSURF_PDF_INPUT_TRACE_FILE="$ROAMIUM_TRACE" \
+        TERMSURF_PDF_INPUT_TRACE_FILE="$CHROMIUM_TRACE" \
         "$APP_BIN" >"$APP_LOG" 2>&1 &
     fi
     PID="$!"
@@ -3242,7 +3242,7 @@ EOF
       wait_for_log "SetOverlay: pane_id=.* profile=default browser=chromium url=${expected_homepage}" "$label webtui consumed expected homepage" 45
 
       require_no_config_path_log "reading configuration file path=.*(ghostty/config\\.ghostty|Application Support)" "$label did not load inherited Ghostty or Application Support config paths"
-      require_config_path_log "SetOverlay: named browser resolved browser=chromium env=TERMSURF_ROAMIUM_PATH path=${ROAMIUM}" "$label used debug Chromium helper resolver"
+      require_config_path_log "SetOverlay: named browser resolved browser=chromium env=ASTROHACKER_CHROMIUM_PATH path=${CHROMIUM}" "$label used debug Chromium helper resolver"
     fi
 
     kill "$PID" >/dev/null 2>&1 || true
@@ -3255,7 +3255,7 @@ EOF
   log "run_dir=$RUN_DIR"
   log "app=$APP"
   log "web=$WEB"
-  log "roamium=$ROAMIUM"
+  log "chromium=$CHROMIUM"
   run_config_path_case "explicit-env" "explicit" "$RUN_DIR/config-paths-explicit-env/explicit-config" "https://example.net/issue819-exp5-explicit-env-explicit"
   run_config_path_case "xdg-default" "default" "$RUN_DIR/config-paths-xdg-default/xdg/astrohacker/terminal/config" "https://example.net/issue819-exp5-xdg-default-xdg-astrohacker-terminal"
   run_config_path_case "no-current-xdg" "no-xdg" "$RUN_DIR/config-paths-no-current-xdg/xdg/astrohacker/terminal/config" ""
@@ -4014,7 +4014,7 @@ log "scenario=$SCENARIO"
 log "run_dir=$RUN_DIR"
 log "app=$APP"
 log "web=$WEB"
-log "roamium=$ROAMIUM"
+log "chromium=$CHROMIUM"
 log "pointer_driver=$POINTER_DRIVER"
 log "url=$URL"
 if [ "$SCENARIO" = "hello-config-homepage" ]; then
@@ -4024,7 +4024,7 @@ if [ "$SCENARIO" = "hello-config-browser-list" ]; then
   log "hello_config_browsers=chromium,$HELLO_CONFIG_SECOND_BROWSER"
 fi
 log "app_log=$APP_LOG"
-log "roamium_trace=$ROAMIUM_TRACE"
+log "chromium_trace=$CHROMIUM_TRACE"
 log "screenshot=$SCREENSHOT"
 if [ "$SCENARIO" = "browser-state-smoke" ] || [ "$SCENARIO" = "browser-command-navigation" ] || [ "$SCENARIO" = "back-navigation-focus-theft" ] || [ "$SCENARIO" = "click-driven-browse-mode" ]; then
   log "webtui_state_trace=$WEBTUI_STATE_TRACE"
@@ -4174,17 +4174,17 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
   log "mouse_tui_reset_screenshot=$SCREENSHOT_TUI_RESET"
 fi
 
-if [ "$SCENARIO" = "installed-roamium-release-launch" ]; then
+if [ "$SCENARIO" = "installed-chromium-release-launch" ]; then
   XDG_CONFIG_HOME="$RELEASE_XDG_CONFIG_HOME" \
   GHOSTTY_LOG=stderr \
   TERMSURF_GEOMETRY_TRACE=1 \
   TERMSURF_GEOMETRY_SCENARIO="$SCENARIO" \
   TERMSURF_DEVTOOLS_RESERVATION_TIMEOUT_MS=1000 \
-  TERMSURF_INSTALLED_ROAMIUM_PATH="$INSTALLED_ROAMIUM" \
+  TERMSURF_INSTALLED_ROAMIUM_PATH="$INSTALLED_CHROMIUM" \
   TERMSURF_WEBTUI_STATE_TRACE_FILE="$WEBTUI_STATE_TRACE" \
   TERMSURF_INPUT_TRACE=1 \
   TERMSURF_PDF_INPUT_TRACE=1 \
-  TERMSURF_PDF_INPUT_TRACE_FILE="$ROAMIUM_TRACE" \
+  TERMSURF_PDF_INPUT_TRACE_FILE="$CHROMIUM_TRACE" \
     "$APP_BIN" >"$APP_LOG" 2>&1 &
 else
   XDG_CONFIG_HOME="$RELEASE_XDG_CONFIG_HOME" \
@@ -4193,20 +4193,20 @@ else
   TERMSURF_GEOMETRY_TRACE=1 \
   TERMSURF_GEOMETRY_SCENARIO="$SCENARIO" \
   TERMSURF_DEVTOOLS_RESERVATION_TIMEOUT_MS=1000 \
-  TERMSURF_ROAMIUM_PATH="$ROAMIUM_PATH_FOR_APP" \
+  ASTROHACKER_CHROMIUM_PATH="$CHROMIUM_PATH_FOR_APP" \
   TERMSURF_WEBTUI_STATE_TRACE_FILE="$WEBTUI_STATE_TRACE" \
   TERMSURF_INPUT_TRACE=1 \
   TERMSURF_PDF_INPUT_TRACE=1 \
-  TERMSURF_PDF_INPUT_TRACE_FILE="$ROAMIUM_TRACE" \
+  TERMSURF_PDF_INPUT_TRACE_FILE="$CHROMIUM_TRACE" \
     "$APP_BIN" >"$APP_LOG" 2>&1 &
 fi
 PID="$!"
 log "pid=$PID"
 
-if [ "$SCENARIO" = "named-roamium-invalid-env" ]; then
+if [ "$SCENARIO" = "named-chromium-invalid-env" ]; then
   wait_for_log "TermSurf message decoded type=HelloRequest" "HelloRequest over TERMSURF_SOCKET" 45
   wait_for_log "SetOverlay: pane_id=.* profile=default browser=chromium url=${URL}" "named Chromium SetOverlay with invalid env" 45
-  wait_for_log "SetOverlay: named browser unresolved browser=chromium env=TERMSURF_ROAMIUM_PATH value=chromium" "clear named Chromium invalid-env failure" 45
+  wait_for_log "SetOverlay: named browser unresolved browser=chromium env=ASTROHACKER_CHROMIUM_PATH value=chromium" "clear named Chromium invalid-env failure" 45
   if grep -E "SetOverlay: created pending server key=default/chromium" "$APP_LOG" >/dev/null 2>&1; then
     fail "invalid named Chromium env left a pending default/chromium server"
   fi
@@ -4215,7 +4215,7 @@ if [ "$SCENARIO" = "named-roamium-invalid-env" ]; then
     fail "invalid named Chromium env spawned a browser"
   fi
   log "PASS: invalid named Chromium env did not spawn a browser"
-  log "PASS: scenario named-roamium-invalid-env"
+  log "PASS: scenario named-chromium-invalid-env"
   exit 0
 fi
 
@@ -4345,8 +4345,8 @@ if [ "$SKIP_INITIAL_HIT_TEST" = "0" ]; then
 fi
 require_log "TermSurf geometry .*scenario=${SCENARIO}" "timestamped run contains scenario id"
 require_log 'window_id:[^ ]+ surface_id:[^ ]+ selected_tab_id:[^ ]+ pane_id:[^ ]+ browser_tab_id:[^ ]+' "canonical identity tuple fields"
-require_readable "$ROAMIUM_TRACE"
-require_trace "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${APPKIT_PIXEL_WIDTH} pixel_height=${APPKIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied resize to AppKit pixel size via ts_set_view_size"
+require_readable "$CHROMIUM_TRACE"
+require_trace "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${APPKIT_PIXEL_WIDTH} pixel_height=${APPKIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied resize to AppKit pixel size via ts_set_view_size"
 
 if [ "$SCENARIO" = "browser-command-navigation" ]; then
   STATE_HOVER_URL="http://127.0.0.1:${STATE_HTTP_PORT}/hover-target.html"
@@ -4361,7 +4361,7 @@ if [ "$SCENARIO" = "browser-command-navigation" ]; then
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 33 command >>"$HARNESS_LOG" 2>&1
   delay 0.5
   require_no_log_after "$CONTROL_LOG_START_LINE" "perform_key_equivalent_browser_forwarded .*key_code=33" "pre-browse Cmd+[ did not log browser forwarding"
-  if tail -n +"$((CONTROL_TRACE_START_LINE + 1))" "$ROAMIUM_TRACE" |
+  if tail -n +"$((CONTROL_TRACE_START_LINE + 1))" "$CHROMIUM_TRACE" |
     grep -E "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*windows_key_code=219 .*modifiers=8" >/dev/null 2>&1; then
     fail "pre-browse Cmd+[ reached browser"
   fi
@@ -4369,7 +4369,7 @@ if [ "$SCENARIO" = "browser-command-navigation" ]; then
 
   COMMAND_MODE_TRACE_START_LINE="$(trace_line_count)"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
-  require_trace_after "$COMMAND_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed command-navigation browse focus=true"
+  require_trace_after "$COMMAND_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed command-navigation browse focus=true"
 
   IFS=$'\t' read -r COMMAND_NAV_X COMMAND_NAV_Y <<<"$(global_point_for_web_point "$WIN_LINE" "$APPKIT_PRESENT_LINE" 90 44)"
   COMMAND_NAV_STATE_START_LINE="$(state_trace_line_count)"
@@ -4382,7 +4382,7 @@ if [ "$SCENARIO" = "browser-command-navigation" ]; then
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 33 command >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$COMMAND_BACK_LOG_START_LINE" "perform_key_equivalent_browser_forwarded .*key_code=33 .*modifiers=8" "Cmd+[ key equivalent forwarded to browser" 15
   wait_for_log_after "$COMMAND_BACK_LOG_START_LINE" "KeyEvent: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} type=down windows_key_code=219 .*modifiers=8" "Zig forwarded Cmd+[ as browser Back key event" 15
-  wait_for_trace_line_after "$COMMAND_BACK_TRACE_START_LINE" "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*windows_key_code=219 .*modifiers=8" "Roamium received Cmd+[ browser Back key event" 15 >/dev/null
+  wait_for_trace_line_after "$COMMAND_BACK_TRACE_START_LINE" "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*windows_key_code=219 .*modifiers=8" "Chromium received Cmd+[ browser Back key event" 15 >/dev/null
   wait_for_state_trace_after "$COMMAND_BACK_STATE_START_LINE" "event=url_changed[[:space:]]+url=${URL}" "Cmd+[ navigated back to original URL" 45
 
   COMMAND_FORWARD_LOG_START_LINE="$(log_line_count)"
@@ -4391,7 +4391,7 @@ if [ "$SCENARIO" = "browser-command-navigation" ]; then
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 30 command >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$COMMAND_FORWARD_LOG_START_LINE" "perform_key_equivalent_browser_forwarded .*key_code=30 .*modifiers=8" "Cmd+] key equivalent forwarded to browser" 15
   wait_for_log_after "$COMMAND_FORWARD_LOG_START_LINE" "KeyEvent: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} type=down windows_key_code=221 .*modifiers=8" "Zig forwarded Cmd+] as browser Forward key event" 15
-  wait_for_trace_line_after "$COMMAND_FORWARD_TRACE_START_LINE" "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*windows_key_code=221 .*modifiers=8" "Roamium received Cmd+] browser Forward key event" 15 >/dev/null
+  wait_for_trace_line_after "$COMMAND_FORWARD_TRACE_START_LINE" "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*windows_key_code=221 .*modifiers=8" "Chromium received Cmd+] browser Forward key event" 15 >/dev/null
   wait_for_state_trace_after "$COMMAND_FORWARD_STATE_START_LINE" "event=url_changed[[:space:]]+url=${STATE_HOVER_URL}" "Cmd+] navigated forward to second URL" 45
 fi
 
@@ -4404,9 +4404,9 @@ if [ "$SCENARIO" = "back-navigation-focus-theft" ]; then
   FOCUS_THEFT_MODE_LOG_START_LINE="$(log_line_count)"
   FOCUS_THEFT_MODE_TRACE_START_LINE="$(trace_line_count)"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
-  wait_for_trace_line_after "$FOCUS_THEFT_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus-theft browse focus=true" 15 >/dev/null
+  wait_for_trace_line_after "$FOCUS_THEFT_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus-theft browse focus=true" 15 >/dev/null
   wait_for_log_after "$FOCUS_THEFT_MODE_LOG_START_LINE" "termsurf-activation stage=ActivateContents" "Chromium recorded Browse-mode ActivateContents activation trace" 15
-  wait_for_log_after "$FOCUS_THEFT_MODE_LOG_START_LINE" "termsurf-activation stage=ActivateContents .*after_activate .*hidden=1 .*shell_key=0 .*shell_main=0" "Roamium hidden shell stayed non-key/non-main during Browse activation" 15
+  wait_for_log_after "$FOCUS_THEFT_MODE_LOG_START_LINE" "termsurf-activation stage=ActivateContents .*after_activate .*hidden=1 .*shell_key=0 .*shell_main=0" "Chromium hidden shell stayed non-key/non-main during Browse activation" 15
 
   IFS=$'\t' read -r FOCUS_THEFT_LINK_X FOCUS_THEFT_LINK_Y <<<"$(global_point_for_web_point "$WIN_LINE" "$APPKIT_PRESENT_LINE" 90 44)"
   FOCUS_THEFT_FIRST_NAV_STATE_START_LINE="$(state_trace_line_count)"
@@ -4418,7 +4418,7 @@ if [ "$SCENARIO" = "back-navigation-focus-theft" ]; then
   FOCUS_THEFT_BACK_STATE_START_LINE="$(state_trace_line_count)"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 33 command >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$FOCUS_THEFT_BACK_LOG_START_LINE" "perform_key_equivalent_browser_forwarded .*key_code=33 .*modifiers=8" "focus-theft Cmd+[ key equivalent forwarded to browser" 15
-  wait_for_trace_line_after "$FOCUS_THEFT_BACK_TRACE_START_LINE" "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*windows_key_code=219 .*modifiers=8" "focus-theft Roamium received Cmd+[ browser Back key event" 15 >/dev/null
+  wait_for_trace_line_after "$FOCUS_THEFT_BACK_TRACE_START_LINE" "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*windows_key_code=219 .*modifiers=8" "focus-theft Chromium received Cmd+[ browser Back key event" 15 >/dev/null
   wait_for_state_trace_after "$FOCUS_THEFT_BACK_STATE_START_LINE" "event=url_changed[[:space:]]+url=${URL}" "focus-theft Cmd+[ navigated back to original URL" 45
   require_no_log_after "$FOCUS_THEFT_BACK_LOG_START_LINE" "Pane focus changed: pane_id=${PANE_ID} focused=false" "Ghostboard pane did not lose focus after Cmd+["
 
@@ -4426,7 +4426,7 @@ if [ "$SCENARIO" = "back-navigation-focus-theft" ]; then
   FOCUS_THEFT_SECOND_CLICK_LOG_START_LINE="$(log_line_count)"
   FOCUS_THEFT_SECOND_CLICK_STATE_START_LINE="$(state_trace_line_count)"
   click_global_point "$FOCUS_THEFT_LINK_X" "$FOCUS_THEFT_LINK_Y" "focus_theft_post_back_single_link"
-  wait_for_trace_line_after "$FOCUS_THEFT_SECOND_CLICK_TRACE_START_LINE" "mouse-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*button=left .*click_count=1 .*modifiers=0" "post-Back single link click reached Roamium as unmodified click_count=1" 15 >/dev/null
+  wait_for_trace_line_after "$FOCUS_THEFT_SECOND_CLICK_TRACE_START_LINE" "mouse-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} .*type=down .*button=left .*click_count=1 .*modifiers=0" "post-Back single link click reached Chromium as unmodified click_count=1" 15 >/dev/null
   wait_for_state_trace_after "$FOCUS_THEFT_SECOND_CLICK_STATE_START_LINE" "event=url_changed[[:space:]]+url=${STATE_HOVER_URL}" "post-Back single link click navigated to second URL" 45
   require_no_log_after "$FOCUS_THEFT_SECOND_CLICK_LOG_START_LINE" "Pane focus changed: pane_id=${PANE_ID} focused=false" "Ghostboard pane did not lose focus after post-Back single link click"
 
@@ -4437,7 +4437,7 @@ if [ "$SCENARIO" = "back-navigation-focus-theft" ]; then
   click_global_point "$FOCUS_THEFT_CONTROL_X" "$FOCUS_THEFT_CONTROL_Y" "focus_theft_post_back_control"
   wait_for_log_after "$FOCUS_THEFT_CONTROL_LOG_START_LINE" "ClickModeChanged: pane_id=${PANE_ID} browsing=false reason=overlay_miss" "post-Back control-panel click left Browse mode once" 45
   wait_for_state_trace_after "$FOCUS_THEFT_CONTROL_STATE_START_LINE" "event=mode_changed.*source=gui.*browsing=false.*mode=control" "webtui received post-Back GUI-originated Control mode" 45
-  wait_for_trace_line_after "$FOCUS_THEFT_CONTROL_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed post-Back control click focus=false" 15 >/dev/null
+  wait_for_trace_line_after "$FOCUS_THEFT_CONTROL_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed post-Back control click focus=false" 15 >/dev/null
   require_no_log_after "$FOCUS_THEFT_CONTROL_LOG_START_LINE" "Pane focus changed: pane_id=${PANE_ID} focused=false" "Ghostboard pane stayed focused after post-Back control click"
 fi
 
@@ -4504,12 +4504,12 @@ if [ "$SCENARIO" = "multi-profile-isolation" ]; then
   log "profile_a_browser_tab_id=$A_BROWSER_TAB_ID"
   log "profile_a_context_id=$A_CONTEXT_ID"
 
-  require_log "SetOverlay: pane_id=${A_PANE_ID} profile=profilea browser=${ROAMIUM}" "profile A SetOverlay uses profilea and absolute Roamium path"
-  require_log "SetOverlay: created pending server key=profilea/${ROAMIUM} pane_count=1" "profile A created profile-scoped server key"
-  A_SPAWN_LINE="$(grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=profilea .*--user-data-dir=.*chromium-profiles/profilea" "$APP_LOG" | tail -1 || true)"
+  require_log "SetOverlay: pane_id=${A_PANE_ID} profile=profilea browser=${CHROMIUM}" "profile A SetOverlay uses profilea and absolute Chromium path"
+  require_log "SetOverlay: created pending server key=profilea/${CHROMIUM} pane_count=1" "profile A created profile-scoped server key"
+  A_SPAWN_LINE="$(grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=profilea .*--user-data-dir=.*chromium-profiles/profilea" "$APP_LOG" | tail -1 || true)"
   [ -n "$A_SPAWN_LINE" ] || fail "missing profile A spawn line with profile-specific user-data-dir"
   A_SPAWN_PID="$(printf '%s\n' "$A_SPAWN_LINE" | sed -E 's/.* pid=([0-9]+) profile=.*/\1/')"
-  [ -n "$A_SPAWN_PID" ] || fail "failed to extract profile A Roamium pid"
+  [ -n "$A_SPAWN_PID" ] || fail "failed to extract profile A Chromium pid"
   log "profile_a_spawn_pid=$A_SPAWN_PID"
   log "PASS: profile A spawn used profile-specific user-data-dir"
   wait_for_state_trace "event=console_message.*message=ISSUE818_PROFILE_STORAGE profile=profilea before=none after=profilea" "profile A initial same-origin storage marker" 45
@@ -4544,21 +4544,21 @@ if [ "$SCENARIO" = "multi-profile-isolation" ]; then
   [ -n "$B_SELECTED_TAB_ID" ] || fail "failed to extract profile B selected tab id"
   log "profile_b_selected_tab_id=$B_SELECTED_TAB_ID"
 
-  printf '"%s" --browser "%s" --profile profileb "%s"' "$WEB" "$ROAMIUM" "$PROFILE_URL_B" >"$SECOND_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" --profile profileb "%s"' "$WEB" "$CHROMIUM" "$PROFILE_URL_B" >"$SECOND_BROWSER_COMMAND"
   log "profile_b_command=$(cat "$SECOND_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$SECOND_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
 
-  B_SET_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=profileb browser=${ROAMIUM}" "profile B SetOverlay" 60)"
+  B_SET_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=profileb browser=${CHROMIUM}" "profile B SetOverlay" 60)"
   B_PANE_ID="$(printf '%s\n' "$B_SET_LINE" | sed -E 's/.*SetOverlay: pane_id=([^ ]+) .*/\1/')"
   [ -n "$B_PANE_ID" ] || fail "failed to extract profile B pane id"
   [ "$B_PANE_ID" != "$A_PANE_ID" ] || fail "profile B reused profile A pane id"
-  wait_for_log_after "$B_TAB_START_LINE" "SetOverlay: created pending server key=profileb/${ROAMIUM} pane_count=1" "profile B created profile-scoped server key" 60
-  B_SPAWN_LINE="$(tail -n +"$((B_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=profileb .*--user-data-dir=.*chromium-profiles/profileb" | tail -1 || true)"
+  wait_for_log_after "$B_TAB_START_LINE" "SetOverlay: created pending server key=profileb/${CHROMIUM} pane_count=1" "profile B created profile-scoped server key" 60
+  B_SPAWN_LINE="$(tail -n +"$((B_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=profileb .*--user-data-dir=.*chromium-profiles/profileb" | tail -1 || true)"
   [ -n "$B_SPAWN_LINE" ] || fail "missing profile B spawn line with profile-specific user-data-dir"
   B_SPAWN_PID="$(printf '%s\n' "$B_SPAWN_LINE" | sed -E 's/.* pid=([0-9]+) profile=.*/\1/')"
-  [ -n "$B_SPAWN_PID" ] || fail "failed to extract profile B Roamium pid"
-  [ "$B_SPAWN_PID" != "$A_SPAWN_PID" ] || fail "profile B reused profile A Roamium pid"
+  [ -n "$B_SPAWN_PID" ] || fail "failed to extract profile B Chromium pid"
+  [ "$B_SPAWN_PID" != "$A_SPAWN_PID" ] || fail "profile B reused profile A Chromium pid"
   log "profile_b_spawn_pid=$B_SPAWN_PID"
   log "PASS: profile B spawn used profile-specific user-data-dir"
 
@@ -4588,7 +4588,7 @@ if [ "$SCENARIO" = "multi-profile-isolation" ]; then
   log "profile_b_appkit_pixel=$B_PIXEL"
   B_PIXEL_WIDTH="${B_PIXEL%x*}"
   B_PIXEL_HEIGHT="${B_PIXEL#*x}"
-  require_trace_after "$B_TAB_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied profile B resize to AppKit pixel size"
+  require_trace_after "$B_TAB_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied profile B resize to AppKit pixel size"
   wait_for_state_trace_after "$B_TAB_STATE_START_LINE" "event=console_message.*message=ISSUE818_PROFILE_STORAGE profile=profileb before=none after=profileb" "profile B initial same-origin storage marker" 45
 
   B_WIN_LINE="$(window_bounds)" || fail "failed to resolve profile B window bounds"
@@ -4648,19 +4648,19 @@ if [ "$SCENARIO" = "tui-disconnect-reconnect" ]; then
   log "browser_a_browser_tab_id=$A_BROWSER_TAB_ID"
   log "browser_a_context_id=$A_CONTEXT_ID"
 
-  require_log "SetOverlay: pane_id=${A_PANE_ID} profile=default browser=${ROAMIUM}" "browser A SetOverlay uses default profile and absolute Roamium path"
-  require_log "SetOverlay: created pending server key=default/${ROAMIUM} pane_count=1" "browser A created default profile server"
-  SHARED_SPAWN_LINE="$(grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default .*--user-data-dir=.*chromium-profiles/default" "$APP_LOG" | tail -1 || true)"
-  [ -n "$SHARED_SPAWN_LINE" ] || fail "missing default profile Roamium spawn line"
+  require_log "SetOverlay: pane_id=${A_PANE_ID} profile=default browser=${CHROMIUM}" "browser A SetOverlay uses default profile and absolute Chromium path"
+  require_log "SetOverlay: created pending server key=default/${CHROMIUM} pane_count=1" "browser A created default profile server"
+  SHARED_SPAWN_LINE="$(grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default .*--user-data-dir=.*chromium-profiles/default" "$APP_LOG" | tail -1 || true)"
+  [ -n "$SHARED_SPAWN_LINE" ] || fail "missing default profile Chromium spawn line"
   SHARED_SPAWN_PID="$(printf '%s\n' "$SHARED_SPAWN_LINE" | sed -E 's/.* pid=([0-9]+) profile=.*/\1/')"
-  [ -n "$SHARED_SPAWN_PID" ] || fail "failed to extract shared Roamium pid"
+  [ -n "$SHARED_SPAWN_PID" ] || fail "failed to extract shared Chromium pid"
   log "reconnect_shared_spawn_pid=$SHARED_SPAWN_PID"
 
   cat >"$BROWSER_B_TUI_WRAPPER" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\\n' "\$\$" >"$BROWSER_B_TUI_PID_FILE"
-exec "$WEB" --browser "$ROAMIUM" --profile default "$URL_B"
+exec "$WEB" --browser "$CHROMIUM" --profile default "$URL_B"
 EOF
   chmod +x "$BROWSER_B_TUI_WRAPPER"
 
@@ -4699,15 +4699,15 @@ EOF
   fi
   log "browser_b_tui_pid=$B_TUI_PID"
 
-  B_SET_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${ROAMIUM} url=${URL_B}" "browser B SetOverlay uses default profile and absolute Roamium path" 60)"
+  B_SET_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${CHROMIUM} url=${URL_B}" "browser B SetOverlay uses default profile and absolute Chromium path" 60)"
   B_PANE_ID="$(printf '%s\n' "$B_SET_LINE" | sed -E 's/.*SetOverlay: pane_id=([^ ]+) .*/\1/')"
   [ -n "$B_PANE_ID" ] || fail "failed to extract browser B pane id"
   [ "$B_PANE_ID" != "$A_PANE_ID" ] || fail "browser B reused browser A pane id"
-  wait_for_log_after "$B_TAB_START_LINE" "SetOverlay: reused pending server key=default/${ROAMIUM} pane_count=2 has_fd=true" "browser B reused shared default profile server" 60
-  if tail -n +"$((B_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
-    fail "browser B spawned a second default profile Roamium process"
+  wait_for_log_after "$B_TAB_START_LINE" "SetOverlay: reused pending server key=default/${CHROMIUM} pane_count=2 has_fd=true" "browser B reused shared default profile server" 60
+  if tail -n +"$((B_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
+    fail "browser B spawned a second default profile Chromium process"
   fi
-  kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Roamium pid died while browser B was opening"
+  kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Chromium pid died while browser B was opening"
 
   B_CA_CONTEXT_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "TermSurf geometry layer=zig event=ca_context .*pane_id:${B_PANE_ID}" "browser B Zig ca_context" 60)"
   B_BROWSER_TAB_ID="$(extract_browser_tab_id "$B_CA_CONTEXT_LINE")"
@@ -4734,10 +4734,10 @@ EOF
 
   wait_for_log_after "$B_DISCONNECT_START_LINE" "TUI disconnect cleanup: pane_id=${B_PANE_ID} tab_id=${B_BROWSER_TAB_ID}" "Ghostboard ran TUI disconnect cleanup for browser B" 45
   require_log_after "$B_DISCONNECT_START_LINE" "CloseTab: pane_id=${B_PANE_ID} tab_id=${B_BROWSER_TAB_ID}" "Ghostboard sent CloseTab for browser B TUI disconnect"
-  require_trace_after "$B_DISCONNECT_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Roamium destroyed browser B after TUI disconnect"
-  require_trace_after "$B_DISCONNECT_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} result=removed" "Roamium removed browser B after TUI disconnect"
-  kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Roamium pid died after browser B TUI disconnect while browser A remained alive"
-  require_no_trace_after "$B_DISCONNECT_TRACE_START_LINE" "close-tab result=no-tabs-remaining" "shared Roamium stayed alive after browser B TUI disconnect"
+  require_trace_after "$B_DISCONNECT_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Chromium destroyed browser B after TUI disconnect"
+  require_trace_after "$B_DISCONNECT_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} result=removed" "Chromium removed browser B after TUI disconnect"
+  kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Chromium pid died after browser B TUI disconnect while browser A remained alive"
+  require_no_trace_after "$B_DISCONNECT_TRACE_START_LINE" "close-tab result=no-tabs-remaining" "shared Chromium stayed alive after browser B TUI disconnect"
 
   log "reconnect_browser_a_select_tab1_keybind=ctrl+1=goto_tab:1"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 18 control >>"$HARNESS_LOG" 2>&1
@@ -4760,20 +4760,20 @@ EOF
   [ "$C_SELECTED_TAB_ID" != "$B_SELECTED_TAB_ID" ] || fail "browser C reused browser B native tab id"
   log "browser_c_selected_tab_id=$C_SELECTED_TAB_ID"
 
-  printf '"%s" --browser "%s" --profile default "%s"' "$WEB" "$ROAMIUM" "$URL_C" >"$THIRD_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" --profile default "%s"' "$WEB" "$CHROMIUM" "$URL_C" >"$THIRD_BROWSER_COMMAND"
   log "browser_c_command=$(cat "$THIRD_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$THIRD_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
-  C_SET_LINE="$(wait_for_line_after "$C_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${ROAMIUM} url=${URL_C}" "browser C SetOverlay uses default profile and absolute Roamium path" 60)"
+  C_SET_LINE="$(wait_for_line_after "$C_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${CHROMIUM} url=${URL_C}" "browser C SetOverlay uses default profile and absolute Chromium path" 60)"
   C_PANE_ID="$(printf '%s\n' "$C_SET_LINE" | sed -E 's/.*SetOverlay: pane_id=([^ ]+) .*/\1/')"
   [ -n "$C_PANE_ID" ] || fail "failed to extract browser C pane id"
   [ "$C_PANE_ID" != "$A_PANE_ID" ] || fail "browser C reused browser A pane id"
   [ "$C_PANE_ID" != "$B_PANE_ID" ] || fail "browser C reused disconnected browser B pane id"
-  wait_for_log_after "$C_TAB_START_LINE" "SetOverlay: reused pending server key=default/${ROAMIUM} pane_count=2 has_fd=true" "browser C reused warm default profile server" 60
-  if tail -n +"$((C_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
-    fail "browser C spawned a second default profile Roamium process"
+  wait_for_log_after "$C_TAB_START_LINE" "SetOverlay: reused pending server key=default/${CHROMIUM} pane_count=2 has_fd=true" "browser C reused warm default profile server" 60
+  if tail -n +"$((C_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
+    fail "browser C spawned a second default profile Chromium process"
   fi
-  kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Roamium pid died while browser C was opening"
+  kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Chromium pid died while browser C was opening"
 
   C_CA_CONTEXT_LINE="$(wait_for_line_after "$C_TAB_START_LINE" "TermSurf geometry layer=zig event=ca_context .*pane_id:${C_PANE_ID}" "browser C Zig ca_context" 60)"
   C_BROWSER_TAB_ID="$(extract_browser_tab_id "$C_CA_CONTEXT_LINE")"
@@ -4814,8 +4814,8 @@ if [ "$SCENARIO" = "visible-profile-identity" ]; then
   log "identity_browser_a_browser_tab_id=$A_BROWSER_TAB_ID"
   log "identity_browser_a_context_id=$A_CONTEXT_ID"
 
-  require_log "SetOverlay: pane_id=${A_PANE_ID} profile=default browser=${ROAMIUM}" "browser A SetOverlay uses default profile and absolute Roamium path"
-  require_trace "tab-ready tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} inspected_tab_id=0" "browser A Roamium tab-ready identity"
+  require_log "SetOverlay: pane_id=${A_PANE_ID} profile=default browser=${CHROMIUM}" "browser A SetOverlay uses default profile and absolute Chromium path"
+  require_trace "tab-ready tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} inspected_tab_id=0" "browser A Chromium tab-ready identity"
   wait_for_state_trace "event=render_state.*identity_label=chromium/default#${A_BROWSER_TAB_ID}.*browser_label=chromium.*profile=default.*is_devtools=false.*current_tab_id=${A_BROWSER_TAB_ID}.*inspected_tab_id=-1" "browser A visible default-profile identity label" 45
 
   B_TAB_START_LINE="$(log_line_count)"
@@ -4836,16 +4836,16 @@ if [ "$SCENARIO" = "visible-profile-identity" ]; then
   [ "$B_SELECTED_TAB_ID" != "$A_SELECTED_TAB_ID" ] || fail "browser B reused browser A selected tab id"
   log "identity_browser_b_selected_tab_id=$B_SELECTED_TAB_ID"
 
-  printf '"%s" --browser "%s" --profile profilea "%s"' "$WEB" "$ROAMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" --profile profilea "%s"' "$WEB" "$CHROMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
   log "identity_browser_b_command=$(cat "$SECOND_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$SECOND_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
 
-  B_SET_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=profilea browser=${ROAMIUM} url=${URL_B}" "browser B identity SetOverlay" 60)"
+  B_SET_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=profilea browser=${CHROMIUM} url=${URL_B}" "browser B identity SetOverlay" 60)"
   B_PANE_ID="$(printf '%s\n' "$B_SET_LINE" | sed -E 's/.*SetOverlay: pane_id=([^ ]+) .*/\1/')"
   [ -n "$B_PANE_ID" ] || fail "failed to extract browser B pane id"
   [ "$B_PANE_ID" != "$A_PANE_ID" ] || fail "browser B reused browser A pane id"
-  B_TAB_READY_LINE="$(wait_for_trace_line_after "$B_TAB_TRACE_START_LINE" "tab-ready tab=[0-9]+ pane=${B_PANE_ID} inspected_tab_id=0" "browser B Roamium tab-ready identity" 60)"
+  B_TAB_READY_LINE="$(wait_for_trace_line_after "$B_TAB_TRACE_START_LINE" "tab-ready tab=[0-9]+ pane=${B_PANE_ID} inspected_tab_id=0" "browser B Chromium tab-ready identity" 60)"
   B_BROWSER_TAB_ID="$(printf '%s\n' "$B_TAB_READY_LINE" | sed -E 's/.*tab-ready tab=([0-9]+) .*/\1/')"
   [ -n "$B_BROWSER_TAB_ID" ] || fail "failed to extract browser B browser tab id"
   log "identity_browser_b_pane_id=$B_PANE_ID"
@@ -4863,12 +4863,12 @@ if [ "$SCENARIO" = "visible-profile-identity" ]; then
 
   wait_for_log_after "$DEVTOOLS_START_LINE" "TermSurf QueryDevtoolsRequest pane_id=${B_PANE_ID} inspected_tab_id=${B_BROWSER_TAB_ID}" "identity DevTools query request for browser B" 45
   wait_for_log_after "$DEVTOOLS_START_LINE" "TermSurf QueryDevtoolsReply sent error=" "identity DevTools query reply for browser B" 45
-  DEVTOOLS_SET_LINE="$(wait_for_line_after "$DEVTOOLS_START_LINE" "SetDevtoolsOverlay: pane_id=[^ ]+ profile=profilea browser=${ROAMIUM} inspected_tab_id=${B_BROWSER_TAB_ID}" "identity DevTools SetDevtoolsOverlay" 60)"
+  DEVTOOLS_SET_LINE="$(wait_for_line_after "$DEVTOOLS_START_LINE" "SetDevtoolsOverlay: pane_id=[^ ]+ profile=profilea browser=${CHROMIUM} inspected_tab_id=${B_BROWSER_TAB_ID}" "identity DevTools SetDevtoolsOverlay" 60)"
   DT_PANE_ID="$(printf '%s\n' "$DEVTOOLS_SET_LINE" | sed -E 's/.*SetDevtoolsOverlay: pane_id=([^ ]+) .*/\1/')"
   [ -n "$DT_PANE_ID" ] || fail "failed to extract identity DevTools pane id"
   [ "$DT_PANE_ID" != "$B_PANE_ID" ] || fail "identity DevTools reused browser B pane id"
   wait_for_log_after "$DEVTOOLS_START_LINE" "CreateDevtoolsTab: pane_id=${DT_PANE_ID} inspected_tab_id=${B_BROWSER_TAB_ID}" "Ghostboard sent CreateDevtoolsTab for identity DevTools pane" 60
-  DT_TAB_READY_LINE="$(wait_for_trace_line_after "$DEVTOOLS_TRACE_START_LINE" "tab-ready tab=[0-9]+ pane=${DT_PANE_ID} inspected_tab_id=${B_BROWSER_TAB_ID}" "Roamium reported identity DevTools tab ready" 60)"
+  DT_TAB_READY_LINE="$(wait_for_trace_line_after "$DEVTOOLS_TRACE_START_LINE" "tab-ready tab=[0-9]+ pane=${DT_PANE_ID} inspected_tab_id=${B_BROWSER_TAB_ID}" "Chromium reported identity DevTools tab ready" 60)"
   DT_BROWSER_TAB_ID="$(printf '%s\n' "$DT_TAB_READY_LINE" | sed -E 's/.*tab-ready tab=([0-9]+) .*/\1/')"
   [ -n "$DT_BROWSER_TAB_ID" ] || fail "failed to extract identity DevTools browser tab id"
   [ "$DT_BROWSER_TAB_ID" != "$B_BROWSER_TAB_ID" ] || fail "identity DevTools browser tab id reused inspected browser tab id"
@@ -4921,7 +4921,7 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
     wait_for_state_trace_after "$start_line" "event=javascript_dialog_request.*dialog_type=${dialog_type}.*message=${message}" "webtui ${label} dialog request" 45
     request_id="$(dialog_request_id "$start_line" "event=javascript_dialog_request.*dialog_type=${dialog_type}.*message=${message}")"
     [ -n "$request_id" ] || fail "missing request id for ${label}"
-    wait_for_trace_regex "javascript-dialog-request tab=${BROWSER_TAB_ID} .*request_id=${request_id} type=${dialog_type} .*message=${message}" "Roamium ${label} dialog request" 45
+    wait_for_trace_regex "javascript-dialog-request tab=${BROWSER_TAB_ID} .*request_id=${request_id} type=${dialog_type} .*message=${message}" "Chromium ${label} dialog request" 45
     if [ -n "$prompt_text" ]; then
       printf '%s' "$prompt_text" >"$DIALOG_TYPE_COMMAND"
       swift "$ROOT/scripts/ghostty-app/inject.swift" type "$DIALOG_TYPE_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -4929,7 +4929,7 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
     fi
     press_dialog_key "$reply_key" "$label"
     wait_for_state_trace_after "$start_line" "event=javascript_dialog_reply.*request_id=${request_id}.*accepted=${accepted}" "webtui ${label} dialog reply" 45
-    wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${request_id} accepted=${accepted} ok=true" "Roamium ${label} dialog reply" 45
+    wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${request_id} accepted=${accepted} ok=true" "Chromium ${label} dialog reply" 45
     wait_for_state_trace_after "$start_line" "event=console_message.*message=ISSUE816_DIALOG_RESULT case=${label} value=${result_value}" "page observed ${label} result" 45
     wait_for_state_trace_after "$start_line" "event=title_changed.*title=Issue 816 Dialog ${label} ${result_value}" "webtui received ${label} title" 45
   }
@@ -4937,10 +4937,10 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
   wait_for_state_trace "event=javascript_dialog_request.*dialog_type=alert.*message=ISSUE816_INITIAL_ALERT" "webtui initial alert dialog request" 45
   INITIAL_DIALOG_REQUEST_ID="$(dialog_request_id 0 "event=javascript_dialog_request.*dialog_type=alert.*message=ISSUE816_INITIAL_ALERT")"
   [ -n "$INITIAL_DIALOG_REQUEST_ID" ] || fail "missing request id for initial alert"
-  wait_for_trace_regex "javascript-dialog-request tab=${BROWSER_TAB_ID} .*request_id=${INITIAL_DIALOG_REQUEST_ID} type=alert .*message=ISSUE816_INITIAL_ALERT" "Roamium initial alert request" 45
+  wait_for_trace_regex "javascript-dialog-request tab=${BROWSER_TAB_ID} .*request_id=${INITIAL_DIALOG_REQUEST_ID} type=alert .*message=ISSUE816_INITIAL_ALERT" "Chromium initial alert request" 45
   press_dialog_key enter "initial_alert"
   wait_for_state_trace "event=javascript_dialog_reply.*request_id=${INITIAL_DIALOG_REQUEST_ID}.*accepted=true" "webtui initial alert reply" 45
-  wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${INITIAL_DIALOG_REQUEST_ID} accepted=true ok=true" "Roamium initial alert reply" 45
+  wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${INITIAL_DIALOG_REQUEST_ID} accepted=true ok=true" "Chromium initial alert reply" 45
   wait_for_state_trace "event=console_message.*message=ISSUE816_DIALOG_RESULT case=initial-alert value=resumed" "page observed initial alert result" 45
   wait_for_state_trace "event=title_changed.*title=Issue 816 Dialog initial-alert resumed" "webtui received initial alert title" 45
 
@@ -4963,10 +4963,10 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
   wait_for_state_trace_after "$BEFOREUNLOAD_CANCEL_START_LINE" "event=javascript_dialog_request.*dialog_type=beforeunload" "webtui beforeunload stay request" 45
   BEFOREUNLOAD_CANCEL_REQUEST_ID="$(dialog_request_id "$BEFOREUNLOAD_CANCEL_START_LINE" "event=javascript_dialog_request.*dialog_type=beforeunload")"
   [ -n "$BEFOREUNLOAD_CANCEL_REQUEST_ID" ] || fail "missing request id for beforeunload stay"
-  wait_for_trace_regex "javascript-dialog-request tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_CANCEL_REQUEST_ID} type=beforeunload" "Roamium beforeunload stay request" 45
+  wait_for_trace_regex "javascript-dialog-request tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_CANCEL_REQUEST_ID} type=beforeunload" "Chromium beforeunload stay request" 45
   press_dialog_key n "beforeunload_stay"
   wait_for_state_trace_after "$BEFOREUNLOAD_CANCEL_START_LINE" "event=javascript_dialog_reply.*request_id=${BEFOREUNLOAD_CANCEL_REQUEST_ID}.*accepted=false" "webtui beforeunload stay reply" 45
-  wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_CANCEL_REQUEST_ID} accepted=false ok=true" "Roamium beforeunload stay reply" 45
+  wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_CANCEL_REQUEST_ID} accepted=false ok=true" "Chromium beforeunload stay reply" 45
   delay 2
   require_no_state_trace_after "$BEFOREUNLOAD_CANCEL_START_LINE" "event=url_changed[[:space:]]+url=${DIALOG_AWAY_URL}" "beforeunload stay did not emit away URL"
   require_no_state_trace_after "$BEFOREUNLOAD_CANCEL_START_LINE" "event=title_changed.*title=Issue 816 Dialog away loaded" "beforeunload stay did not navigate away"
@@ -4976,10 +4976,10 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
   wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=javascript_dialog_request.*dialog_type=beforeunload" "webtui beforeunload proceed request" 45
   BEFOREUNLOAD_PROCEED_REQUEST_ID="$(dialog_request_id "$BEFOREUNLOAD_PROCEED_START_LINE" "event=javascript_dialog_request.*dialog_type=beforeunload")"
   [ -n "$BEFOREUNLOAD_PROCEED_REQUEST_ID" ] || fail "missing request id for beforeunload proceed"
-  wait_for_trace_regex "javascript-dialog-request tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_PROCEED_REQUEST_ID} type=beforeunload" "Roamium beforeunload proceed request" 45
+  wait_for_trace_regex "javascript-dialog-request tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_PROCEED_REQUEST_ID} type=beforeunload" "Chromium beforeunload proceed request" 45
   press_dialog_key y "beforeunload_proceed"
   wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=javascript_dialog_reply.*request_id=${BEFOREUNLOAD_PROCEED_REQUEST_ID}.*accepted=true" "webtui beforeunload proceed reply" 45
-  wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_PROCEED_REQUEST_ID} accepted=true ok=true" "Roamium beforeunload proceed reply" 45
+  wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_PROCEED_REQUEST_ID} accepted=true ok=true" "Chromium beforeunload proceed reply" 45
   wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=url_changed[[:space:]]+url=${DIALOG_AWAY_URL}" "beforeunload proceed navigated away" 45
   wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=title_changed[[:space:]]+title=Issue 816 Dialog away loaded" "beforeunload proceed loaded away title" 45
   wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=console_message.*message=ISSUE816_DIALOG_RESULT case=beforeunload-proceed value=away" "page observed beforeunload proceed result" 45
@@ -5006,7 +5006,7 @@ if [ "$SCENARIO" = "http-auth-smoke" ]; then
   wait_for_state_trace "event=http_auth_request.*auth_scheme=basic.*realm=Issue816Auth" "webtui HTTP auth request" 45
   AUTH_SUCCESS_REQUEST_ID="$(auth_request_id 0 "event=http_auth_request.*auth_scheme=basic.*realm=Issue816Auth")"
   [ -n "$AUTH_SUCCESS_REQUEST_ID" ] || fail "missing request id for HTTP auth success"
-  wait_for_trace_regex "http-auth-request tab=${BROWSER_TAB_ID} .*request_id=${AUTH_SUCCESS_REQUEST_ID} .*scheme=basic .*realm=Issue816Auth" "Roamium HTTP auth request" 45
+  wait_for_trace_regex "http-auth-request tab=${BROWSER_TAB_ID} .*request_id=${AUTH_SUCCESS_REQUEST_ID} .*scheme=basic .*realm=Issue816Auth" "Chromium HTTP auth request" 45
   type_auth_text "user" "username"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   log "http_auth_key_username=enter"
@@ -5014,7 +5014,7 @@ if [ "$SCENARIO" = "http-auth-smoke" ]; then
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   log "http_auth_key_password=enter"
   wait_for_state_trace "event=http_auth_reply.*request_id=${AUTH_SUCCESS_REQUEST_ID}.*accepted=true.*username=user.*password_len=6" "webtui HTTP auth success reply" 45
-  wait_for_trace_regex "http-auth-reply tab=${BROWSER_TAB_ID} .*request_id=${AUTH_SUCCESS_REQUEST_ID} accepted=true username=user password_len=6 ok=true" "Roamium HTTP auth success reply" 45
+  wait_for_trace_regex "http-auth-reply tab=${BROWSER_TAB_ID} .*request_id=${AUTH_SUCCESS_REQUEST_ID} accepted=true username=user password_len=6 ok=true" "Chromium HTTP auth success reply" 45
   wait_for_state_trace "event=title_changed.*title=Issue 816 Auth Success" "authenticated page title" 45
   wait_for_state_trace "event=console_message.*message=ISSUE816_AUTH_SUCCESS" "authenticated page success marker" 45
 
@@ -5026,11 +5026,11 @@ if [ "$SCENARIO" = "http-auth-smoke" ]; then
   wait_for_state_trace_after "$AUTH_CANCEL_START_LINE" "event=http_auth_request.*url=${AUTH_CANCEL_URL}.*auth_scheme=basic.*realm=Issue816Cancel" "webtui HTTP auth cancel request" 45
   AUTH_CANCEL_REQUEST_ID="$(auth_request_id "$AUTH_CANCEL_START_LINE" "event=http_auth_request.*url=${AUTH_CANCEL_URL}.*auth_scheme=basic.*realm=Issue816Cancel")"
   [ -n "$AUTH_CANCEL_REQUEST_ID" ] || fail "missing request id for HTTP auth cancel"
-  wait_for_trace_regex "http-auth-request tab=${BROWSER_TAB_ID} .*request_id=${AUTH_CANCEL_REQUEST_ID} .*scheme=basic .*realm=Issue816Cancel" "Roamium HTTP auth cancel request" 45
+  wait_for_trace_regex "http-auth-request tab=${BROWSER_TAB_ID} .*request_id=${AUTH_CANCEL_REQUEST_ID} .*scheme=basic .*realm=Issue816Cancel" "Chromium HTTP auth cancel request" 45
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   log "http_auth_key_cancel=esc"
   wait_for_state_trace_after "$AUTH_CANCEL_START_LINE" "event=http_auth_reply.*request_id=${AUTH_CANCEL_REQUEST_ID}.*accepted=false.*password_len=0" "webtui HTTP auth cancel reply" 45
-  wait_for_trace_regex "http-auth-reply tab=${BROWSER_TAB_ID} .*request_id=${AUTH_CANCEL_REQUEST_ID} accepted=false username= password_len=0 ok=true" "Roamium HTTP auth cancel reply" 45
+  wait_for_trace_regex "http-auth-reply tab=${BROWSER_TAB_ID} .*request_id=${AUTH_CANCEL_REQUEST_ID} accepted=false username= password_len=0 ok=true" "Chromium HTTP auth cancel reply" 45
   require_no_state_trace_after "$AUTH_CANCEL_START_LINE" "event=console_message.*message=ISSUE816_AUTH_CANCEL_UNEXPECTED_SUCCESS" "HTTP auth cancel did not authenticate protected page"
 
   AUTH_PUBLIC_START_LINE="$(state_trace_line_count)"
@@ -5048,7 +5048,7 @@ if [ "$SCENARIO" = "http-auth-smoke" ]; then
   wait_for_state_trace_after "$AUTH_PUBLIC_START_LINE" "event=title_changed.*title=Issue 816 Auth Public" "public page title after auth cancel" 45
   wait_for_state_trace_after "$AUTH_PUBLIC_START_LINE" "event=console_message.*message=ISSUE816_AUTH_PUBLIC" "public page marker after auth cancel" 45
 
-  if grep -F "passwd" "$APP_LOG" "$ROAMIUM_TRACE" "$WEBTUI_STATE_TRACE" "$HARNESS_LOG" >/dev/null 2>&1; then
+  if grep -F "passwd" "$APP_LOG" "$CHROMIUM_TRACE" "$WEBTUI_STATE_TRACE" "$HARNESS_LOG" >/dev/null 2>&1; then
     fail "HTTP auth password leaked into logs or traces"
   fi
   log "PASS: HTTP auth password did not appear in logs or traces"
@@ -5070,9 +5070,9 @@ if [ "$SCENARIO" = "renderer-crash-smoke" ]; then
   CRASH_TRACE_LINE="$(wait_for_trace_line_after \
     "$CRASH_TRACE_START_LINE" \
     "renderer-crashed tab=${BROWSER_TAB_ID} pane=${PANE_ID} status=crashed code=[0-9-]+ url=chrome://crash/ can_reload=true" \
-    "Roamium renderer crash event" \
+    "Chromium renderer crash event" \
     60)"
-  log "PASS: Roamium renderer crash event: $CRASH_TRACE_LINE"
+  log "PASS: Chromium renderer crash event: $CRASH_TRACE_LINE"
   wait_for_state_trace_after "$CRASH_STATE_START_LINE" "event=renderer_crashed.*tab_id=${BROWSER_TAB_ID}.*status=crashed.*url=chrome://crash/.*can_reload=true" "webtui renderer crash state event" 60
   wait_for_state_trace_after "$CRASH_STATE_START_LINE" "event=render_state.*loading_bar_active=false.*renderer_crash_active=true.*renderer_crash_tab_id=${BROWSER_TAB_ID}.*renderer_crash_status=crashed" "webtui render state shows active crash without stuck loading" 60
 
@@ -5092,12 +5092,12 @@ if [ "$SCENARIO" = "renderer-crash-smoke" ]; then
   RECOVERY_STATE_START_LINE="$(state_trace_line_count)"
   log "renderer_crash_recovery_url=${CRASH_RECOVERY_URL}"
   edit_url_replace "renderer_crash_recovery" "$CRASH_RECOVERY_URL"
-  wait_for_trace_line_after "$RECOVERY_TRACE_START_LINE" "navigate tab=${BROWSER_TAB_ID} pane=${PANE_ID} url=${CRASH_RECOVERY_URL}" "Roamium recovery navigation" 60 >/dev/null
+  wait_for_trace_line_after "$RECOVERY_TRACE_START_LINE" "navigate tab=${BROWSER_TAB_ID} pane=${PANE_ID} url=${CRASH_RECOVERY_URL}" "Chromium recovery navigation" 60 >/dev/null
   wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=url_changed[[:space:]]+url=${CRASH_RECOVERY_URL}" "webtui recovery URL" 60
   wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=title_changed.*title=Issue 816 Crash Recovery" "webtui recovery title" 60
   wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=console_message.*message=ISSUE816_CRASH_RECOVERY" "webtui recovery console marker" 60
   wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=render_state.*title=Issue 816 Crash Recovery.*loading_bar_active=false.*renderer_crash_active=false.*latest_console=ISSUE816_CRASH_RECOVERY" "webtui render state cleared crash after recovery"
-  require_trace_after "$RECOVERY_TRACE_START_LINE" "title-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} title=Issue 816 Crash Recovery" "Roamium stayed alive through recovery"
+  require_trace_after "$RECOVERY_TRACE_START_LINE" "title-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} title=Issue 816 Crash Recovery" "Chromium stayed alive through recovery"
 fi
 
 if [ "$SCENARIO" = "color-scheme-smoke" ]; then
@@ -5114,13 +5114,13 @@ if [ "$SCENARIO" = "color-scheme-smoke" ]; then
     state_start_line="$(state_trace_line_count)"
     run_webtui_command "$label" "$command"
     wait_for_state_trace_after "$state_start_line" "event=color_scheme_command.*action=${action}.*scheme=${scheme}.*dark=${dark}.*source=${source}.*tab_id=${BROWSER_TAB_ID}" "webtui accepted ${label} color scheme command" 45
-    require_trace_after "$trace_start_line" "set-color-scheme tab=${BROWSER_TAB_ID} pane=${PANE_ID} dark=${dark} ffi=ts_set_color_scheme" "Roamium received ${label} SetColorScheme"
+    require_trace_after "$trace_start_line" "set-color-scheme tab=${BROWSER_TAB_ID} pane=${PANE_ID} dark=${dark} ffi=ts_set_color_scheme" "Chromium received ${label} SetColorScheme"
     wait_for_state_trace_after "$state_start_line" "event=console_message.*message=ISSUE816_COLOR_SCHEME .*scheme=${scheme}" "page observed ${label} ${scheme} media scheme" 45
     wait_for_state_trace_after "$state_start_line" "event=title_changed.*title=Issue 816 Color .* ${scheme}" "webtui received ${label} ${scheme} title" 45
   }
 
   wait_for_state_trace "event=url_changed.*url=${URL}" "webtui initial color fixture URL" 45
-  wait_for_trace_regex "create-tab pane=${PANE_ID} .*dark=true" "Roamium initial CreateTab used system dark scheme" 45
+  wait_for_trace_regex "create-tab pane=${PANE_ID} .*dark=true" "Chromium initial CreateTab used system dark scheme" 45
   wait_for_state_trace "event=console_message.*message=ISSUE816_COLOR_SCHEME .*label=ready" "webtui initial color fixture ready marker" 45
   wait_for_state_trace "event=render_state.*browser_ready=true" "webtui color fixture browser ready render state" 45
 
@@ -5197,7 +5197,7 @@ if [ "$SCENARIO" = "webapp-clipboard-copy" ]; then
   click_global_point "$CLIPBOARD_API_X" "$CLIPBOARD_API_Y" "webapp_clipboard_api_button"
   wait_for_state_trace_after "$API_STATE_START_LINE" "event=console_message.*message=ISSUE840_CLIPBOARD .*kind=clipboard-api-start .*token=${CLIPBOARD_API_TOKEN}" "page started Clipboard API copy handler" 45
   wait_for_log_after "$API_APP_START_LINE" "ClickModeChanged: pane_id=${PANE_ID} browsing=true reason=overlay_click" "Ghostboard entered Browse from webapp clipboard click" 45
-  require_trace_after "$API_TRACE_START_LINE" "mouse-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_forward_mouse_event type=down button=left" "Roamium received webapp clipboard click"
+  require_trace_after "$API_TRACE_START_LINE" "mouse-event tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_forward_mouse_event type=down button=left" "Chromium received webapp clipboard click"
 
   API_CLIPBOARD_AFTER="$CLIPBOARD_SENTINEL"
   for _ in $(seq 1 20); do
@@ -5360,7 +5360,7 @@ if [ "$SCENARIO" = "click-driven-browse-mode" ]; then
   wait_for_state_trace_after "$CLICK_MODE_STATE_START_LINE" "event=console_message.*message=ISSUE817_INPUT .*kind=input-click .*active=text-input" "page observed click-driven input click" 45
   wait_for_log_after "$CLICK_MODE_APP_START_LINE" "ClickModeChanged: pane_id=${PANE_ID} browsing=true reason=overlay_click" "Ghostboard entered Browse from overlay click" 45
   wait_for_log_after "$CLICK_MODE_APP_START_LINE" "ModeChanged: pane_id=${PANE_ID} browsing=true .*source=gui" "Ghostboard sent GUI-originated Browse mode to webtui" 45
-  require_trace_after "$CLICK_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed click-driven focus=true"
+  require_trace_after "$CLICK_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed click-driven focus=true"
   wait_for_state_trace_after "$CLICK_MODE_STATE_START_LINE" "event=mode_changed.*source=gui.*browsing=true.*mode=browse" "webtui received GUI-originated Browse mode" 45
 
   INPUT_TOKEN="issue838"
@@ -5375,40 +5375,40 @@ if [ "$SCENARIO" = "click-driven-browse-mode" ]; then
   click_global_point "$OUTSIDE_X" "$OUTSIDE_Y" "click_driven_outside_overlay"
   wait_for_log_after "$MISS_APP_START_LINE" "ClickModeChanged: pane_id=${PANE_ID} browsing=false reason=overlay_miss" "Ghostboard left Browse from non-overlay click" 45
   wait_for_log_after "$MISS_APP_START_LINE" "ModeChanged: pane_id=${PANE_ID} browsing=false .*source=gui" "Ghostboard sent GUI-originated Control mode to webtui" 45
-  require_trace_after "$MISS_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed click-driven focus=false"
+  require_trace_after "$MISS_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed click-driven focus=false"
   wait_for_state_trace_after "$MISS_STATE_START_LINE" "event=mode_changed.*source=gui.*browsing=false.*mode=control" "webtui received GUI-originated Control mode" 45
 fi
 
-if [ "$SCENARIO" = "named-roamium-debug-launch" ]; then
+if [ "$SCENARIO" = "named-chromium-debug-launch" ]; then
   if grep -F -- "--browser" "$COMMAND" >/dev/null 2>&1; then
-    fail "named Roamium debug launch command unexpectedly contains --browser"
+    fail "named Chromium debug launch command unexpectedly contains --browser"
   fi
-  log "PASS: named Roamium debug launch command omits --browser"
-  require_log "TermSurf message decoded type=HelloRequest" "named Roamium webtui discovered TERMSURF_SOCKET"
+  log "PASS: named Chromium debug launch command omits --browser"
+  require_log "TermSurf message decoded type=HelloRequest" "named Chromium webtui discovered TERMSURF_SOCKET"
   require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=chromium" "Ghostboard sent HelloReply homepage and browser defaults"
   require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "Ghostboard received named Chromium SetOverlay"
-  require_log "SetOverlay: named browser resolved browser=chromium env=TERMSURF_ROAMIUM_PATH path=${ROAMIUM}" "Ghostboard resolved named Chromium to debug path"
-  require_log "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" "Ghostboard spawned debug Roamium path"
+  require_log "SetOverlay: named browser resolved browser=chromium env=ASTROHACKER_CHROMIUM_PATH path=${CHROMIUM}" "Ghostboard resolved named Chromium to debug path"
+  require_log "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" "Ghostboard spawned debug Chromium path"
   require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "BrowserReady preserved named Chromium key"
-  if grep -E "spawned browser path=(/usr/local/roamium|/usr/local/bin/roamium|/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd)" "$APP_LOG" >/dev/null 2>&1; then
-    fail "named Roamium debug launch used a stale installed Roamium path"
+  if grep -E "spawned browser path=(/usr/local/chromium|/usr/local/bin/chromium|/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd)" "$APP_LOG" >/dev/null 2>&1; then
+    fail "named Chromium debug launch used a stale installed Chromium path"
   fi
-  log "PASS: named Roamium debug launch did not use a stale installed path"
+  log "PASS: named Chromium debug launch did not use a stale installed path"
 fi
 
-if [ "$SCENARIO" = "installed-roamium-release-launch" ]; then
+if [ "$SCENARIO" = "installed-chromium-release-launch" ]; then
   if grep -F -- "--browser" "$COMMAND" >/dev/null 2>&1; then
-    fail "installed Roamium release launch command unexpectedly contains --browser"
+    fail "installed Chromium release launch command unexpectedly contains --browser"
   fi
-  log "PASS: installed Roamium release launch command omits --browser"
+  log "PASS: installed Chromium release launch command omits --browser"
   require_log "TermSurf message decoded type=HelloRequest" "release webtui discovered TERMSURF_SOCKET"
   require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "release named Chromium SetOverlay"
-  if grep -F "env=TERMSURF_ROAMIUM_PATH path=" "$APP_LOG" >/dev/null 2>&1; then
-    fail "release installed Roamium scenario unexpectedly resolved through TERMSURF_ROAMIUM_PATH"
+  if grep -F "env=ASTROHACKER_CHROMIUM_PATH path=" "$APP_LOG" >/dev/null 2>&1; then
+    fail "release installed Chromium scenario unexpectedly resolved through ASTROHACKER_CHROMIUM_PATH"
   fi
-  log "PASS: release installed Roamium scenario did not resolve through TERMSURF_ROAMIUM_PATH"
-  require_log "SetOverlay: named browser resolved browser=chromium env=TERMSURF_INSTALLED_ROAMIUM_PATH path=${INSTALLED_ROAMIUM}" "release Ghostboard resolved Chromium through installed override"
-  require_log "spawned browser path=${INSTALLED_ROAMIUM} pid=[0-9]+ profile=default" "release Ghostboard spawned installed override Roamium path"
+  log "PASS: release installed Chromium scenario did not resolve through ASTROHACKER_CHROMIUM_PATH"
+  require_log "SetOverlay: named browser resolved browser=chromium env=TERMSURF_INSTALLED_ROAMIUM_PATH path=${INSTALLED_CHROMIUM}" "release Ghostboard resolved Chromium through installed override"
+  require_log "spawned browser path=${INSTALLED_CHROMIUM} pid=[0-9]+ profile=default" "release Ghostboard spawned installed override Chromium path"
   require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "release BrowserReady preserved named Chromium key"
 fi
 
@@ -5496,9 +5496,9 @@ EOF
 
     SINGLE_MODE_START_LINE="$(log_line_count)"
     SINGLE_MODE_TRACE_START_LINE="$(trace_line_count)"
-    SINGLE_MODE_PRE_TRACE_FOCUS_TRUE_COUNT="$(awk -v tab="$A_BROWSER_TAB_ID" -v pane="$A_PANE_ID" 'index($0, "focus-changed tab=" tab " pane=" pane " ffi=ts_set_focus focused=true") { count++ } END { print count + 0 }' "$ROAMIUM_TRACE")"
-    SINGLE_MODE_PRE_TRACE_FOCUS_FALSE_COUNT="$(awk -v tab="$A_BROWSER_TAB_ID" -v pane="$A_PANE_ID" 'index($0, "focus-changed tab=" tab " pane=" pane " ffi=ts_set_focus focused=false") { count++ } END { print count + 0 }' "$ROAMIUM_TRACE")"
-    SINGLE_MODE_PRE_TRACE_LAST_FOCUS="$(rg -n "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} .*focused=" "$ROAMIUM_TRACE" | tail -1 || true)"
+    SINGLE_MODE_PRE_TRACE_FOCUS_TRUE_COUNT="$(awk -v tab="$A_BROWSER_TAB_ID" -v pane="$A_PANE_ID" 'index($0, "focus-changed tab=" tab " pane=" pane " ffi=ts_set_focus focused=true") { count++ } END { print count + 0 }' "$CHROMIUM_TRACE")"
+    SINGLE_MODE_PRE_TRACE_FOCUS_FALSE_COUNT="$(awk -v tab="$A_BROWSER_TAB_ID" -v pane="$A_PANE_ID" 'index($0, "focus-changed tab=" tab " pane=" pane " ffi=ts_set_focus focused=false") { count++ } END { print count + 0 }' "$CHROMIUM_TRACE")"
+    SINGLE_MODE_PRE_TRACE_LAST_FOCUS="$(rg -n "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} .*focused=" "$CHROMIUM_TRACE" | tail -1 || true)"
     log "single_display_trace_start_line=$SINGLE_MODE_TRACE_START_LINE"
     log "single_display_pre_enter_focus_true_count=$SINGLE_MODE_PRE_TRACE_FOCUS_TRUE_COUNT"
     log "single_display_pre_enter_focus_false_count=$SINGLE_MODE_PRE_TRACE_FOCUS_FALSE_COUNT"
@@ -5514,9 +5514,9 @@ EOF
     SINGLE_MODE_FOCUS_APP_LINE="$(wait_for_line_after "$SINGLE_MODE_START_LINE" "FocusChanged: pane_id=${A_PANE_ID} tab_id=${A_BROWSER_TAB_ID} focused=true" "single-display Ghostboard emitted focus=true after browse mode")"
     log "PASS: single-display Ghostboard emitted focus=true after browse mode"
     SINGLE_MODE_KEY_APP_LINE="$(rg -n "key_down scenario=${SCENARIO} .*pane_id:${A_PANE_ID} .*note=key_code=36 " "$APP_LOG" | tail -1 || true)"
-    SINGLE_MODE_POST_TRACE_FOCUS_TRUE_COUNT="$(awk -v tab="$A_BROWSER_TAB_ID" -v pane="$A_PANE_ID" 'index($0, "focus-changed tab=" tab " pane=" pane " ffi=ts_set_focus focused=true") { count++ } END { print count + 0 }' "$ROAMIUM_TRACE")"
-    SINGLE_MODE_POST_TRACE_FOCUS_FALSE_COUNT="$(awk -v tab="$A_BROWSER_TAB_ID" -v pane="$A_PANE_ID" 'index($0, "focus-changed tab=" tab " pane=" pane " ffi=ts_set_focus focused=false") { count++ } END { print count + 0 }' "$ROAMIUM_TRACE")"
-    SINGLE_MODE_POST_TRACE_LAST_FOCUS="$(rg -n "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} .*focused=" "$ROAMIUM_TRACE" | tail -1 || true)"
+    SINGLE_MODE_POST_TRACE_FOCUS_TRUE_COUNT="$(awk -v tab="$A_BROWSER_TAB_ID" -v pane="$A_PANE_ID" 'index($0, "focus-changed tab=" tab " pane=" pane " ffi=ts_set_focus focused=true") { count++ } END { print count + 0 }' "$CHROMIUM_TRACE")"
+    SINGLE_MODE_POST_TRACE_FOCUS_FALSE_COUNT="$(awk -v tab="$A_BROWSER_TAB_ID" -v pane="$A_PANE_ID" 'index($0, "focus-changed tab=" tab " pane=" pane " ffi=ts_set_focus focused=false") { count++ } END { print count + 0 }' "$CHROMIUM_TRACE")"
+    SINGLE_MODE_POST_TRACE_LAST_FOCUS="$(rg -n "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} .*focused=" "$CHROMIUM_TRACE" | tail -1 || true)"
     SINGLE_MODE_TRACE_FOCUS_TRUE_DELTA="$((SINGLE_MODE_POST_TRACE_FOCUS_TRUE_COUNT - SINGLE_MODE_PRE_TRACE_FOCUS_TRUE_COUNT))"
     SINGLE_MODE_TRACE_FOCUS_FALSE_DELTA="$((SINGLE_MODE_POST_TRACE_FOCUS_FALSE_COUNT - SINGLE_MODE_PRE_TRACE_FOCUS_FALSE_COUNT))"
     log "single_display_mode_app_log_line=$SINGLE_MODE_CHANGED_APP_LINE"
@@ -5535,7 +5535,7 @@ EOF
     else
       log "single_display_post_enter_last_focus=<none>"
     fi
-    require_trace_after "$SINGLE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true on single display"
+    require_trace_after "$SINGLE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true on single display"
 
     SINGLE_KEY_START_LINE="$(trace_line_count)"
     printf 'ISSUE809_EXP17_SINGLE_DISPLAY\n' >"$BROWSER_FOCUS_COMMAND"
@@ -5592,9 +5592,9 @@ EOF
   if [ "$MOVED_PIXEL" != "$A_PIXEL" ]; then
     MOVED_PIXEL_WIDTH="${MOVED_PIXEL%x*}"
     MOVED_PIXEL_HEIGHT="${MOVED_PIXEL#*x}"
-    require_trace_after "$MOVE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${MOVED_PIXEL_WIDTH} pixel_height=${MOVED_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied display-moved resize to AppKit pixel size"
+    require_trace_after "$MOVE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${MOVED_PIXEL_WIDTH} pixel_height=${MOVED_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied display-moved resize to AppKit pixel size"
   else
-    log "PASS: display-moved AppKit pixels unchanged; no Roamium resize required"
+    log "PASS: display-moved AppKit pixels unchanged; no Chromium resize required"
   fi
 
   MOVED_ROOT_HEIGHT="$(pair_height "$A_ROOT_FRAME_SIZE")"
@@ -5615,7 +5615,7 @@ EOF
   log "display_moved_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$MOVED_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "display-moved webtui entered browse mode"
-  require_trace_after "$MOVED_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after display move"
+  require_trace_after "$MOVED_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after display move"
   MOVED_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP17_MOVED_DISPLAY\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -5626,7 +5626,7 @@ EOF
   log "display_moved_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$RETURN_CONTROL_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=false" "display-moved webtui returned to control mode"
-  require_trace_after "$RETURN_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed focus=false before return move"
+  require_trace_after "$RETURN_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed focus=false before return move"
 
   RETURN_START_LINE="$(log_line_count)"
   RETURN_TRACE_START_LINE="$(trace_line_count)"
@@ -5659,9 +5659,9 @@ EOF
   if [ "$RETURNED_PIXEL" != "$MOVED_PIXEL" ]; then
     RETURNED_PIXEL_WIDTH="${RETURNED_PIXEL%x*}"
     RETURNED_PIXEL_HEIGHT="${RETURNED_PIXEL#*x}"
-    require_trace_after "$RETURN_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${RETURNED_PIXEL_WIDTH} pixel_height=${RETURNED_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied display-returned resize to AppKit pixel size"
+    require_trace_after "$RETURN_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${RETURNED_PIXEL_WIDTH} pixel_height=${RETURNED_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied display-returned resize to AppKit pixel size"
   else
-    log "PASS: display-returned AppKit pixels unchanged; no Roamium resize required"
+    log "PASS: display-returned AppKit pixels unchanged; no Chromium resize required"
   fi
 
   RETURN_HIT_START_LINE="$(log_line_count)"
@@ -5737,7 +5737,7 @@ if [ "$SCENARIO" = "fullscreen-unfullscreen" ]; then
 
   FULLSCREEN_PIXEL_WIDTH="${FULLSCREEN_PIXEL%x*}"
   FULLSCREEN_PIXEL_HEIGHT="${FULLSCREEN_PIXEL#*x}"
-  require_trace_after "$FULLSCREEN_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${FULLSCREEN_PIXEL_WIDTH} pixel_height=${FULLSCREEN_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied fullscreen resize to AppKit pixel size"
+  require_trace_after "$FULLSCREEN_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${FULLSCREEN_PIXEL_WIDTH} pixel_height=${FULLSCREEN_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied fullscreen resize to AppKit pixel size"
 
   screencapture -x -o -l"$FULLSCREEN_WINDOW_ID" "$SCREENSHOT_FULLSCREEN"
   log "fullscreen_screenshot_exit=$?"
@@ -5758,7 +5758,7 @@ if [ "$SCENARIO" = "fullscreen-unfullscreen" ]; then
   log "fullscreen_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$FULLSCREEN_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "fullscreen webtui entered browse mode"
-  require_trace_after "$FULLSCREEN_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after fullscreen"
+  require_trace_after "$FULLSCREEN_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after fullscreen"
 
   FULLSCREEN_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP18_FULLSCREEN\n' >"$BROWSER_FOCUS_COMMAND"
@@ -5770,7 +5770,7 @@ if [ "$SCENARIO" = "fullscreen-unfullscreen" ]; then
   log "fullscreen_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$FULLSCREEN_CONTROL_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=false" "fullscreen webtui returned to control mode"
-  require_trace_after "$FULLSCREEN_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed focus=false before unfullscreen"
+  require_trace_after "$FULLSCREEN_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed focus=false before unfullscreen"
 
   UNFULLSCREEN_START_LINE="$(log_line_count)"
   UNFULLSCREEN_TRACE_START_LINE="$(trace_line_count)"
@@ -5808,7 +5808,7 @@ if [ "$SCENARIO" = "fullscreen-unfullscreen" ]; then
 
   UNFULLSCREEN_PIXEL_WIDTH="${UNFULLSCREEN_PIXEL%x*}"
   UNFULLSCREEN_PIXEL_HEIGHT="${UNFULLSCREEN_PIXEL#*x}"
-  require_trace_after "$UNFULLSCREEN_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${UNFULLSCREEN_PIXEL_WIDTH} pixel_height=${UNFULLSCREEN_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied unfullscreen resize to AppKit pixel size"
+  require_trace_after "$UNFULLSCREEN_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${UNFULLSCREEN_PIXEL_WIDTH} pixel_height=${UNFULLSCREEN_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied unfullscreen resize to AppKit pixel size"
 
   screencapture -x -o -l"$UNFULLSCREEN_WINDOW_ID" "$SCREENSHOT_UNFULLSCREEN"
   log "unfullscreen_screenshot_exit=$?"
@@ -5827,7 +5827,7 @@ if [ "$SCENARIO" = "fullscreen-unfullscreen" ]; then
   log "unfullscreen_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$UNFULLSCREEN_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "unfullscreen webtui entered browse mode"
-  require_trace_after "$UNFULLSCREEN_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after unfullscreen"
+  require_trace_after "$UNFULLSCREEN_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after unfullscreen"
 
   UNFULLSCREEN_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP18_UNFULLSCREEN\n' >"$BROWSER_FOCUS_COMMAND"
@@ -5919,7 +5919,7 @@ if [ "$SCENARIO" = "minimize-hide-restore" ]; then
   log "minimize_restored_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$RESTORE_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "minimize-restored webtui entered browse mode"
-  require_trace_after "$RESTORE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after minimize restore"
+  require_trace_after "$RESTORE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after minimize restore"
   RESTORE_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP19_MINIMIZE_RESTORE\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -5930,7 +5930,7 @@ if [ "$SCENARIO" = "minimize-hide-restore" ]; then
   log "minimize_restored_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$RESTORE_CONTROL_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=false" "minimize-restored webtui returned to control mode"
-  require_trace_after "$RESTORE_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed focus=false before hide"
+  require_trace_after "$RESTORE_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed focus=false before hide"
 
   HIDE_START_LINE="$(log_line_count)"
   HIDE_RESULT="$(swift "$HIDE_APP" "$PID" hide >>"$HARNESS_LOG" 2>&1; tail -1 "$HARNESS_LOG")"
@@ -5978,7 +5978,7 @@ if [ "$SCENARIO" = "minimize-hide-restore" ]; then
   log "hide_restored_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$SHOW_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "hide-restored webtui entered browse mode"
-  require_trace_after "$SHOW_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after hide restore"
+  require_trace_after "$SHOW_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after hide restore"
   SHOW_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP19_HIDE_RESTORE\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -6034,7 +6034,7 @@ if [ "$SCENARIO" = "open-browser-in-new-window" ]; then
 
   BROWSER_B_START_LINE="$(log_line_count)"
   BROWSER_B_TRACE_START_LINE="$(trace_line_count)"
-  printf '"%s" --browser "%s" "%s"' "$WEB" "$ROAMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" "%s"' "$WEB" "$CHROMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
   log "browser_b_command=$(cat "$SECOND_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$SECOND_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
@@ -6072,7 +6072,7 @@ if [ "$SCENARIO" = "open-browser-in-new-window" ]; then
 
   B_PIXEL_WIDTH="${B_PIXEL%x*}"
   B_PIXEL_HEIGHT="${B_PIXEL#*x}"
-  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied browser B resize to AppKit pixel size"
+  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied browser B resize to AppKit pixel size"
 
   if tail -n +"$((BROWSER_B_START_LINE + 1))" "$APP_LOG" |
     grep -E "TermSurf geometry layer=appkit event=presented .*window_id:${B_WINDOW_ID} .*pane_id:${A_PANE_ID} .*context_id=${A_CONTEXT_ID} .*visible=true" >/dev/null 2>&1; then
@@ -6098,7 +6098,7 @@ if [ "$SCENARIO" = "open-browser-in-new-window" ]; then
   log "browser_b_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$B_MODE_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=true" "browser B webtui entered browse mode"
-  require_trace_after "$B_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser B focus=true after browse mode"
+  require_trace_after "$B_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser B focus=true after browse mode"
 
   B_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP15_BROWSER_B_WINDOW\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6111,7 +6111,7 @@ if [ "$SCENARIO" = "open-browser-in-new-window" ]; then
   log "browser_b_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$B_CONTROL_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=false" "browser B webtui returned to control mode"
-  require_trace_after "$B_CONTROL_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed browser B focus=false after control mode"
+  require_trace_after "$B_CONTROL_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed browser B focus=false after control mode"
 
   A_RESTORE_START_LINE="$(log_line_count)"
   A_RESTORE_TRACE_START_LINE="$(trace_line_count)"
@@ -6138,7 +6138,7 @@ if [ "$SCENARIO" = "open-browser-in-new-window" ]; then
   log "browser_a_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$A_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "browser A webtui entered browse mode after window restore"
-  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser A focus=true after window restore"
+  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser A focus=true after window restore"
 
   A_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP15_BROWSER_A_WINDOW\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6204,7 +6204,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
 
   BROWSER_B_START_LINE="$(log_line_count)"
   BROWSER_B_TRACE_START_LINE="$(trace_line_count)"
-  printf '"%s" --browser "%s" "%s"' "$WEB" "$ROAMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" "%s"' "$WEB" "$CHROMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
   log "browser_b_command=$(cat "$SECOND_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$SECOND_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
@@ -6246,7 +6246,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
 
   B_PIXEL_WIDTH="${B_PIXEL%x*}"
   B_PIXEL_HEIGHT="${B_PIXEL#*x}"
-  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied browser B resize to AppKit pixel size"
+  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied browser B resize to AppKit pixel size"
 
   NEW_WINDOW_C_START_LINE="$(log_line_count)"
   NEW_WINDOW_C_TRACE_START_LINE="$(trace_line_count)"
@@ -6280,7 +6280,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
 
   BROWSER_C_START_LINE="$(log_line_count)"
   BROWSER_C_TRACE_START_LINE="$(trace_line_count)"
-  printf '"%s" --browser "%s" "%s"' "$WEB" "$ROAMIUM" "$URL_C" >"$THIRD_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" "%s"' "$WEB" "$CHROMIUM" "$URL_C" >"$THIRD_BROWSER_COMMAND"
   log "browser_c_command=$(cat "$THIRD_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$THIRD_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
@@ -6326,7 +6326,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
 
   C_PIXEL_WIDTH="${C_PIXEL%x*}"
   C_PIXEL_HEIGHT="${C_PIXEL#*x}"
-  require_trace_after "$BROWSER_C_TRACE_START_LINE" "resize tab_id=${C_BROWSER_TAB_ID} pane_id=${C_PANE_ID} pixel_width=${C_PIXEL_WIDTH} pixel_height=${C_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied browser C resize to AppKit pixel size"
+  require_trace_after "$BROWSER_C_TRACE_START_LINE" "resize tab_id=${C_BROWSER_TAB_ID} pane_id=${C_PANE_ID} pixel_width=${C_PIXEL_WIDTH} pixel_height=${C_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied browser C resize to AppKit pixel size"
 
   if tail -n +"$((BROWSER_C_START_LINE + 1))" "$APP_LOG" |
     grep -E "TermSurf geometry layer=appkit event=presented .*window_id:${C_WINDOW_ID} .*pane_id:${A_PANE_ID} .*context_id=${A_CONTEXT_ID} .*visible=true" >/dev/null 2>&1; then
@@ -6362,7 +6362,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
   log "browser_c_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$C_MODE_START_LINE" "ModeChanged: pane_id=${C_PANE_ID} browsing=true" "browser C webtui entered browse mode"
-  require_trace_after "$C_MODE_TRACE_START_LINE" "focus-changed tab=${C_BROWSER_TAB_ID} pane=${C_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser C focus=true after browse mode"
+  require_trace_after "$C_MODE_TRACE_START_LINE" "focus-changed tab=${C_BROWSER_TAB_ID} pane=${C_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser C focus=true after browse mode"
 
   C_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP16_BROWSER_C_WINDOW\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6376,7 +6376,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
   log "browser_c_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$C_CONTROL_START_LINE" "ModeChanged: pane_id=${C_PANE_ID} browsing=false" "browser C webtui returned to control mode"
-  require_trace_after "$C_CONTROL_TRACE_START_LINE" "focus-changed tab=${C_BROWSER_TAB_ID} pane=${C_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed browser C focus=false after control mode"
+  require_trace_after "$C_CONTROL_TRACE_START_LINE" "focus-changed tab=${C_BROWSER_TAB_ID} pane=${C_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed browser C focus=false after control mode"
 
   B_RESTORE_START_LINE="$(log_line_count)"
   B_RESTORE_TRACE_START_LINE="$(trace_line_count)"
@@ -6403,7 +6403,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
   log "browser_b_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$B_MODE_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=true" "browser B webtui entered browse mode after window restore"
-  require_trace_after "$B_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser B focus=true after window restore"
+  require_trace_after "$B_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser B focus=true after window restore"
 
   B_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP16_BROWSER_B_WINDOW\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6417,7 +6417,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
   log "browser_b_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$B_CONTROL_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=false" "browser B webtui returned to control mode"
-  require_trace_after "$B_CONTROL_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed browser B focus=false after control mode"
+  require_trace_after "$B_CONTROL_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed browser B focus=false after control mode"
   screencapture -x -o -l"$B_WINDOW_ID" "$SCREENSHOT_WINDOW_B_RESTORED"
   log "window_b_restored_screenshot_exit=$?"
 
@@ -6446,7 +6446,7 @@ if [ "$SCENARIO" = "multiple-windows-with-browsers" ]; then
   log "browser_a_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$A_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "browser A webtui entered browse mode after window restore"
-  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser A focus=true after window restore"
+  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser A focus=true after window restore"
 
   A_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP16_BROWSER_A_WINDOW\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6516,13 +6516,13 @@ if [ "$SCENARIO" = "new-terminal-tab-visibility" ]; then
     fail "new terminal tab created a second browser pane/context"
   fi
   log "PASS: new terminal tab did not create a second browser pane/context"
-  if tail -n +"$((NEW_TAB_TRACE_START_LINE + 1))" "$ROAMIUM_TRACE" |
+  if tail -n +"$((NEW_TAB_TRACE_START_LINE + 1))" "$CHROMIUM_TRACE" |
     grep -E "resize tab_id=|title-changed tab=|key-event tab=|mouse-event tab=|mouse-move tab=" |
     grep -Fv "pane_id=${PANE_ID}" |
     grep -Fv "pane=${PANE_ID}" >/dev/null 2>&1; then
-    fail "Roamium trace shows activity for a second browser context after new tab"
+    fail "Chromium trace shows activity for a second browser context after new tab"
   fi
-  log "PASS: Roamium trace shows no second browser context after new tab"
+  log "PASS: Chromium trace shows no second browser context after new tab"
 
   screencapture -x -o -l"$NEW_SELECTED_TAB_ID" "$SCREENSHOT_TAB_NEW"
   log "new_tab_screenshot_exit=$?"
@@ -6579,14 +6579,14 @@ if [ "$SCENARIO" = "new-terminal-tab-visibility" ]; then
   log "restored_browser_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$BROWSER_MODE_START_LINE" "ModeChanged: pane_id=${PANE_ID} browsing=true" "webtui entered browse mode after tab restore"
-  require_trace_after "$BROWSER_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed restored browser pane focus=true after browse mode"
+  require_trace_after "$BROWSER_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed restored browser pane focus=true after browse mode"
 
   BROWSER_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP12_BROWSER_RESTORED\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
   BROWSER_KEY_SEEN=""
   for _ in $(seq 1 10); do
-    if tail -n +"$((BROWSER_KEY_START_LINE + 1))" "$ROAMIUM_TRACE" | grep -F "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID}" >/dev/null 2>&1; then
+    if tail -n +"$((BROWSER_KEY_START_LINE + 1))" "$CHROMIUM_TRACE" | grep -F "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID}" >/dev/null 2>&1; then
       BROWSER_KEY_SEEN="1"
       break
     fi
@@ -6616,12 +6616,12 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   log "browser_a_context_id=$A_CONTEXT_ID"
 
   if [ "$SCENARIO" = "same-profile-server-lifecycle" ]; then
-    require_log "SetOverlay: pane_id=${A_PANE_ID} profile=default browser=${ROAMIUM}" "browser A SetOverlay uses default profile and absolute Roamium path"
-    require_log "SetOverlay: created pending server key=default/${ROAMIUM} pane_count=1" "browser A created default profile server"
-    SHARED_SPAWN_LINE="$(grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default .*--user-data-dir=.*chromium-profiles/default" "$APP_LOG" | tail -1 || true)"
-    [ -n "$SHARED_SPAWN_LINE" ] || fail "missing default profile Roamium spawn line"
+    require_log "SetOverlay: pane_id=${A_PANE_ID} profile=default browser=${CHROMIUM}" "browser A SetOverlay uses default profile and absolute Chromium path"
+    require_log "SetOverlay: created pending server key=default/${CHROMIUM} pane_count=1" "browser A created default profile server"
+    SHARED_SPAWN_LINE="$(grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default .*--user-data-dir=.*chromium-profiles/default" "$APP_LOG" | tail -1 || true)"
+    [ -n "$SHARED_SPAWN_LINE" ] || fail "missing default profile Chromium spawn line"
     SHARED_SPAWN_PID="$(printf '%s\n' "$SHARED_SPAWN_LINE" | sed -E 's/.* pid=([0-9]+) profile=.*/\1/')"
-    [ -n "$SHARED_SPAWN_PID" ] || fail "failed to extract shared Roamium pid"
+    [ -n "$SHARED_SPAWN_PID" ] || fail "failed to extract shared Chromium pid"
     log "same_profile_shared_spawn_pid=$SHARED_SPAWN_PID"
     log "PASS: browser A spawned shared default profile server"
   fi
@@ -6687,22 +6687,22 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   BROWSER_B_START_LINE="$(log_line_count)"
   BROWSER_B_TRACE_START_LINE="$(trace_line_count)"
   if [ "$SCENARIO" = "same-profile-server-lifecycle" ]; then
-    printf '"%s" --browser "%s" --profile default "%s"' "$WEB" "$ROAMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
+    printf '"%s" --browser "%s" --profile default "%s"' "$WEB" "$CHROMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
   else
-    printf '"%s" --browser "%s" "%s"' "$WEB" "$ROAMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
+    printf '"%s" --browser "%s" "%s"' "$WEB" "$CHROMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
   fi
   log "browser_b_command=$(cat "$SECOND_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$SECOND_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
 
   if [ "$SCENARIO" = "same-profile-server-lifecycle" ]; then
-    wait_for_log_after "$BROWSER_B_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${ROAMIUM}" "browser B SetOverlay uses default profile and absolute Roamium path"
-    wait_for_log_after "$BROWSER_B_START_LINE" "SetOverlay: reused pending server key=default/${ROAMIUM} pane_count=2 has_fd=true" "browser B reused shared default profile server"
-    if tail -n +"$((BROWSER_B_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
-      fail "browser B spawned a second default profile Roamium process"
+    wait_for_log_after "$BROWSER_B_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${CHROMIUM}" "browser B SetOverlay uses default profile and absolute Chromium path"
+    wait_for_log_after "$BROWSER_B_START_LINE" "SetOverlay: reused pending server key=default/${CHROMIUM} pane_count=2 has_fd=true" "browser B reused shared default profile server"
+    if tail -n +"$((BROWSER_B_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
+      fail "browser B spawned a second default profile Chromium process"
     fi
-    kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Roamium pid died while browser B was opening"
-    log "PASS: browser B reused shared Roamium pid without a second spawn"
+    kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Chromium pid died while browser B was opening"
+    log "PASS: browser B reused shared Chromium pid without a second spawn"
   fi
 
   B_CA_CONTEXT_LINE="$(wait_for_different_zig_event_after "$BROWSER_B_START_LINE" "ca_context" "$A_PANE_ID" "browser B Zig ca_context")"
@@ -6735,7 +6735,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
 
   B_PIXEL_WIDTH="${B_PIXEL%x*}"
   B_PIXEL_HEIGHT="${B_PIXEL#*x}"
-  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied browser B resize to AppKit pixel size"
+  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied browser B resize to AppKit pixel size"
 
   if tail -n +"$((BROWSER_B_START_LINE + 1))" "$APP_LOG" |
     grep -E "TermSurf geometry layer=appkit event=presented .*pane_id:${A_PANE_ID} .*context_id=${A_CONTEXT_ID} .*visible=true .*selected_tab_id:${TAB2_SELECTED_TAB_ID}" >/dev/null 2>&1; then
@@ -6760,7 +6760,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   log "browser_b_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$B_MODE_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=true" "browser B webtui entered browse mode"
-  require_trace_after "$B_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser B focus=true after browse mode"
+  require_trace_after "$B_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser B focus=true after browse mode"
 
   B_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP13_BROWSER_B\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6773,7 +6773,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   log "browser_b_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$B_CONTROL_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=false" "browser B webtui returned to control mode"
-  require_trace_after "$B_CONTROL_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed browser B focus=false after control mode"
+  require_trace_after "$B_CONTROL_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed browser B focus=false after control mode"
 
   if [ "$SCENARIO" = "close-browser-tab" ] || [ "$SCENARIO" = "same-profile-server-lifecycle" ]; then
     CLOSE_TAB_START_LINE="$(log_line_count)"
@@ -6800,7 +6800,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
     log "browser_a_after_close_overlay_frame=$A_AFTER_CLOSE_FRAME"
     log "browser_a_after_close_overlay_frame_size=$A_AFTER_CLOSE_FRAME_SIZE"
     log "browser_a_after_close_appkit_pixel=$A_AFTER_CLOSE_PIXEL"
-    require_trace_after "$CLOSE_TAB_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_AFTER_CLOSE_PIXEL_WIDTH} pixel_height=${A_AFTER_CLOSE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium resized browser A after browser B tab close"
+    require_trace_after "$CLOSE_TAB_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_AFTER_CLOSE_PIXEL_WIDTH} pixel_height=${A_AFTER_CLOSE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium resized browser A after browser B tab close"
 
     CLEAR_OVERLAY_SEEN=""
     for _ in $(seq 1 30); do
@@ -6808,7 +6808,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
         CLEAR_OVERLAY_SEEN="1"
         break
       fi
-      if tail -n +"$((CLOSE_TAB_TRACE_START_LINE + 1))" "$ROAMIUM_TRACE" | grep -F "key-event tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID}" >/dev/null 2>&1; then
+      if tail -n +"$((CLOSE_TAB_TRACE_START_LINE + 1))" "$CHROMIUM_TRACE" | grep -F "key-event tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID}" >/dev/null 2>&1; then
         fail "Control-W was forwarded to browser B input before close_tab cleanup"
       fi
       delay 1
@@ -6835,8 +6835,8 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
     log "PASS: observed browser B tab-close clear result clear_result=$CLEAR_RESULT"
 
     require_log_after "$CLOSE_TAB_START_LINE" "CloseTab: pane_id=${B_PANE_ID} tab_id=${B_BROWSER_TAB_ID}" "Zig records CloseTab for browser B after tab close"
-    require_trace_after "$CLOSE_TAB_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Roamium received CloseTab and destroyed browser B"
-    require_trace_after "$CLOSE_TAB_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} result=removed" "Roamium removed closed browser B tab"
+    require_trace_after "$CLOSE_TAB_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Chromium received CloseTab and destroyed browser B"
+    require_trace_after "$CLOSE_TAB_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} result=removed" "Chromium removed closed browser B tab"
 
     SELECT_CLOSED_START_LINE="$(log_line_count)"
     log "select_closed_tab_keybind=ctrl+2=goto_tab:2"
@@ -6866,7 +6866,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
     log "browser_a_after_tab_close_mode_key=enter=Mode::Browse"
     swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
     wait_for_log_after "$A_AFTER_CLOSE_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "browser A entered browse mode after browser B tab close"
-    require_trace_after "$A_AFTER_CLOSE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser A focus=true after browser B tab close"
+    require_trace_after "$A_AFTER_CLOSE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser A focus=true after browser B tab close"
 
     A_AFTER_CLOSE_KEY_START_LINE="$(trace_line_count)"
     printf 'ISSUE809_EXP14_BROWSER_A_AFTER_CLOSE\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6884,11 +6884,11 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
     [ "$BROWSER_B_TRACE_START_LINE" -lt "$CLOSE_TAB_TRACE_START_LINE" ] || fail "trace boundaries for browser B close were not monotonic"
 
     if [ "$SCENARIO" = "same-profile-server-lifecycle" ]; then
-      kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Roamium pid died after browser B close while browser A remained alive"
-      if tail -n +"$((CLOSE_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
-        fail "closing browser B caused an unexpected default profile Roamium respawn"
+      kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Chromium pid died after browser B close while browser A remained alive"
+      if tail -n +"$((CLOSE_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
+        fail "closing browser B caused an unexpected default profile Chromium respawn"
       fi
-      log "PASS: shared Roamium pid survived browser B close without respawn"
+      log "PASS: shared Chromium pid survived browser B close without respawn"
 
       C_TAB_START_LINE="$(log_line_count)"
       C_TAB_TRACE_START_LINE="$(trace_line_count)"
@@ -6912,21 +6912,21 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
       [ "$C_SELECTED_TAB_ID" != "$TAB2_SELECTED_TAB_ID" ] || fail "browser C reused closed browser B native tab id"
       log "browser_c_selected_tab_id=$C_SELECTED_TAB_ID"
 
-      printf '"%s" --browser "%s" --profile default "%s"' "$WEB" "$ROAMIUM" "$URL_C" >"$THIRD_BROWSER_COMMAND"
+      printf '"%s" --browser "%s" --profile default "%s"' "$WEB" "$CHROMIUM" "$URL_C" >"$THIRD_BROWSER_COMMAND"
       log "browser_c_command=$(cat "$THIRD_BROWSER_COMMAND")"
       swift "$ROOT/scripts/ghostty-app/inject.swift" type "$THIRD_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
       swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
 
-      C_SET_LINE="$(wait_for_line_after "$C_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${ROAMIUM} url=${URL_C}" "browser C SetOverlay uses default profile and absolute Roamium path")"
+      C_SET_LINE="$(wait_for_line_after "$C_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${CHROMIUM} url=${URL_C}" "browser C SetOverlay uses default profile and absolute Chromium path")"
       C_SET_PANE_ID="$(printf '%s\n' "$C_SET_LINE" | sed -E 's/.*SetOverlay: pane_id=([^ ]+) .*/\1/')"
       [ -n "$C_SET_PANE_ID" ] || fail "failed to extract browser C SetOverlay pane id"
       [ "$C_SET_PANE_ID" != "$A_PANE_ID" ] || fail "browser C SetOverlay matched browser A pane id"
       [ "$C_SET_PANE_ID" != "$B_PANE_ID" ] || fail "browser C SetOverlay matched closed browser B pane id"
-      wait_for_log_after "$C_TAB_START_LINE" "SetOverlay: reused pending server key=default/${ROAMIUM} pane_count=2 has_fd=true" "browser C reused shared default profile server"
-      if tail -n +"$((C_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
-        fail "browser C spawned a second default profile Roamium process"
+      wait_for_log_after "$C_TAB_START_LINE" "SetOverlay: reused pending server key=default/${CHROMIUM} pane_count=2 has_fd=true" "browser C reused shared default profile server"
+      if tail -n +"$((C_TAB_START_LINE + 1))" "$APP_LOG" | grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
+        fail "browser C spawned a second default profile Chromium process"
       fi
-      kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Roamium pid died while browser C was opening"
+      kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Chromium pid died while browser C was opening"
 
       C_CA_CONTEXT_LINE="$(wait_for_different_zig_event_after "$C_TAB_START_LINE" "ca_context" "$A_PANE_ID" "browser C Zig ca_context")"
       C_PANE_ID="$(extract_pane_id "$C_CA_CONTEXT_LINE")"
@@ -6978,10 +6978,10 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
       swift "$ROOT/scripts/ghostty-app/inject.swift" key 13 control >>"$HARNESS_LOG" 2>&1
       delay 1
       require_log_after "$C_CLOSE_START_LINE" "CloseTab: pane_id=${C_PANE_ID} tab_id=${C_BROWSER_TAB_ID}" "Zig records CloseTab for browser C after tab close"
-      require_trace_after "$C_CLOSE_TRACE_START_LINE" "close-tab tab_id=${C_BROWSER_TAB_ID} pane_id=${C_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Roamium received CloseTab and destroyed browser C"
-      require_trace_after "$C_CLOSE_TRACE_START_LINE" "close-tab tab_id=${C_BROWSER_TAB_ID} result=removed" "Roamium removed closed browser C tab"
-      kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Roamium pid died after browser C close while browser A remained alive"
-      log "PASS: shared Roamium pid survived browser C close"
+      require_trace_after "$C_CLOSE_TRACE_START_LINE" "close-tab tab_id=${C_BROWSER_TAB_ID} pane_id=${C_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Chromium received CloseTab and destroyed browser C"
+      require_trace_after "$C_CLOSE_TRACE_START_LINE" "close-tab tab_id=${C_BROWSER_TAB_ID} result=removed" "Chromium removed closed browser C tab"
+      kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1 || fail "shared Chromium pid died after browser C close while browser A remained alive"
+      log "PASS: shared Chromium pid survived browser C close"
 
       require_log_after "$C_CLOSE_START_LINE" "Pane focus changed: pane_id=${A_PANE_ID} focused=true" "browser A pane focused after browser C close"
       TAB1_AFTER_C_WIN_LINE="$(window_bounds_for "$A_SELECTED_TAB_ID")" || fail "failed to resolve browser A window bounds after browser C close for window id=$A_SELECTED_TAB_ID"
@@ -7009,13 +7009,13 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
       require_log_after "$A_FINAL_START_LINE" "CloseTab: pane_id=${A_PANE_ID} tab_id=${A_BROWSER_TAB_ID}" "Zig records CloseTab for final browser A close"
       for _ in $(seq 1 15); do
         if ! kill -0 "$SHARED_SPAWN_PID" >/dev/null 2>&1; then
-          log "PASS: shared Roamium pid exited after final browser close"
+          log "PASS: shared Chromium pid exited after final browser close"
           SHARED_PID_EXITED="1"
           break
         fi
         delay 1
       done
-      [ "${SHARED_PID_EXITED:-}" = "1" ] || fail "shared Roamium pid remained alive after final browser close"
+      [ "${SHARED_PID_EXITED:-}" = "1" ] || fail "shared Chromium pid remained alive after final browser close"
     fi
   fi
 
@@ -7045,7 +7045,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   log "browser_a_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$A_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "browser A webtui entered browse mode"
-  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser A focus=true after browse mode"
+  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser A focus=true after browse mode"
 
   A_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP13_BROWSER_A\n' >"$BROWSER_FOCUS_COMMAND"
@@ -7060,7 +7060,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   log "browser_a_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$A_CONTROL_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=false" "browser A webtui returned to control mode"
-  require_trace_after "$A_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed browser A focus=false after control mode"
+  require_trace_after "$A_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed browser A focus=false after control mode"
 
   SWITCH_B_START_LINE="$(log_line_count)"
   SWITCH_B_TRACE_START_LINE="$(trace_line_count)"
@@ -7087,7 +7087,7 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   log "browser_b_restored_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$B_RESTORE_MODE_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=true" "browser B restored webtui entered browse mode"
-  require_trace_after "$B_RESTORE_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed browser B restored focus=true after browse mode"
+  require_trace_after "$B_RESTORE_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser B restored focus=true after browse mode"
 
   B_RESTORE_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP13_BROWSER_B_RESTORED\n' >"$BROWSER_FOCUS_COMMAND"
@@ -7215,7 +7215,7 @@ if [ "$SCENARIO" = "keyboard-after-tab-window-switch" ]; then
 
   BROWSER_B_START_LINE="$(log_line_count)"
   BROWSER_B_TRACE_START_LINE="$(trace_line_count)"
-  printf '"%s" --browser "%s" "%s"' "$WEB" "$ROAMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" "%s"' "$WEB" "$CHROMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
   log "keyboard_browser_b_command=$(cat "$SECOND_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$SECOND_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
@@ -7250,7 +7250,7 @@ if [ "$SCENARIO" = "keyboard-after-tab-window-switch" ]; then
 
   B_PIXEL_WIDTH="${B_PIXEL%x*}"
   B_PIXEL_HEIGHT="${B_PIXEL#*x}"
-  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied keyboard switch browser B resize to AppKit pixel size"
+  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied keyboard switch browser B resize to AppKit pixel size"
 
   TAB2_WIN_LINE="$(window_bounds_for "$TAB2_SELECTED_TAB_ID")" || fail "failed to resolve browser B tab window bounds for window id=$TAB2_SELECTED_TAB_ID"
   B_CLICK_START_LINE="$(log_line_count)"
@@ -7308,7 +7308,7 @@ if [ "$SCENARIO" = "keyboard-after-tab-window-switch" ]; then
 
   BROWSER_C_START_LINE="$(log_line_count)"
   BROWSER_C_TRACE_START_LINE="$(trace_line_count)"
-  printf '"%s" --browser "%s" "%s"' "$WEB" "$ROAMIUM" "$URL_C" >"$THIRD_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" "%s"' "$WEB" "$CHROMIUM" "$URL_C" >"$THIRD_BROWSER_COMMAND"
   log "keyboard_browser_c_command=$(cat "$THIRD_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$THIRD_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
@@ -7348,7 +7348,7 @@ if [ "$SCENARIO" = "keyboard-after-tab-window-switch" ]; then
 
   C_PIXEL_WIDTH="${C_PIXEL%x*}"
   C_PIXEL_HEIGHT="${C_PIXEL#*x}"
-  require_trace_after "$BROWSER_C_TRACE_START_LINE" "resize tab_id=${C_BROWSER_TAB_ID} pane_id=${C_PANE_ID} pixel_width=${C_PIXEL_WIDTH} pixel_height=${C_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied keyboard switch browser C resize to AppKit pixel size"
+  require_trace_after "$BROWSER_C_TRACE_START_LINE" "resize tab_id=${C_BROWSER_TAB_ID} pane_id=${C_PANE_ID} pixel_width=${C_PIXEL_WIDTH} pixel_height=${C_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied keyboard switch browser C resize to AppKit pixel size"
 
   C_CLICK_START_LINE="$(log_line_count)"
   click_browser_frame_center "$C_WIN_LINE" "$C_FRAME_X" "$C_FRAME_Y" "$C_FRAME_SIZE" "keyboard_browser_c_window"
@@ -7413,7 +7413,7 @@ if [ "$SCENARIO" = "window-resize" ] || [ "$SCENARIO" = "performance-window-resi
   log "grow_overlay_frame_size=$GROW_FRAME_SIZE"
   log "grow_appkit_pixel=$GROW_PIXEL"
   require_log_after "$GROW_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${GROW_PIXEL}" "Zig records grown AppKit presented pixel size"
-  require_trace "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${GROW_PIXEL_WIDTH} pixel_height=${GROW_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied grow resize to AppKit pixel size via ts_set_view_size"
+  require_trace "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${GROW_PIXEL_WIDTH} pixel_height=${GROW_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied grow resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_GROW"
   log "grow_screenshot_exit=$?"
   if [ "$SCENARIO" = "window-resize" ]; then
@@ -7446,7 +7446,7 @@ if [ "$SCENARIO" = "window-resize" ] || [ "$SCENARIO" = "performance-window-resi
   log "shrink_overlay_frame_size=$SHRINK_FRAME_SIZE"
   log "shrink_appkit_pixel=$SHRINK_PIXEL"
   require_log_after "$SHRINK_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SHRINK_PIXEL}" "Zig records shrunken AppKit presented pixel size"
-  require_trace "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SHRINK_PIXEL_WIDTH} pixel_height=${SHRINK_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied shrink resize to AppKit pixel size via ts_set_view_size"
+  require_trace "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SHRINK_PIXEL_WIDTH} pixel_height=${SHRINK_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied shrink resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_SHRINK"
   log "shrink_screenshot_exit=$?"
   if [ "$SCENARIO" = "window-resize" ]; then
@@ -7510,7 +7510,7 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
     log "mouse_normalized_grid=$A_GRID"
     log "mouse_normalized_frame=$A_FRAME"
     log "mouse_normalized_appkit_pixel=$A_PIXEL"
-    require_trace_after "$NORMALIZE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_PIXEL_WIDTH} pixel_height=${A_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied mouse normalization resize"
+    require_trace_after "$NORMALIZE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_PIXEL_WIDTH} pixel_height=${A_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied mouse normalization resize"
   fi
 
   INITIAL_WW="$WW"
@@ -7534,7 +7534,7 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
   log "mouse_grow_frame=$GROW_FRAME"
   log "mouse_grow_appkit_pixel=$GROW_PIXEL"
   require_log_after "$GROW_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${A_PANE_ID} .*appkit_pixel=${GROW_PIXEL}" "Zig records mouse grown AppKit presented pixel size"
-  require_trace_after "$GROW_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${GROW_PIXEL_WIDTH} pixel_height=${GROW_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied mouse grow resize"
+  require_trace_after "$GROW_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${GROW_PIXEL_WIDTH} pixel_height=${GROW_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied mouse grow resize"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_GROW"
   log "mouse_grow_screenshot_exit=$?"
   IFS=$'\t' read -r GROW_CLICK_X GROW_CLICK_Y <<<"$(click_point_for_frame "$GROW_WIN_LINE" "$GROW_PRESENT_LINE")"
@@ -7563,7 +7563,7 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
   log "mouse_shrink_grid=$SHRINK_GRID"
   log "mouse_shrink_appkit_pixel=$SHRINK_PIXEL"
   require_log_after "$SHRINK_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${A_PANE_ID} .*appkit_pixel=${SHRINK_PIXEL}" "Zig records mouse shrunken AppKit presented pixel size"
-  require_trace_after "$SHRINK_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${SHRINK_PIXEL_WIDTH} pixel_height=${SHRINK_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied mouse shrink resize"
+  require_trace_after "$SHRINK_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${SHRINK_PIXEL_WIDTH} pixel_height=${SHRINK_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied mouse shrink resize"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_SHRINK"
   log "mouse_shrink_screenshot_exit=$?"
   IFS=$'\t' read -r SHRINK_CLICK_X SHRINK_CLICK_Y <<<"$(click_point_for_frame "$SHRINK_WIN_LINE" "$SHRINK_PRESENT_LINE")"
@@ -7591,7 +7591,7 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
   log "mouse_tui_shrink_set_overlay=$TUI_SHRINK_SET_OVERLAY_LINE"
   log "mouse_tui_shrink_frame=$TUI_SHRINK_FRAME"
   log "mouse_tui_shrink_appkit_pixel=$TUI_SHRINK_PIXEL"
-  require_trace_after "$TUI_SHRINK_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${TUI_SHRINK_PIXEL_WIDTH} pixel_height=${TUI_SHRINK_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied mouse TUI shrink resize"
+  require_trace_after "$TUI_SHRINK_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${TUI_SHRINK_PIXEL_WIDTH} pixel_height=${TUI_SHRINK_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied mouse TUI shrink resize"
   TUI_SHRINK_WIN_LINE="$(window_bounds_for "$A_WINDOW_ID")" || fail "failed to resolve mouse TUI-shrunken window bounds"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_TUI_SHRINK"
   log "mouse_tui_shrink_screenshot_exit=$?"
@@ -7622,7 +7622,7 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
   TUI_RESET_PIXEL_HEIGHT="${TUI_RESET_PIXEL#*x}"
   log "mouse_tui_reset_frame=$TUI_RESET_FRAME"
   log "mouse_tui_reset_appkit_pixel=$TUI_RESET_PIXEL"
-  require_trace_after "$TUI_RESET_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${TUI_RESET_PIXEL_WIDTH} pixel_height=${TUI_RESET_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied mouse TUI reset resize"
+  require_trace_after "$TUI_RESET_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${TUI_RESET_PIXEL_WIDTH} pixel_height=${TUI_RESET_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied mouse TUI reset resize"
   TUI_RESET_WIN_LINE="$(window_bounds_for "$A_WINDOW_ID")" || fail "failed to resolve mouse TUI-reset window bounds"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_TUI_RESET"
   log "mouse_tui_reset_screenshot_exit=$?"
@@ -7645,7 +7645,7 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
   SPLIT_PIXEL_HEIGHT="${SPLIT_PIXEL#*x}"
   log "mouse_split_frame=$SPLIT_FRAME"
   log "mouse_split_appkit_pixel=$SPLIT_PIXEL"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied mouse split-right resize"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied mouse split-right resize"
   SPLIT_WIN_LINE="$(window_bounds_for "$A_WINDOW_ID")" || fail "failed to resolve mouse split window bounds"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_SPLIT"
   log "mouse_split_screenshot_exit=$?"
@@ -7670,7 +7670,7 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
   DIVIDER_PIXEL_HEIGHT="${DIVIDER_PIXEL#*x}"
   log "mouse_divider_frame=$DIVIDER_FRAME"
   log "mouse_divider_appkit_pixel=$DIVIDER_PIXEL"
-  require_trace_after "$DIVIDER_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${DIVIDER_PIXEL_WIDTH} pixel_height=${DIVIDER_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied mouse divider resize"
+  require_trace_after "$DIVIDER_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${DIVIDER_PIXEL_WIDTH} pixel_height=${DIVIDER_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied mouse divider resize"
   DIVIDER_WIN_LINE="$(window_bounds_for "$A_WINDOW_ID")" || fail "failed to resolve mouse divider window bounds"
   IFS=$'\t' read -r DIVIDER_CLICK_X DIVIDER_CLICK_Y <<<"$(click_point_for_frame "$DIVIDER_WIN_LINE" "$DIVIDER_PRESENT_LINE")"
   prime_mouse_focus "$DIVIDER_CLICK_X" "$DIVIDER_CLICK_Y" "mouse_divider_focus_prime" "$A_CONTEXT_ID" "$DIVIDER_FRAME" "mouse divider-resized overlay"
@@ -7689,7 +7689,7 @@ if [ "$SCENARIO" = "mouse-after-geometry-change" ]; then
   EQUALIZE_PIXEL_HEIGHT="${EQUALIZE_PIXEL#*x}"
   log "mouse_equalize_frame=$EQUALIZE_FRAME"
   log "mouse_equalize_appkit_pixel=$EQUALIZE_PIXEL"
-  require_trace_after "$EQUALIZE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${EQUALIZE_PIXEL_WIDTH} pixel_height=${EQUALIZE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied mouse equalize resize"
+  require_trace_after "$EQUALIZE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${EQUALIZE_PIXEL_WIDTH} pixel_height=${EQUALIZE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied mouse equalize resize"
   EQUALIZE_WIN_LINE="$(window_bounds_for "$A_WINDOW_ID")" || fail "failed to resolve mouse equalized window bounds"
   IFS=$'\t' read -r EQUALIZE_CLICK_X EQUALIZE_CLICK_Y <<<"$(click_point_for_frame "$EQUALIZE_WIN_LINE" "$EQUALIZE_PRESENT_LINE")"
   prime_mouse_focus "$EQUALIZE_CLICK_X" "$EQUALIZE_CLICK_Y" "mouse_equalize_focus_prime" "$A_CONTEXT_ID" "$EQUALIZE_FRAME" "mouse equalized overlay"
@@ -7759,7 +7759,7 @@ if [ "$SCENARIO" = "font-size-cell-metrics" ]; then
   INCREASE_PIXEL_WIDTH="${INCREASE_PIXEL%x*}"
   INCREASE_PIXEL_HEIGHT="${INCREASE_PIXEL#*x}"
   require_log_after "$INCREASE_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${A_PANE_ID} .*appkit_pixel=${INCREASE_PIXEL}" "Zig records font-increased AppKit presented pixel size"
-  require_trace_after "$INCREASE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${INCREASE_PIXEL_WIDTH} pixel_height=${INCREASE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied font-increase resize to AppKit pixel size"
+  require_trace_after "$INCREASE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${INCREASE_PIXEL_WIDTH} pixel_height=${INCREASE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied font-increase resize to AppKit pixel size"
 
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_FONT_INCREASE"
   log "font_increase_screenshot_exit=$?"
@@ -7778,7 +7778,7 @@ if [ "$SCENARIO" = "font-size-cell-metrics" ]; then
   log "font_increase_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$INCREASE_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "font-increased webtui entered browse mode"
-  require_trace_after "$INCREASE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after font increase"
+  require_trace_after "$INCREASE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after font increase"
   INCREASE_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP20_FONT_INCREASE\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -7789,7 +7789,7 @@ if [ "$SCENARIO" = "font-size-cell-metrics" ]; then
   log "font_increase_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$INCREASE_CONTROL_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=false" "font-increased webtui returned to control mode"
-  require_trace_after "$INCREASE_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed focus=false before font decrease"
+  require_trace_after "$INCREASE_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed focus=false before font decrease"
 
   DECREASE_START_LINE="$(log_line_count)"
   DECREASE_TRACE_START_LINE="$(trace_line_count)"
@@ -7822,7 +7822,7 @@ if [ "$SCENARIO" = "font-size-cell-metrics" ]; then
   DECREASE_PIXEL_WIDTH="${DECREASE_PIXEL%x*}"
   DECREASE_PIXEL_HEIGHT="${DECREASE_PIXEL#*x}"
   require_log_after "$DECREASE_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${A_PANE_ID} .*appkit_pixel=${DECREASE_PIXEL}" "Zig records font-decreased AppKit presented pixel size"
-  require_trace_after "$DECREASE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${DECREASE_PIXEL_WIDTH} pixel_height=${DECREASE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied font-decrease resize to AppKit pixel size"
+  require_trace_after "$DECREASE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${DECREASE_PIXEL_WIDTH} pixel_height=${DECREASE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied font-decrease resize to AppKit pixel size"
 
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_FONT_DECREASE"
   log "font_decrease_screenshot_exit=$?"
@@ -7841,7 +7841,7 @@ if [ "$SCENARIO" = "font-size-cell-metrics" ]; then
   log "font_decrease_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$DECREASE_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "font-decreased webtui entered browse mode"
-  require_trace_after "$DECREASE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after font decrease"
+  require_trace_after "$DECREASE_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after font decrease"
   DECREASE_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP20_FONT_DECREASE\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -7926,7 +7926,7 @@ if [ "$SCENARIO" = "tui-overlay-resize-command" ]; then
   log "tui_shrink_appkit_pixel=$SHRINK_PIXEL"
   log "PASS: TUI command shrank SetOverlay, AppKit frame, and AppKit pixels"
   require_log_after "$SHRINK_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${A_PANE_ID} .*appkit_pixel=${SHRINK_PIXEL}" "Zig records TUI-shrunken AppKit presented pixel size"
-  require_trace_after "$SHRINK_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${SHRINK_PIXEL_WIDTH} pixel_height=${SHRINK_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied TUI shrink resize to AppKit pixel size"
+  require_trace_after "$SHRINK_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${SHRINK_PIXEL_WIDTH} pixel_height=${SHRINK_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied TUI shrink resize to AppKit pixel size"
   SHRINK_WIN_LINE="$(window_bounds_for "$A_WINDOW_ID")" || fail "failed to resolve TUI-shrunken window bounds"
   [ "$SHRINK_WIN_LINE" = "$WIN_LINE" ] || fail "TUI shrink changed window bounds: baseline=$WIN_LINE shrink=$SHRINK_WIN_LINE"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_TUI_SHRINK"
@@ -7956,7 +7956,7 @@ if [ "$SCENARIO" = "tui-overlay-resize-command" ]; then
   log "tui_shrink_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$SHRINK_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "TUI-shrunken webtui entered browse mode"
-  require_trace_after "$SHRINK_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after TUI shrink"
+  require_trace_after "$SHRINK_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after TUI shrink"
   SHRINK_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP21_TUI_SHRINK\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -7967,7 +7967,7 @@ if [ "$SCENARIO" = "tui-overlay-resize-command" ]; then
   log "tui_shrink_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$SHRINK_CONTROL_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=false" "TUI-shrunken webtui returned to control mode"
-  require_trace_after "$SHRINK_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed focus=false before TUI reset"
+  require_trace_after "$SHRINK_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed focus=false before TUI reset"
 
   RESET_START_LINE="$(log_line_count)"
   RESET_TRACE_START_LINE="$(trace_line_count)"
@@ -8002,7 +8002,7 @@ if [ "$SCENARIO" = "tui-overlay-resize-command" ]; then
   log "tui_reset_frame=$RESET_FRAME"
   log "tui_reset_appkit_pixel=$RESET_PIXEL"
   log "PASS: TUI reset returned SetOverlay, AppKit frame, and AppKit pixels to baseline"
-  require_trace_after "$RESET_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${RESET_PIXEL_WIDTH} pixel_height=${RESET_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied TUI reset resize to AppKit pixel size"
+  require_trace_after "$RESET_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${RESET_PIXEL_WIDTH} pixel_height=${RESET_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied TUI reset resize to AppKit pixel size"
   RESET_WIN_LINE="$(window_bounds_for "$A_WINDOW_ID")" || fail "failed to resolve TUI-reset window bounds"
   [ "$RESET_WIN_LINE" = "$WIN_LINE" ] || fail "TUI reset changed window bounds: baseline=$WIN_LINE reset=$RESET_WIN_LINE"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_TUI_RESET"
@@ -8022,7 +8022,7 @@ if [ "$SCENARIO" = "tui-overlay-resize-command" ]; then
   log "tui_reset_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$RESET_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "TUI-reset webtui entered browse mode"
-  require_trace_after "$RESET_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after TUI reset"
+  require_trace_after "$RESET_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after TUI reset"
   RESET_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP21_TUI_RESET\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -8082,7 +8082,7 @@ if [ "$SCENARIO" = "terminal-scrollback-movement" ]; then
   log "scrollback_scrolled_row=$SCROLLED_ROW"
   require_no_different_appkit_frame_after "$SCROLL_UP_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_FRAME" "scrolled-back AppKit frame stayed stable"
   require_no_different_appkit_pixels_after "$SCROLL_UP_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_PIXEL" "scrolled-back AppKit pixels stayed stable"
-  require_no_trace_after "$SCROLL_UP_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID}" "scrolled-back terminal scrollback did not resize Roamium"
+  require_no_trace_after "$SCROLL_UP_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID}" "scrolled-back terminal scrollback did not resize Chromium"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_SCROLLBACK_UP"
   log "scrollback_up_screenshot_exit=$?"
 
@@ -8112,7 +8112,7 @@ if [ "$SCENARIO" = "terminal-scrollback-movement" ]; then
   log "scrollback_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$SCROLL_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "scrolled-back webtui entered browse mode"
-  require_trace_after "$SCROLL_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true while scrolled back"
+  require_trace_after "$SCROLL_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true while scrolled back"
   SCROLL_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP22_SCROLLBACK_UP\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -8124,7 +8124,7 @@ if [ "$SCENARIO" = "terminal-scrollback-movement" ]; then
   log "scrollback_control_key=escape=Mode::Control"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$SCROLL_CONTROL_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=false" "scrolled-back webtui returned to control mode"
-  require_trace_after "$SCROLL_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed focus=false before scrollback bottom"
+  require_trace_after "$SCROLL_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed focus=false before scrollback bottom"
 
   BOTTOM_START_LINE="$(log_line_count)"
   BOTTOM_TRACE_START_LINE="$(trace_line_count)"
@@ -8137,7 +8137,7 @@ if [ "$SCENARIO" = "terminal-scrollback-movement" ]; then
   log "scrollback_bottom_row=$BOTTOM_ROW"
   require_no_different_appkit_frame_after "$BOTTOM_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_FRAME" "returned-to-bottom AppKit frame stayed stable"
   require_no_different_appkit_pixels_after "$BOTTOM_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_PIXEL" "returned-to-bottom AppKit pixels stayed stable"
-  require_no_trace_after "$BOTTOM_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID}" "returned-to-bottom terminal scrollback did not resize Roamium"
+  require_no_trace_after "$BOTTOM_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID}" "returned-to-bottom terminal scrollback did not resize Chromium"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_SCROLLBACK_BOTTOM"
   log "scrollback_bottom_screenshot_exit=$?"
 
@@ -8155,7 +8155,7 @@ if [ "$SCENARIO" = "terminal-scrollback-movement" ]; then
   log "scrollback_bottom_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$BOTTOM_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "returned-to-bottom webtui entered browse mode"
-  require_trace_after "$BOTTOM_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed focus=true after return to bottom"
+  require_trace_after "$BOTTOM_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed focus=true after return to bottom"
   BOTTOM_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP22_SCROLLBACK_BOTTOM\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -8216,22 +8216,22 @@ if [ "$SCENARIO" = "browser-navigation-geometry" ]; then
   NAV_APP_URL_CHANGED_LINE="$(wait_for_line_after "$NAV_START_LINE" "TermSurf message decoded type=UrlChanged" "Ghostboard decoded UrlChanged after browser navigation" 45)"
   NAV_APP_MARKER_LINE="$(wait_for_line_after "$NAV_START_LINE" "navigation-throttles .*url=.*${NAV_MARKER}" "app Chromium navigation log contains marker" 45)"
   NAV_APP_NAVIGATE_LINE="$(tail -n +"$((NAV_START_LINE + 1))" "$APP_LOG" | grep -n "TermSurf message decoded type=Navigate" | head -1 || true)"
-  NAV_TRACE_NAVIGATE_LINE="$(tail -n +"$((NAV_TRACE_START_LINE + 1))" "$ROAMIUM_TRACE" | grep -n -F "navigate tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} url=" | head -1 || true)"
-  NAV_TRACE_MARKER_LINE="$(tail -n +"$((NAV_TRACE_START_LINE + 1))" "$ROAMIUM_TRACE" | grep -n -F "$NAV_MARKER" | head -1 || true)"
-  NAV_TRACE_URL_CHANGED_LINE="$(tail -n +"$((NAV_TRACE_START_LINE + 1))" "$ROAMIUM_TRACE" | grep -n -F "url-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} url=" | head -1 || true)"
+  NAV_TRACE_NAVIGATE_LINE="$(tail -n +"$((NAV_TRACE_START_LINE + 1))" "$CHROMIUM_TRACE" | grep -n -F "navigate tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} url=" | head -1 || true)"
+  NAV_TRACE_MARKER_LINE="$(tail -n +"$((NAV_TRACE_START_LINE + 1))" "$CHROMIUM_TRACE" | grep -n -F "$NAV_MARKER" | head -1 || true)"
+  NAV_TRACE_URL_CHANGED_LINE="$(tail -n +"$((NAV_TRACE_START_LINE + 1))" "$CHROMIUM_TRACE" | grep -n -F "url-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} url=" | head -1 || true)"
   log "navigation_state_marker_line=${NAV_STATE_MARKER_LINE:-<none>}"
   log "navigation_app_url_changed_line=$NAV_APP_URL_CHANGED_LINE"
   log "navigation_app_marker_line=$NAV_APP_MARKER_LINE"
   log "navigation_app_decoded_navigate_line=${NAV_APP_NAVIGATE_LINE:-<none>}"
-  log "navigation_roamium_navigate_line=${NAV_TRACE_NAVIGATE_LINE:-<none>}"
-  log "navigation_roamium_marker_line=${NAV_TRACE_MARKER_LINE:-<none>}"
-  log "navigation_roamium_url_changed_line=${NAV_TRACE_URL_CHANGED_LINE:-<none>}"
+  log "navigation_chromium_navigate_line=${NAV_TRACE_NAVIGATE_LINE:-<none>}"
+  log "navigation_chromium_marker_line=${NAV_TRACE_MARKER_LINE:-<none>}"
+  log "navigation_chromium_url_changed_line=${NAV_TRACE_URL_CHANGED_LINE:-<none>}"
   require_text "$NAV_STATE_MARKER_LINE" "$NAV_MARKER" "webtui URL state includes navigation marker"
   require_text "$NAV_APP_MARKER_LINE" "$NAV_MARKER" "app Chromium navigation log includes marker"
   wait_for_log_after "$NAV_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "webtui returned to browse mode after navigation" 45
   require_no_different_appkit_frame_after "$NAV_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_FRAME" "browser navigation AppKit frame stayed stable"
   require_no_different_appkit_pixels_after "$NAV_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_PIXEL" "browser navigation AppKit pixels stayed stable"
-  require_no_trace_after "$NAV_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID}" "browser navigation did not resize Roamium"
+  require_no_trace_after "$NAV_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID}" "browser navigation did not resize Chromium"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_NAVIGATED"
   log "navigation_screenshot_exit=$?"
 
@@ -8286,18 +8286,18 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
     log "devtools_gui_socket=$GUI_SOCKET"
 
     INFLIGHT_START_LINE="$(log_line_count)"
-    INFLIGHT_FIRST_REPLY="$(devtools_probe "$GUI_SOCKET" "$A_PANE_ID" "$A_BROWSER_TAB_ID" "default" "$ROAMIUM")"
+    INFLIGHT_FIRST_REPLY="$(devtools_probe "$GUI_SOCKET" "$A_PANE_ID" "$A_BROWSER_TAB_ID" "default" "$CHROMIUM")"
     log "devtools_inflight_first_reply=$INFLIGHT_FIRST_REPLY"
     case "$INFLIGHT_FIRST_REPLY" in
       *"tab=${A_BROWSER_TAB_ID}"*$'\t'"error="*) ;;
       *) fail "in-flight first query did not succeed: $INFLIGHT_FIRST_REPLY" ;;
     esac
-    require_log_after "$INFLIGHT_START_LINE" "DevTools reservation: profile=default browser=${ROAMIUM} inspected_tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} timeout_ms=1000" "Ghostboard reserved in-flight DevTools target"
+    require_log_after "$INFLIGHT_START_LINE" "DevTools reservation: profile=default browser=${CHROMIUM} inspected_tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} timeout_ms=1000" "Ghostboard reserved in-flight DevTools target"
 
-    INFLIGHT_DUPLICATE_REPLY="$(devtools_probe "$GUI_SOCKET" "$A_PANE_ID" "$A_BROWSER_TAB_ID" "default" "$ROAMIUM")"
+    INFLIGHT_DUPLICATE_REPLY="$(devtools_probe "$GUI_SOCKET" "$A_PANE_ID" "$A_BROWSER_TAB_ID" "default" "$CHROMIUM")"
     log "devtools_inflight_duplicate_reply=$INFLIGHT_DUPLICATE_REPLY"
     case "$INFLIGHT_DUPLICATE_REPLY" in
-      *"error=Tab ${A_BROWSER_TAB_ID} already has DevTools open in ${ROAMIUM}/default"*) ;;
+      *"error=Tab ${A_BROWSER_TAB_ID} already has DevTools open in ${CHROMIUM}/default"*) ;;
       *) fail "in-flight duplicate query was not rejected: $INFLIGHT_DUPLICATE_REPLY" ;;
     esac
     require_no_log_after "$INFLIGHT_START_LINE" "OpenSplit: pane_id=${A_PANE_ID} direction=right" "in-flight duplicate direct query did not open a split"
@@ -8305,13 +8305,13 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
     require_no_log_after "$INFLIGHT_START_LINE" "CreateDevtoolsTab: pane_id=.*inspected_tab_id=${A_BROWSER_TAB_ID}" "in-flight duplicate direct query did not create a DevTools tab"
 
     delay 2
-    INFLIGHT_TIMEOUT_REPLY="$(devtools_probe "$GUI_SOCKET" "$A_PANE_ID" "$A_BROWSER_TAB_ID" "default" "$ROAMIUM")"
+    INFLIGHT_TIMEOUT_REPLY="$(devtools_probe "$GUI_SOCKET" "$A_PANE_ID" "$A_BROWSER_TAB_ID" "default" "$CHROMIUM")"
     log "devtools_inflight_timeout_reply=$INFLIGHT_TIMEOUT_REPLY"
     case "$INFLIGHT_TIMEOUT_REPLY" in
       *"tab=${A_BROWSER_TAB_ID}"*$'\t'"error="*) ;;
       *) fail "query did not succeed after abandoned reservation timeout: $INFLIGHT_TIMEOUT_REPLY" ;;
     esac
-    require_log_after "$INFLIGHT_START_LINE" "DevTools reservation expired: profile=default browser=${ROAMIUM} inspected_tab_id=${A_BROWSER_TAB_ID}" "Ghostboard expired abandoned DevTools reservation"
+    require_log_after "$INFLIGHT_START_LINE" "DevTools reservation expired: profile=default browser=${CHROMIUM} inspected_tab_id=${A_BROWSER_TAB_ID}" "Ghostboard expired abandoned DevTools reservation"
     delay 2
   fi
 
@@ -8348,7 +8348,7 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
   A_SPLIT_PIXEL_HEIGHT="${A_SPLIT_PIXEL#*x}"
   log "devtools_normal_split_frame=$A_SPLIT_FRAME"
   log "devtools_normal_split_appkit_pixel=$A_SPLIT_PIXEL"
-  require_trace_after "$DEVTOOLS_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_SPLIT_PIXEL_WIDTH} pixel_height=${A_SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium resized normal browser after DevTools split"
+  require_trace_after "$DEVTOOLS_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_SPLIT_PIXEL_WIDTH} pixel_height=${A_SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium resized normal browser after DevTools split"
 
   DT_CREATE_TRACE_LINE="$(optional_trace_line_after "$DEVTOOLS_TRACE_START_LINE" "create-devtools-tab pane=${DT_PANE_ID} inspected_tab_id=${A_BROWSER_TAB_ID} pixel_width=[0-9]+ pixel_height=[0-9]+")"
   DT_TAB_READY_TRACE_LINE="$(optional_trace_line_after "$DEVTOOLS_TRACE_START_LINE" "tab-ready tab=[0-9]+ pane=${DT_PANE_ID} inspected_tab_id=${A_BROWSER_TAB_ID}")"
@@ -8389,7 +8389,7 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
   log "devtools_appkit_pixel=$DT_PIXEL"
   log "devtools_backing_scale=$DT_BACKING_SCALE"
   require_text "$DT_CA_CONTEXT_APP_LINE" "context_id=${DT_CONTEXT_ID}" "DevTools CA context matches AppKit context"
-  require_trace_after "$DEVTOOLS_TRACE_START_LINE" "resize tab_id=${DT_BROWSER_TAB_ID} pane_id=${DT_PANE_ID} pixel_width=${DT_PIXEL_WIDTH} pixel_height=${DT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium resized DevTools to AppKit pixel size"
+  require_trace_after "$DEVTOOLS_TRACE_START_LINE" "resize tab_id=${DT_BROWSER_TAB_ID} pane_id=${DT_PANE_ID} pixel_width=${DT_PIXEL_WIDTH} pixel_height=${DT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium resized DevTools to AppKit pixel size"
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_DEVTOOLS_SPLIT"
   log "devtools_split_screenshot_exit=$?"
 
@@ -8419,7 +8419,7 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
 
   DT_MODE_TRACE_START_LINE="$(trace_line_count)"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
-  require_trace_after "$DT_MODE_TRACE_START_LINE" "focus-changed tab=${DT_BROWSER_TAB_ID} pane=${DT_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed DevTools focus=true"
+  require_trace_after "$DT_MODE_TRACE_START_LINE" "focus-changed tab=${DT_BROWSER_TAB_ID} pane=${DT_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed DevTools focus=true"
 
   DT_CLICK_TRACE_START_LINE="$(trace_line_count)"
   click_global_point "$DT_INSIDE_X" "$DT_INSIDE_Y" "devtools_inside_focused"
@@ -8436,7 +8436,7 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
   A_MODE_TRACE_START_LINE="$(trace_line_count)"
   click_global_point "$A_SPLIT_INSIDE_X" "$A_SPLIT_INSIDE_Y" "devtools_normal_refocus"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
-  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed normal browser focus=true after DevTools"
+  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed normal browser focus=true after DevTools"
   A_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP24_NORMAL\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
@@ -8449,9 +8449,9 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
     DIRECT_SET_START_LINE="$(log_line_count)"
     DIRECT_SET_PANE_ID="direct-duplicate-${A_BROWSER_TAB_ID}"
     log "devtools_direct_duplicate_set_pane_id=$DIRECT_SET_PANE_ID"
-    devtools_overlay_probe "$GUI_SOCKET" "$DIRECT_SET_PANE_ID" "$A_BROWSER_TAB_ID" "default" "$ROAMIUM"
-    wait_for_log_after "$DIRECT_SET_START_LINE" "SetDevtoolsOverlay: pane_id=${DIRECT_SET_PANE_ID} profile=default browser=${ROAMIUM} inspected_tab_id=${A_BROWSER_TAB_ID}" "direct duplicate SetDevtoolsOverlay reached Ghostboard" 45
-    wait_for_log_after "$DIRECT_SET_START_LINE" "SetDevtoolsOverlay: duplicate target rejected pane_id=${DIRECT_SET_PANE_ID} existing_pane_id=${DT_PANE_ID} profile=default browser=${ROAMIUM} inspected_tab_id=${A_BROWSER_TAB_ID}" "direct duplicate SetDevtoolsOverlay rejected" 45
+    devtools_overlay_probe "$GUI_SOCKET" "$DIRECT_SET_PANE_ID" "$A_BROWSER_TAB_ID" "default" "$CHROMIUM"
+    wait_for_log_after "$DIRECT_SET_START_LINE" "SetDevtoolsOverlay: pane_id=${DIRECT_SET_PANE_ID} profile=default browser=${CHROMIUM} inspected_tab_id=${A_BROWSER_TAB_ID}" "direct duplicate SetDevtoolsOverlay reached Ghostboard" 45
+    wait_for_log_after "$DIRECT_SET_START_LINE" "SetDevtoolsOverlay: duplicate target rejected pane_id=${DIRECT_SET_PANE_ID} existing_pane_id=${DT_PANE_ID} profile=default browser=${CHROMIUM} inspected_tab_id=${A_BROWSER_TAB_ID}" "direct duplicate SetDevtoolsOverlay rejected" 45
     require_no_log_after "$DIRECT_SET_START_LINE" "CreateDevtoolsTab: pane_id=${DIRECT_SET_PANE_ID} inspected_tab_id=${A_BROWSER_TAB_ID}" "direct duplicate SetDevtoolsOverlay did not create a DevTools tab"
 
     LIVE_DUPLICATE_START_LINE="$(log_line_count)"
@@ -8460,7 +8460,7 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
     swift "$ROOT/scripts/ghostty-app/inject.swift" type "$DEVTOOLS_COMMAND" >>"$HARNESS_LOG" 2>&1
     swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
     wait_for_log_after "$LIVE_DUPLICATE_START_LINE" "TermSurf QueryDevtoolsRequest pane_id=${A_PANE_ID} inspected_tab_id=${A_BROWSER_TAB_ID}" "live duplicate DevTools query request for browser A" 45
-    wait_for_log_after "$LIVE_DUPLICATE_START_LINE" "TermSurf QueryDevtoolsReply sent error=Tab ${A_BROWSER_TAB_ID} already has DevTools open in ${ROAMIUM}/default" "live duplicate DevTools query rejected" 45
+    wait_for_log_after "$LIVE_DUPLICATE_START_LINE" "TermSurf QueryDevtoolsReply sent error=Tab ${A_BROWSER_TAB_ID} already has DevTools open in ${CHROMIUM}/default" "live duplicate DevTools query rejected" 45
     require_no_log_after "$LIVE_DUPLICATE_START_LINE" "OpenSplit: pane_id=${A_PANE_ID} direction=right" "live duplicate DevTools query did not open a split"
     require_no_log_after "$LIVE_DUPLICATE_START_LINE" "SetDevtoolsOverlay: pane_id=.*inspected_tab_id=${A_BROWSER_TAB_ID}" "live duplicate DevTools query did not create another overlay"
     require_no_log_after "$LIVE_DUPLICATE_START_LINE" "CreateDevtoolsTab: pane_id=.*inspected_tab_id=${A_BROWSER_TAB_ID}" "live duplicate DevTools query did not create another DevTools tab"
@@ -8473,8 +8473,8 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
     delay 1
     require_log_after "$DEVTOOLS_CLOSE_START_LINE" "Pane close cleanup: pane_id=${DT_PANE_ID} tab_id=${DT_BROWSER_TAB_ID}" "Ghostboard cleaned up first DevTools pane"
     require_log_after "$DEVTOOLS_CLOSE_START_LINE" "CloseTab: pane_id=${DT_PANE_ID} tab_id=${DT_BROWSER_TAB_ID}" "Ghostboard sent CloseTab for first DevTools pane"
-    require_trace_after "$DEVTOOLS_CLOSE_TRACE_START_LINE" "close-tab tab_id=${DT_BROWSER_TAB_ID} pane_id=${DT_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Roamium destroyed first DevTools tab"
-    require_trace_after "$DEVTOOLS_CLOSE_TRACE_START_LINE" "close-tab tab_id=${DT_BROWSER_TAB_ID} result=removed" "Roamium removed first DevTools tab"
+    require_trace_after "$DEVTOOLS_CLOSE_TRACE_START_LINE" "close-tab tab_id=${DT_BROWSER_TAB_ID} pane_id=${DT_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Chromium destroyed first DevTools tab"
+    require_trace_after "$DEVTOOLS_CLOSE_TRACE_START_LINE" "close-tab tab_id=${DT_BROWSER_TAB_ID} result=removed" "Chromium removed first DevTools tab"
 
     REOPEN_START_LINE="$(log_line_count)"
     REOPEN_TRACE_START_LINE="$(trace_line_count)"
@@ -8511,11 +8511,11 @@ if [ "$SCENARIO" = "devtools-split-geometry" ] || [ "$SCENARIO" = "devtools-sing
     delay 1
     require_log_after "$B_TAB_START_LINE" "dispatching action target=surface action=.new_tab" "DevTools singleton browser B native tab action dispatched"
     require_log_after "$B_TAB_START_LINE" 'starting command command=`/usr/bin/login`' "DevTools singleton browser B native tab started login shell"
-    printf '"%s" --browser "%s" "%s"' "$WEB" "$ROAMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
+    printf '"%s" --browser "%s" "%s"' "$WEB" "$CHROMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
     log "devtools_singleton_browser_b_command=$(cat "$SECOND_BROWSER_COMMAND")"
     swift "$ROOT/scripts/ghostty-app/inject.swift" type "$SECOND_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
     swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
-    B_SET_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${ROAMIUM} url=${URL_B}" "DevTools singleton browser B SetOverlay" 60)"
+    B_SET_LINE="$(wait_for_line_after "$B_TAB_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${CHROMIUM} url=${URL_B}" "DevTools singleton browser B SetOverlay" 60)"
     B_PANE_ID="$(printf '%s\n' "$B_SET_LINE" | sed -E 's/.*SetOverlay: pane_id=([^ ]+) .*/\1/')"
     [ -n "$B_PANE_ID" ] || fail "failed to extract DevTools singleton browser B pane id"
     [ "$B_PANE_ID" != "$A_PANE_ID" ] || fail "DevTools singleton browser B reused browser A pane id"
@@ -8573,11 +8573,11 @@ if [ "$SCENARIO" = "two-browser-split-routing" ]; then
   log "browser_a_browser_tab_id=$A_BROWSER_TAB_ID"
   log "browser_a_context_id=$A_CONTEXT_ID"
 
-  require_log "SetOverlay: created pending server key=default/${ROAMIUM} pane_count=1" "browser A created default-profile server"
-  A_SPAWN_LINE="$(grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" "$APP_LOG" | tail -1 || true)"
-  [ -n "$A_SPAWN_LINE" ] || fail "missing browser A Roamium spawn line"
+  require_log "SetOverlay: created pending server key=default/${CHROMIUM} pane_count=1" "browser A created default-profile server"
+  A_SPAWN_LINE="$(grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" "$APP_LOG" | tail -1 || true)"
+  [ -n "$A_SPAWN_LINE" ] || fail "missing browser A Chromium spawn line"
   A_SPAWN_PID="$(printf '%s\n' "$A_SPAWN_LINE" | sed -E 's/.* pid=([0-9]+) profile=.*/\1/')"
-  [ -n "$A_SPAWN_PID" ] || fail "failed to extract browser A Roamium pid"
+  [ -n "$A_SPAWN_PID" ] || fail "failed to extract browser A Chromium pid"
   log "browser_a_spawn_pid=$A_SPAWN_PID"
 
   SPLIT_START_LINE="$(log_line_count)"
@@ -8605,26 +8605,26 @@ if [ "$SCENARIO" = "two-browser-split-routing" ]; then
   log "browser_a_split_root_y=$A_SPLIT_ROOT_Y"
   log "browser_a_split_root_size=$A_SPLIT_ROOT_SIZE"
   log "browser_a_split_appkit_pixel=$A_SPLIT_PIXEL"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_SPLIT_PIXEL_WIDTH} pixel_height=${A_SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium resized browser A to split AppKit pixel size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_SPLIT_PIXEL_WIDTH} pixel_height=${A_SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium resized browser A to split AppKit pixel size"
 
   BROWSER_B_START_LINE="$(log_line_count)"
   BROWSER_B_TRACE_START_LINE="$(trace_line_count)"
-  printf '"%s" --browser "%s" --profile default "%s"' "$WEB" "$ROAMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
+  printf '"%s" --browser "%s" --profile default "%s"' "$WEB" "$CHROMIUM" "$URL_B" >"$SECOND_BROWSER_COMMAND"
   log "browser_b_split_command=$(cat "$SECOND_BROWSER_COMMAND")"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$SECOND_BROWSER_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
 
-  B_SET_LINE="$(wait_for_line_after "$BROWSER_B_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${ROAMIUM} url=${URL_B}" "browser B split SetOverlay" 60)"
+  B_SET_LINE="$(wait_for_line_after "$BROWSER_B_START_LINE" "SetOverlay: pane_id=[^ ]+ profile=default browser=${CHROMIUM} url=${URL_B}" "browser B split SetOverlay" 60)"
   B_PANE_ID="$(printf '%s\n' "$B_SET_LINE" | sed -E 's/.*SetOverlay: pane_id=([^ ]+) .*/\1/')"
   [ -n "$B_PANE_ID" ] || fail "failed to extract browser B pane id"
   [ "$B_PANE_ID" != "$A_PANE_ID" ] || fail "browser B reused browser A pane id"
   log "browser_b_pane_id=$B_PANE_ID"
-  wait_for_log_after "$BROWSER_B_START_LINE" "SetOverlay: reused pending server key=default/${ROAMIUM} pane_count=2 has_fd=true" "browser B reused default-profile server" 60
+  wait_for_log_after "$BROWSER_B_START_LINE" "SetOverlay: reused pending server key=default/${CHROMIUM} pane_count=2 has_fd=true" "browser B reused default-profile server" 60
   if tail -n +"$((BROWSER_B_START_LINE + 1))" "$APP_LOG" |
-    grep -E "spawned browser path=${ROAMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
-    fail "browser B spawned a second default-profile Roamium process"
+    grep -E "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" >/dev/null 2>&1; then
+    fail "browser B spawned a second default-profile Chromium process"
   fi
-  log "PASS: browser B did not spawn a second default-profile Roamium process"
+  log "PASS: browser B did not spawn a second default-profile Chromium process"
 
   B_CA_CONTEXT_LINE="$(wait_for_line_after "$BROWSER_B_START_LINE" "TermSurf geometry layer=zig event=ca_context .*pane_id:${B_PANE_ID}" "browser B split Zig ca_context" 60)"
   B_BROWSER_TAB_ID="$(extract_browser_tab_id "$B_CA_CONTEXT_LINE")"
@@ -8663,7 +8663,7 @@ if [ "$SCENARIO" = "two-browser-split-routing" ]; then
 
   B_PIXEL_WIDTH="${B_PIXEL%x*}"
   B_PIXEL_HEIGHT="${B_PIXEL#*x}"
-  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium resized browser B to split AppKit pixel size"
+  require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium resized browser B to split AppKit pixel size"
 
   A_SPLIT_ROOT_WIDTH="$(pair_width "$A_SPLIT_ROOT_SIZE")"
   A_GLOBAL_FRAME_X="$(awk -v root="$A_SPLIT_ROOT_X" -v frame="$A_SPLIT_FRAME_X" 'BEGIN { print root + frame }')"
@@ -8729,9 +8729,9 @@ if [ "$SCENARIO" = "two-browser-split-routing" ]; then
   delay 1
   require_log_after "$B_CLOSE_START_LINE" "Pane close cleanup: pane_id=${B_PANE_ID} tab_id=${B_BROWSER_TAB_ID}" "Ghostboard cleaned up browser B split pane"
   require_log_after "$B_CLOSE_START_LINE" "CloseTab: pane_id=${B_PANE_ID} tab_id=${B_BROWSER_TAB_ID}" "Ghostboard sent CloseTab for browser B split pane"
-  require_trace_after "$B_CLOSE_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Roamium destroyed browser B split tab"
-  require_trace_after "$B_CLOSE_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} result=removed" "Roamium removed browser B split tab"
-  require_no_trace_after "$B_CLOSE_TRACE_START_LINE" "close-tab result=no-tabs-remaining" "shared Roamium stayed alive after closing browser B"
+  require_trace_after "$B_CLOSE_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Chromium destroyed browser B split tab"
+  require_trace_after "$B_CLOSE_TRACE_START_LINE" "close-tab tab_id=${B_BROWSER_TAB_ID} result=removed" "Chromium removed browser B split tab"
+  require_no_trace_after "$B_CLOSE_TRACE_START_LINE" "close-tab result=no-tabs-remaining" "shared Chromium stayed alive after closing browser B"
 
   A_AFTER_CLOSE_PRESENT_LINE="$(wait_for_split_right_zoom_frame_after "$B_CLOSE_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$OVERLAY_FRAME_SIZE" "$A_SPLIT_FRAME_SIZE" "browser A expanded after browser B split close")"
   A_AFTER_CLOSE_PIXELS_LINE="$(wait_for_split_right_zoom_pixels_after "$B_CLOSE_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_BASE_PIXEL" "$A_SPLIT_PIXEL" "browser A pixels expanded after browser B split close")"
@@ -8744,7 +8744,7 @@ if [ "$SCENARIO" = "two-browser-split-routing" ]; then
   A_AFTER_CLOSE_PIXEL_HEIGHT="${A_AFTER_CLOSE_PIXEL#*x}"
   log "browser_a_after_close_overlay_frame=$A_AFTER_CLOSE_FRAME"
   log "browser_a_after_close_appkit_pixel=$A_AFTER_CLOSE_PIXEL"
-  require_trace_after "$B_CLOSE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_AFTER_CLOSE_PIXEL_WIDTH} pixel_height=${A_AFTER_CLOSE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium resized browser A after browser B close"
+  require_trace_after "$B_CLOSE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_AFTER_CLOSE_PIXEL_WIDTH} pixel_height=${A_AFTER_CLOSE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium resized browser A after browser B close"
 
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_CLOSE"
   log "two_browser_split_close_screenshot_exit=$?"
@@ -8811,7 +8811,7 @@ if [ "$SCENARIO" = "split-right" ] || [ "$SCENARIO" = "split-right-border-config
   log "split_overlay_frame_x=$SPLIT_FRAME_X"
   log "split_appkit_pixel=$SPLIT_PIXEL"
   require_log_after "$SPLIT_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SPLIT_PIXEL}" "Zig records split-right AppKit presented pixel size"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_SPLIT"
   log "split_screenshot_exit=$?"
 
@@ -8894,7 +8894,7 @@ if [ "$SCENARIO" = "split-right-focus-switch" ]; then
   log "split_overlay_frame_y=$SPLIT_FRAME_Y"
   log "split_appkit_pixel=$SPLIT_PIXEL"
   require_log_after "$SPLIT_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SPLIT_PIXEL}" "Zig records split-right AppKit presented pixel size"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right resize to AppKit pixel size via ts_set_view_size"
 
   SPLIT_WIN_LINE="$(window_bounds)" || fail "failed to resolve split window bounds for window id=$WID"
   IFS=$'\t' read -r _SPLIT_WID SPLIT_WX SPLIT_WY SPLIT_WW SPLIT_WH <<<"$SPLIT_WIN_LINE"
@@ -8913,7 +8913,7 @@ if [ "$SCENARIO" = "split-right-focus-switch" ]; then
   click_global_point "$BROWSER_FOCUS_X" "$BROWSER_FOCUS_Y" "browser_prime_focus"
   BROWSER_PRIME_HIT_LINE="$(wait_for_hit_after "$BROWSER_PRIME_HIT_START_LINE" "$CONTEXT_ID" "same-tab browser prime focus hit-test")"
   require_text "$BROWSER_PRIME_HIT_LINE" "web_point={" "browser prime focus hit-test includes webview-relative point"
-  require_no_trace_after "$BROWSER_PRIME_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "browser pane focus in Control mode did not focus Roamium before Browse mode"
+  require_no_trace_after "$BROWSER_PRIME_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "browser pane focus in Control mode did not focus Chromium before Browse mode"
 
   SIBLING_FOCUS_TRACE_START_LINE="$(trace_line_count)"
   click_negative_global_point "$SIBLING_FOCUS_X" "$SIBLING_FOCUS_Y" "sibling_focus"
@@ -8933,7 +8933,7 @@ if [ "$SCENARIO" = "split-right-focus-switch" ]; then
   [ -n "$SIBLING_KEY_SEEN" ] || fail "sibling terminal pane did not receive keyboard events after focus switch"
   log "PASS: sibling terminal pane received keyboard events after focus switch"
   require_no_trace_after "$SIBLING_FOCUS_TRACE_START_LINE" "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID}" "sibling terminal marker did not reach original browser context"
-  require_trace_after "$SIBLING_FOCUS_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=false" "Roamium observed original browser pane focus=false after sibling focus"
+  require_trace_after "$SIBLING_FOCUS_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed original browser pane focus=false after sibling focus"
   require_no_different_appkit_frame_after "$SIBLING_KEY_START_LINE" "$PANE_ID" "$CONTEXT_ID" "$SPLIT_FRAME" "sibling focus kept original browser AppKit frame unchanged"
   require_no_different_appkit_pixels_after "$SIBLING_KEY_START_LINE" "$PANE_ID" "$CONTEXT_ID" "$SPLIT_PIXEL" "sibling focus kept original browser AppKit pixels unchanged"
 
@@ -8953,21 +8953,21 @@ if [ "$SCENARIO" = "split-right-focus-switch" ]; then
   require_text "$BROWSER_REFOCUS_HIT_LINE" "web_point={" "browser refocus hit-test includes webview-relative point"
   require_no_different_appkit_frame_after "$BROWSER_REFOCUS_HIT_START_LINE" "$PANE_ID" "$CONTEXT_ID" "$SPLIT_FRAME" "browser refocus kept original browser AppKit frame unchanged"
   require_no_different_appkit_pixels_after "$BROWSER_REFOCUS_HIT_START_LINE" "$PANE_ID" "$CONTEXT_ID" "$SPLIT_PIXEL" "browser refocus kept original browser AppKit pixels unchanged"
-  require_no_trace_after "$BROWSER_REFOCUS_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "browser refocus in Control mode did not focus Roamium before Browse mode"
+  require_no_trace_after "$BROWSER_REFOCUS_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "browser refocus in Control mode did not focus Chromium before Browse mode"
 
   BROWSER_MODE_START_LINE="$(log_line_count)"
   BROWSER_MODE_TRACE_START_LINE="$(trace_line_count)"
   log "browser_refocus_mode_key=enter=Mode::Browse"
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_log_after "$BROWSER_MODE_START_LINE" "ModeChanged: pane_id=${PANE_ID} browsing=true" "webtui entered browse mode after browser refocus"
-  require_trace_after "$BROWSER_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Roamium observed original browser pane focus=true after browse mode"
+  require_trace_after "$BROWSER_MODE_TRACE_START_LINE" "focus-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed original browser pane focus=true after browse mode"
 
   BROWSER_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP11_BROWSER_REFOCUS\n' >"$BROWSER_FOCUS_COMMAND"
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$BROWSER_FOCUS_COMMAND" >>"$HARNESS_LOG" 2>&1
   BROWSER_KEY_SEEN=""
   for _ in $(seq 1 10); do
-    if tail -n +"$((BROWSER_KEY_START_LINE + 1))" "$ROAMIUM_TRACE" | grep -F "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID}" >/dev/null 2>&1; then
+    if tail -n +"$((BROWSER_KEY_START_LINE + 1))" "$CHROMIUM_TRACE" | grep -F "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID}" >/dev/null 2>&1; then
       BROWSER_KEY_SEEN="1"
       break
     fi
@@ -9001,7 +9001,7 @@ if [ "$SCENARIO" = "split-right-resize" ]; then
   log "split_overlay_frame_x=$SPLIT_FRAME_X"
   log "split_appkit_pixel=$SPLIT_PIXEL"
   require_log_after "$SPLIT_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SPLIT_PIXEL}" "Zig records split-right AppKit presented pixel size"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right resize to AppKit pixel size via ts_set_view_size"
 
   DIVIDER_START_LINE="$(log_line_count)"
   DIVIDER_TRACE_START_LINE="$(trace_line_count)"
@@ -9022,7 +9022,7 @@ if [ "$SCENARIO" = "split-right-resize" ]; then
   log "divider_overlay_frame_x=$DIVIDER_FRAME_X"
   log "divider_appkit_pixel=$DIVIDER_PIXEL"
   require_log_after "$DIVIDER_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${DIVIDER_PIXEL}" "Zig records split-right divider-resized AppKit presented pixel size"
-  require_trace_after "$DIVIDER_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${DIVIDER_PIXEL_WIDTH} pixel_height=${DIVIDER_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right divider resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$DIVIDER_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${DIVIDER_PIXEL_WIDTH} pixel_height=${DIVIDER_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right divider resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_SPLIT"
   log "divider_screenshot_exit=$?"
 
@@ -9065,7 +9065,7 @@ if [ "$SCENARIO" = "split-right-equalize" ]; then
   log "split_overlay_frame_x=$SPLIT_FRAME_X"
   log "split_appkit_pixel=$SPLIT_PIXEL"
   require_log_after "$SPLIT_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SPLIT_PIXEL}" "Zig records split-right AppKit presented pixel size"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right resize to AppKit pixel size via ts_set_view_size"
 
   DIVIDER_START_LINE="$(log_line_count)"
   DIVIDER_TRACE_START_LINE="$(trace_line_count)"
@@ -9084,7 +9084,7 @@ if [ "$SCENARIO" = "split-right-equalize" ]; then
   log "divider_overlay_frame_size=$DIVIDER_FRAME_SIZE"
   log "divider_appkit_pixel=$DIVIDER_PIXEL"
   require_log_after "$DIVIDER_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${DIVIDER_PIXEL}" "Zig records split-right divider-resized AppKit presented pixel size"
-  require_trace_after "$DIVIDER_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${DIVIDER_PIXEL_WIDTH} pixel_height=${DIVIDER_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right divider resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$DIVIDER_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${DIVIDER_PIXEL_WIDTH} pixel_height=${DIVIDER_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right divider resize to AppKit pixel size via ts_set_view_size"
 
   EQUALIZE_START_LINE="$(log_line_count)"
   EQUALIZE_TRACE_START_LINE="$(trace_line_count)"
@@ -9105,7 +9105,7 @@ if [ "$SCENARIO" = "split-right-equalize" ]; then
   log "equalize_overlay_frame_x=$EQUALIZE_FRAME_X"
   log "equalize_appkit_pixel=$EQUALIZE_PIXEL"
   require_log_after "$EQUALIZE_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${EQUALIZE_PIXEL}" "Zig records split-right equalized AppKit presented pixel size"
-  require_trace_after "$EQUALIZE_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${EQUALIZE_PIXEL_WIDTH} pixel_height=${EQUALIZE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right equalized resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$EQUALIZE_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${EQUALIZE_PIXEL_WIDTH} pixel_height=${EQUALIZE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right equalized resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_SPLIT"
   log "equalize_screenshot_exit=$?"
 
@@ -9147,7 +9147,7 @@ if [ "$SCENARIO" = "split-right-zoom" ]; then
   log "split_overlay_frame_x=$SPLIT_FRAME_X"
   log "split_appkit_pixel=$SPLIT_PIXEL"
   require_log_after "$SPLIT_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SPLIT_PIXEL}" "Zig records split-right AppKit presented pixel size"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right resize to AppKit pixel size via ts_set_view_size"
 
   SPLIT_FOCUS_WIN_LINE="$(window_bounds)" || fail "failed to resolve split window bounds for window id=$WID"
   IFS=$'\t' read -r _SPLIT_FOCUS_WID SPLIT_FOCUS_WX SPLIT_FOCUS_WY SPLIT_FOCUS_WW SPLIT_FOCUS_WH <<<"$SPLIT_FOCUS_WIN_LINE"
@@ -9180,7 +9180,7 @@ if [ "$SCENARIO" = "split-right-zoom" ]; then
   log "zoom_overlay_frame_x=$ZOOM_FRAME_X"
   log "zoom_appkit_pixel=$ZOOM_PIXEL"
   require_log_after "$ZOOM_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${ZOOM_PIXEL}" "Zig records split-right zoomed AppKit presented pixel size"
-  require_trace_after "$ZOOM_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${ZOOM_PIXEL_WIDTH} pixel_height=${ZOOM_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right zoomed resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$ZOOM_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${ZOOM_PIXEL_WIDTH} pixel_height=${ZOOM_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right zoomed resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_ZOOM"
   log "zoom_screenshot_exit=$?"
 
@@ -9215,7 +9215,7 @@ if [ "$SCENARIO" = "split-right-zoom" ]; then
   log "unzoom_overlay_frame_x=$UNZOOM_FRAME_X"
   log "unzoom_appkit_pixel=$UNZOOM_PIXEL"
   require_log_after "$UNZOOM_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${UNZOOM_PIXEL}" "Zig records split-right unzoomed AppKit presented pixel size"
-  require_trace_after "$UNZOOM_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${UNZOOM_PIXEL_WIDTH} pixel_height=${UNZOOM_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right unzoomed resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$UNZOOM_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${UNZOOM_PIXEL_WIDTH} pixel_height=${UNZOOM_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right unzoomed resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_UNZOOM"
   log "unzoom_screenshot_exit=$?"
 
@@ -9258,7 +9258,7 @@ if [ "$SCENARIO" = "split-right-close-sibling" ]; then
   log "split_overlay_frame_x=$SPLIT_FRAME_X"
   log "split_appkit_pixel=$SPLIT_PIXEL"
   require_log_after "$SPLIT_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SPLIT_PIXEL}" "Zig records split-right AppKit presented pixel size"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right resize to AppKit pixel size via ts_set_view_size"
 
   SPLIT_FRAME_WIDTH="$(pair_width "$SPLIT_FRAME_SIZE")"
   CLOSE_START_LINE="$(log_line_count)"
@@ -9280,7 +9280,7 @@ if [ "$SCENARIO" = "split-right-close-sibling" ]; then
   log "close_overlay_frame_x=$CLOSE_FRAME_X"
   log "close_appkit_pixel=$CLOSE_PIXEL"
   require_log_after "$CLOSE_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${CLOSE_PIXEL}" "Zig records split-right sibling-closed AppKit presented pixel size"
-  require_trace_after "$CLOSE_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${CLOSE_PIXEL_WIDTH} pixel_height=${CLOSE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right sibling-closed resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$CLOSE_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${CLOSE_PIXEL_WIDTH} pixel_height=${CLOSE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right sibling-closed resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_CLOSE"
   log "close_screenshot_exit=$?"
 
@@ -9329,7 +9329,7 @@ if [ "$SCENARIO" = "split-right-close-browser-pane" ]; then
   log "split_overlay_frame_x=$SPLIT_FRAME_X"
   log "split_appkit_pixel=$SPLIT_PIXEL"
   require_log_after "$SPLIT_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SPLIT_PIXEL}" "Zig records split-right AppKit presented pixel size"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-right resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-right resize to AppKit pixel size via ts_set_view_size"
 
   SPLIT_WIN_LINE="$(window_bounds)" || fail "failed to resolve split window bounds for window id=$WID"
   IFS=$'\t' read -r _SPLIT_WID SPLIT_WX SPLIT_WY SPLIT_WW SPLIT_WH <<<"$SPLIT_WIN_LINE"
@@ -9354,8 +9354,8 @@ if [ "$SCENARIO" = "split-right-close-browser-pane" ]; then
       CLEAR_OVERLAY_SEEN="1"
       break
     fi
-    if tail -n +"$((CLOSE_TRACE_START_LINE + 1))" "$ROAMIUM_TRACE" | grep -F "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID}" >/dev/null 2>&1; then
-      fail "Control-K was forwarded to Roamium browser input before close_surface cleanup"
+    if tail -n +"$((CLOSE_TRACE_START_LINE + 1))" "$CHROMIUM_TRACE" | grep -F "key-event tab=${BROWSER_TAB_ID} pane=${PANE_ID}" >/dev/null 2>&1; then
+      fail "Control-K was forwarded to Chromium browser input before close_surface cleanup"
     fi
     delay 1
   done
@@ -9381,8 +9381,8 @@ if [ "$SCENARIO" = "split-right-close-browser-pane" ]; then
   log "PASS: observed browser-pane clear result clear_result=$CLEAR_RESULT"
 
   require_log_after "$CLOSE_START_LINE" "CloseTab: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID}" "Zig records CloseTab for browser pane after close"
-  require_trace_after "$CLOSE_TRACE_START_LINE" "close-tab tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Roamium received CloseTab and destroyed browser tab"
-  require_trace_after "$CLOSE_TRACE_START_LINE" "close-tab tab_id=${BROWSER_TAB_ID} result=removed" "Roamium removed closed browser tab"
+  require_trace_after "$CLOSE_TRACE_START_LINE" "close-tab tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} result=destroying ffi=ts_destroy_web_contents" "Chromium received CloseTab and destroyed browser tab"
+  require_trace_after "$CLOSE_TRACE_START_LINE" "close-tab tab_id=${BROWSER_TAB_ID} result=removed" "Chromium removed closed browser tab"
 
   screencapture -x -o -l"$WID" "$SCREENSHOT_CLOSE"
   log "close_screenshot_exit=$?"
@@ -9434,7 +9434,7 @@ if [ "$SCENARIO" = "split-down" ]; then
   log "split_overlay_frame_y=$SPLIT_FRAME_Y"
   log "split_appkit_pixel=$SPLIT_PIXEL"
   require_log_after "$SPLIT_START_LINE" "TermSurf geometry layer=zig event=appkit_presented_pixels .*pane_id:${PANE_ID} .*appkit_pixel=${SPLIT_PIXEL}" "Zig records split-down AppKit presented pixel size"
-  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Roamium applied split-down resize to AppKit pixel size via ts_set_view_size"
+  require_trace_after "$SPLIT_TRACE_START_LINE" "resize tab_id=${BROWSER_TAB_ID} pane_id=${PANE_ID} pixel_width=${SPLIT_PIXEL_WIDTH} pixel_height=${SPLIT_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium applied split-down resize to AppKit pixel size via ts_set_view_size"
   screencapture -x -o -l"$WID" "$SCREENSHOT_SPLIT"
   log "split_screenshot_exit=$?"
 

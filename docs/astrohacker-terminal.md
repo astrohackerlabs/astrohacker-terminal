@@ -252,9 +252,9 @@ preserving the historical component selectors:
 ```bash
 scripts/build.sh webtui
 scripts/build.sh gtui
-scripts/build.sh roamium
-scripts/build.sh surfari
-scripts/build.sh girlbat
+scripts/build.sh chromium
+scripts/build.sh webkit
+scripts/build.sh ladybird
 scripts/build.sh aht
 ```
 

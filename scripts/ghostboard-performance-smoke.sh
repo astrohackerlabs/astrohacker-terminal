@@ -135,9 +135,9 @@ fi
 
 failures=0
 
-run_row "startup-1" "named-roamium-debug-launch" "$STARTUP_MAX" || failures=$((failures + 1))
-run_row "startup-2" "named-roamium-debug-launch" "$STARTUP_MAX" || failures=$((failures + 1))
-run_row "startup-3" "named-roamium-debug-launch" "$STARTUP_MAX" || failures=$((failures + 1))
+run_row "startup-1" "named-chromium-debug-launch" "$STARTUP_MAX" || failures=$((failures + 1))
+run_row "startup-2" "named-chromium-debug-launch" "$STARTUP_MAX" || failures=$((failures + 1))
+run_row "startup-3" "named-chromium-debug-launch" "$STARTUP_MAX" || failures=$((failures + 1))
 
 if [ "$PROFILE" = "diagnostic" ]; then
   run_row "resize" "performance-window-resize" "$RESIZE_MAX" || failures=$((failures + 1))

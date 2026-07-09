@@ -61,7 +61,7 @@ ready.
 - [ ] Remote terminals, i.e. ssh
 - [ ] browser.nvim
 - [ ] wedit/wim/tscode
-- [ ] Run VSCode inside TermSurf
+- [ ] Run VSCode inside Astrohacker Terminal
 
 ## 2.0 Milestone
 

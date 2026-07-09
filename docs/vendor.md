@@ -1,30 +1,30 @@
 # Vendor Repos
 
 Cloned repos for reading source code and learning. These are gitignored and not
-committed to the TermSurf repo.
+committed to the Astrohacker repo.
 
 ## vendor/
 
 | Repo                | URL                                         | Why                                                                                                              |
 | ------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `vendor/ghostty/`   | https://github.com/ghostty-org/ghostty      | TermSurf GUI forks Ghostty. Reference for understanding upstream behavior, diffing changes, and planning merges. |
+| `vendor/ghostty/`   | https://github.com/ghostty-org/ghostty      | Astrohacker Terminal forks Ghostty. Reference for understanding upstream behavior, diffing changes, and planning merges. |
 | `vendor/wezterm/`   | https://github.com/wezterm/wezterm          | Terminal emulator evaluated in ts2–ts3. Reference for terminal internals and IPC patterns.                       |
 | `vendor/electron/`  | https://github.com/electron/electron        | Reference for Chromium embedding patterns, patch sets, and Content API usage.                                    |
 | `vendor/alacritty/` | https://github.com/alacritty/alacritty      | Terminal emulator evaluated in ts4. Reference for Rust terminal architecture.                                    |
-| `vendor/ladybird/`  | https://github.com/LadybirdBrowser/ladybird | Reference for Girlbat/Ladybird engine research, LibWebView embedding, and IOSurface/Metal rendering.             |
+| `vendor/ladybird/`  | https://github.com/LadybirdBrowser/ladybird | Reference for Ladybird/Ladybird engine research, LibWebView embedding, and IOSurface/Metal rendering.             |
 
 ## libghostty dependency sources (Roastty proof-of-concept)
 
 Upstream sources for the third-party libraries Ghostty depends on, cloned for
 **reading and study only**. They were gathered for the Roastty Rust rewrite
-proof-of-concept, not for the production frontend direction. Ghostboard is the
-primary TermSurf frontend.
+proof-of-concept, not for the production frontend direction.
 
 Pinned tags (`z2d`, `uucode`) are cloned at the exact version Roastty is
 studying; the rest are the default branch. Ghostty's exact pins live in
 `vendor/ghostty/build.zig.zon` (Zig libs) and `vendor/ghostty/pkg/<name>/` (C
-libs). These sources are never vendored, linked, or built in TermSurf; they are
-gitignored (`vendor/.gitignore`) like the analysis repos above.
+libs). These sources are never vendored, linked, or built in Astrohacker
+Terminal; they are gitignored (`vendor/.gitignore`) like the analysis repos
+above. Ghostboard is the primary Astrohacker Terminal frontend.
 
 | Repo                    | Origin | URL                                              | Provides (reimplementation role)                                                      |
 | ----------------------- | ------ | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
@@ -55,11 +55,12 @@ and the font/theme/SDK asset packages.
 
 ## Chromium (special case)
 
-Chromium lives at `chromium/src/` (not in `vendor/`). The repo is too large to
-have two clones, so `chromium/src/` serves double duty: it is both the build
-workspace for TermSurf's Chromium fork and the source code reference. When
-studying Chromium internals (e.g., `WebContentsObserver`, Content API,
-compositor pipeline), read from `chromium/src/` directly.
+Chromium lives under the ignored fork workspace, not in `vendor/`. The repo is
+too large to have two clones, so the Chromium checkout serves double duty: it is
+both the build workspace for Astrohacker Terminal's Chromium fork and the source
+code reference. When studying Chromium internals (e.g., `WebContentsObserver`,
+Content API, compositor pipeline), read from the Chromium fork checkout
+directly.
 
 | Path            | Upstream                                       |
 | --------------- | ---------------------------------------------- |

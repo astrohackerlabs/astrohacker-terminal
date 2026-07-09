@@ -392,7 +392,7 @@ fn reader_loop(
     }
 }
 
-/// A direct connection to a browser engine process (Roamium) via Unix socket.
+/// A direct connection to a browser engine process (Chromium) via Unix socket.
 /// Enables the TUI to send Navigate/SetColorScheme directly to the browser,
 /// bypassing the GUI for content messages.
 pub struct BrowserConnection {

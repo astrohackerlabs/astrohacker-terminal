@@ -10,5 +10,5 @@ target
 .wrangler
 .DS_Store
 
-/rust/surfari/libtermsurf_webkit/build/
-/rust/girlbat/libtermsurf_ladybird/build/
+/rust/webkit/libtermsurf_webkit/build/
+/rust/ladybird/libtermsurf_ladybird/build/

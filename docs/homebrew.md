@@ -97,9 +97,8 @@ evidence such as logs or screenshots showing:
   `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/Resources` and all non-system
   dylib dependencies resolved from
   `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/lib`;
-- no smoke required `TERMSURF_ROAMIUM_PATH`, `TERMSURF_SURFARI_PATH`,
-  `TERMSURF_GIRLBAT_PATH`, `TERMSURF_INSTALLED_ROAMIUM_PATH`,
-  `TERMSURF_INSTALLED_SURFARI_PATH`, or `TERMSURF_INSTALLED_GIRLBAT_PATH`.
+- no smoke required `ASTROHACKER_CHROMIUM_PATH`, `ASTROHACKER_WEBKIT_PATH`,
+  `ASTROHACKER_LADYBIRD_PATH`, or their legacy installed-path aliases.
 - `/opt/homebrew/bin/ahsh --version` succeeds;
 - `/opt/homebrew/bin/ahe --version` reports Astrohacker Editor;
 - `/opt/homebrew/bin/ahe --health rust` succeeds without

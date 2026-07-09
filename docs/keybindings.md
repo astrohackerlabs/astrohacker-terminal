@@ -1,6 +1,6 @@
 # Keybindings
 
-All TermSurf-specific keybindings. Anything not listed here falls back to
+Astrohacker Terminal keybindings. Anything not listed here falls back to
 Ghostty defaults or user-configured Ghostty keybindings.
 
 ## `web` TUI keybindings
@@ -25,8 +25,9 @@ key events received through the terminal PTY.
 
 ## GUI keybindings
 
-These are handled in TermSurf's Zig core (`ghostboard/src/Surface.zig`),
-intercepted in `keyCallback` before keybinding processing.
+These are handled in Astrohacker Terminal's Ghostboard core
+(`ghostboard/src/Surface.zig`), intercepted in `keyCallback` before keybinding
+processing.
 
 | Key | Mode   | Action            | Notes                                                                                                                                                            |
 | --- | ------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -1,7 +1,7 @@
 # web TUI
 
-Browser chrome for TermSurf, rendered in the terminal pane. Built with Rust and
-[ratatui](https://ratatui.rs/).
+Browser chrome for Astrohacker Terminal, rendered inside the terminal pane.
+Built with Rust and [ratatui](https://ratatui.rs/).
 
 When the user types `web google.com`, this TUI draws the URL bar, viewport
 border, and status bar. It connects to the GUI via Unix socket to send overlay
@@ -16,7 +16,7 @@ cargo build -p web
 
 ## Run
 
-Inside a TermSurf terminal pane:
+Inside an Astrohacker Terminal pane:
 
 ```bash
 cargo run -p web -- https://google.com

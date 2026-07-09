@@ -221,7 +221,7 @@ fn app_entrypoint() -> io::Result<String> {
 }
 
 fn browser_name() -> io::Result<String> {
-    if let Ok(path) = std::env::var("TERMSURF_ROAMIUM_PATH") {
+    if let Some(path) = resolve_chromium_env_path(|key| std::env::var(key).ok()) {
         return Ok(path);
     }
 
@@ -237,6 +237,16 @@ fn browser_name() -> io::Result<String> {
     }
 
     Ok("chromium".to_string())
+}
+
+fn resolve_chromium_env_path(lookup: impl Fn(&str) -> Option<String>) -> Option<String> {
+    [
+        "ASTROHACKER_CHROMIUM_PATH",
+        "TERMSURF_ROAMIUM_PATH",
+        "TERMSURF_INSTALLED_ROAMIUM_PATH",
+    ]
+    .iter()
+    .find_map(|key| lookup(key))
 }
 
 fn repo_root_from_exe() -> io::Result<PathBuf> {
@@ -270,4 +280,35 @@ fn read_message(stream: &mut UnixStream) -> io::Result<TermSurfMessage> {
     stream.read_exact(&mut payload)?;
     TermSurfMessage::decode(payload.as_slice())
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_chromium_env_path;
+
+    #[test]
+    fn chromium_env_prefers_astrohacker_name() {
+        let resolved = resolve_chromium_env_path(|key| match key {
+            "ASTROHACKER_CHROMIUM_PATH" => Some("/new/chromium".to_string()),
+            "TERMSURF_ROAMIUM_PATH" => Some("/legacy/chromium".to_string()),
+            _ => None,
+        });
+
+        assert_eq!(resolved.as_deref(), Some("/new/chromium"));
+    }
+
+    #[test]
+    fn chromium_env_accepts_legacy_aliases() {
+        let legacy_dev = resolve_chromium_env_path(|key| match key {
+            "TERMSURF_ROAMIUM_PATH" => Some("/legacy/dev".to_string()),
+            _ => None,
+        });
+        let legacy_installed = resolve_chromium_env_path(|key| match key {
+            "TERMSURF_INSTALLED_ROAMIUM_PATH" => Some("/legacy/installed".to_string()),
+            _ => None,
+        });
+
+        assert_eq!(legacy_dev.as_deref(), Some("/legacy/dev"));
+        assert_eq!(legacy_installed.as_deref(), Some("/legacy/installed"));
+    }
 }

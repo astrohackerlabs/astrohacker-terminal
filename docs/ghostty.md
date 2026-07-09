@@ -47,7 +47,7 @@ git subtree pull --prefix=ghostboard ghostty main \
 
 ### Resolving conflicts
 
-`ghostboard/` has TermSurf modifications in app identity, release/version
+`ghostboard/` has Astrohacker Terminal modifications in app identity, release/version
 plumbing, browser process launch, browser overlay rendering, input forwarding,
 focus handling, and webview mode/keybinding behavior. Upstream merges may
 conflict with these. Key areas likely to require scrutiny:

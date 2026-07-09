@@ -14,5 +14,5 @@ INPUT="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 OUTPUT_DIR="$(cd "$(dirname "$2")" && pwd)"
 OUTPUT="$OUTPUT_DIR/$(basename "$2")"
 
-cd "$REPO_DIR/website"
+cd "$REPO_DIR/bun/website-cf"
 bun run scripts/png-to-webp.ts "$INPUT" "$OUTPUT"

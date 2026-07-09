@@ -1,6 +1,7 @@
 # Ladybird Patch Archive
 
-This directory stores TermSurf patch archives for Ladybird source changes.
+This directory stores Astrohacker Terminal patch archives for Ladybird source
+changes.
 
 Patch archives should be created only from committed Ladybird source branches.
 Use filenames or subdirectories that include the issue number and upstream

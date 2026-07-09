@@ -3,7 +3,7 @@ set -euo pipefail
 
 COMPONENT="${1:-}"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
-CHROMIUMD_INSTALL_DIR="${TERMSURF_ROAMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
+CHROMIUMD_INSTALL_DIR="${ASTROHACKER_CHROMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
 GTUI_BIN_DIR="${TERMSURF_GTUI_BIN_DIR:-/usr/local/bin}"
 GTUI_INSTALL_DIR="${TERMSURF_GTUI_INSTALL_DIR:-/usr/local/share/termsurf/gtui}"
 
@@ -25,11 +25,11 @@ esac
 needs_root() {
   if [ "$COMPONENT" = "ah-chromiumd" ] && [ "$CHROMIUMD_INSTALL_DIR" != "/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd" ]; then
     mkdir -p "$CHROMIUMD_INSTALL_DIR" || {
-      echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
+      echo "Error: ASTROHACKER_CHROMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
       exit 1
     }
     [ -w "$CHROMIUMD_INSTALL_DIR" ] && return 1
-    echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
+    echo "Error: ASTROHACKER_CHROMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
     exit 1
   fi
   if [ "$COMPONENT" = "aht" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
@@ -48,7 +48,7 @@ needs_root() {
 if [ "$(id -u)" -ne 0 ] && needs_root; then
   exec sudo env \
     TERMSURF_APPLICATIONS_DIR="$APPLICATIONS_DIR" \
-    TERMSURF_ROAMIUM_INSTALL_DIR="$CHROMIUMD_INSTALL_DIR" \
+    ASTROHACKER_CHROMIUM_INSTALL_DIR="$CHROMIUMD_INSTALL_DIR" \
     TERMSURF_GTUI_BIN_DIR="$GTUI_BIN_DIR" \
     TERMSURF_GTUI_INSTALL_DIR="$GTUI_INSTALL_DIR" \
     "$0" "$@"
@@ -59,10 +59,10 @@ LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Framewo
 uninstall_chromiumd() {
   echo "==> Uninstalling ah-chromiumd..."
   rm -rf "$CHROMIUMD_INSTALL_DIR"
-  rm -rf /usr/local/roamium
-  rm -f /usr/local/bin/roamium
-  rm -rf /usr/local/lib/roamium
-  rm -rf /opt/homebrew/opt/astrohacker-terminal-roamium
+  rm -rf /usr/local/chromium
+  rm -f /usr/local/bin/chromium
+  rm -rf /usr/local/lib/chromium
+  rm -rf /opt/homebrew/opt/astrohacker-terminal-chromium
 
   echo "  Removed: $CHROMIUMD_INSTALL_DIR"
 }

@@ -9,8 +9,8 @@ CHROMIUM_SRC="$COMPANY_DIR/forks/chromium/src"
 CHROMIUM_OUT="$CHROMIUM_SRC/out/Default"
 CHROMIUM_PROTOC="$CHROMIUM_OUT/protoc"
 WEBKIT_SRC="$COMPANY_DIR/forks/webkit/src"
-SURFARI_LIB_DIR="$RUST_DIR/surfari/libtermsurf_webkit"
-GIRLBAT_LIB_DIR="$RUST_DIR/girlbat/libtermsurf_ladybird"
+WEBKIT_LIB_DIR="$RUST_DIR/webkit/libtermsurf_webkit"
+LADYBIRD_LIB_DIR="$RUST_DIR/ladybird/libtermsurf_ladybird"
 GHOSTTY_DIR="$COMPANY_DIR/forks/ghostty"
 HELIX_DIR="$COMPANY_DIR/forks/helix"
 
@@ -22,7 +22,7 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: aht, ahsh, ahe, roamium, webtui, gtui, chromium, webkit, surfari-lib, surfari, girlbat-lib, girlbat, all"
+  echo "Components: aht, ahsh, ahe, webtui, gtui, chromium-fork, chromium, webkit-fork, webkit-lib, webkit, ladybird-lib, ladybird, all"
 }
 
 configuration() {
@@ -77,7 +77,7 @@ if [ -x "$CHROMIUM_PROTOC" ]; then
   export PROTOC="$CHROMIUM_PROTOC"
 fi
 
-build_chromium() {
+build_chromium_fork() {
   if [ ! -d "$CHROMIUM_SRC" ]; then
     echo "==> Skipping Chromium ($CHROMIUM_SRC not found)"
     return
@@ -182,30 +182,30 @@ build_ahe() {
   fi
 }
 
-build_roamium() {
+build_chromiumd() {
   cd "$RUST_DIR"
   if [ ! -d "$CHROMIUM_OUT" ]; then
     echo "Missing Chromium output directory: $CHROMIUM_OUT" >&2
-    echo "Build Chromium first with: $0 chromium" >&2
+    echo "Build Chromium first with: $0 chromium-fork" >&2
     exit 1
   fi
   if $CLEAN; then
-    echo "==> Cleaning Roamium..."
-    cargo clean -p roamium
+    echo "==> Cleaning Chromium..."
+    cargo clean -p chromium
   fi
   if $RELEASE; then
-    echo "==> Building Roamium (release)..."
-    cargo build --release -p roamium
+    echo "==> Building Chromium (release)..."
+    cargo build --release -p chromium
     cp "$RUST_DIR/target/release/ah-chromiumd" "$CHROMIUM_OUT/ah-chromiumd"
   else
-    echo "==> Building Roamium (debug)..."
-    cargo build -p roamium
+    echo "==> Building Chromium (debug)..."
+    cargo build -p chromium
     cp "$RUST_DIR/target/debug/ah-chromiumd" "$CHROMIUM_OUT/ah-chromiumd"
   fi
-  echo "  Roamium: $CHROMIUM_OUT/ah-chromiumd"
+  echo "  Chromium: $CHROMIUM_OUT/ah-chromiumd"
 }
 
-build_webkit() {
+build_webkit_fork() {
   local CONFIGURATION
   CONFIGURATION="$(configuration)"
   local CONFIG_FLAG="--debug"
@@ -257,7 +257,7 @@ build_webkit() {
   echo "  WebKit: $WEBKIT_SRC/WebKitBuild/$CONFIGURATION"
 }
 
-build_surfari_lib() {
+build_webkit_lib() {
   local CONFIGURATION
   CONFIGURATION="$(configuration)"
 
@@ -267,52 +267,52 @@ build_surfari_lib() {
   if $CLEAN; then
     args+=("--clean")
   fi
-  "$SURFARI_LIB_DIR/build.sh" "${args[@]}"
-  echo "  libtermsurf_webkit: $SURFARI_LIB_DIR/build/libtermsurf_webkit.dylib"
+  "$WEBKIT_LIB_DIR/build.sh" "${args[@]}"
+  echo "  libtermsurf_webkit: $WEBKIT_LIB_DIR/build/libtermsurf_webkit.dylib"
 }
 
-build_surfari() {
+build_webkitd() {
   local CONFIGURATION
   CONFIGURATION="$(configuration)"
 
-  build_surfari_lib
+  build_webkit_lib
 
   cd "$RUST_DIR"
   if $CLEAN; then
-    echo "==> Cleaning Surfari..."
-    cargo clean -p surfari
+    echo "==> Cleaning WebKit..."
+    cargo clean -p webkit
   fi
   if $RELEASE; then
-    echo "==> Building Surfari (release)..."
-    cargo build --release -p surfari
-    echo "  Surfari: $RUST_DIR/target/release/ah-webkitd"
+    echo "==> Building WebKit (release)..."
+    cargo build --release -p webkit
+    echo "  WebKit: $RUST_DIR/target/release/ah-webkitd"
   else
-    echo "==> Building Surfari (debug)..."
-    cargo build -p surfari
-    echo "  Surfari: $RUST_DIR/target/debug/ah-webkitd"
+    echo "==> Building WebKit (debug)..."
+    cargo build -p webkit
+    echo "  WebKit: $RUST_DIR/target/debug/ah-webkitd"
   fi
 }
 
-build_girlbat() {
-  build_girlbat_lib
+build_ladybirdd() {
+  build_ladybird_lib
 
   cd "$RUST_DIR"
   if $CLEAN; then
-    echo "==> Cleaning Girlbat..."
-    cargo clean -p girlbat
+    echo "==> Cleaning Ladybird..."
+    cargo clean -p ladybird
   fi
   if $RELEASE; then
-    echo "==> Building Girlbat (release)..."
-    cargo build --release -p girlbat
-    echo "  Girlbat: $RUST_DIR/target/release/ah-ladybirdd"
+    echo "==> Building Ladybird (release)..."
+    cargo build --release -p ladybird
+    echo "  Ladybird: $RUST_DIR/target/release/ah-ladybirdd"
   else
-    echo "==> Building Girlbat (debug)..."
-    cargo build -p girlbat
-    echo "  Girlbat: $RUST_DIR/target/debug/ah-ladybirdd"
+    echo "==> Building Ladybird (debug)..."
+    cargo build -p ladybird
+    echo "  Ladybird: $RUST_DIR/target/debug/ah-ladybirdd"
   fi
 }
 
-build_girlbat_lib() {
+build_ladybird_lib() {
   local CONFIGURATION
   CONFIGURATION="$(configuration)"
 
@@ -323,11 +323,11 @@ build_girlbat_lib() {
     args+=("--clean")
   fi
   if $RELEASE && [ -z "${TERMSURF_LADYBIRD_BACKEND:-}" ]; then
-    TERMSURF_LADYBIRD_BACKEND=real "$GIRLBAT_LIB_DIR/build.sh" "${args[@]}"
+    TERMSURF_LADYBIRD_BACKEND=real "$LADYBIRD_LIB_DIR/build.sh" "${args[@]}"
   else
-    "$GIRLBAT_LIB_DIR/build.sh" "${args[@]}"
+    "$LADYBIRD_LIB_DIR/build.sh" "${args[@]}"
   fi
-  echo "  libtermsurf_ladybird: $GIRLBAT_LIB_DIR/build/libtermsurf_ladybird.dylib"
+  echo "  libtermsurf_ladybird: $LADYBIRD_LIB_DIR/build/libtermsurf_ladybird.dylib"
 }
 
 build_aht() {
@@ -366,27 +366,27 @@ build_aht() {
 }
 
 case "$COMPONENT" in
-  chromium)   build_chromium ;;
+  chromium-fork) build_chromium_fork ;;
   webtui)     build_webtui ;;
   gtui)       build_gtui ;;
   ahsh)       build_ahsh ;;
   ahe)        build_ahe ;;
-  roamium)    build_roamium ;;
-  webkit)     build_webkit ;;
-  surfari-lib) build_surfari_lib ;;
-  surfari)    build_surfari ;;
-  girlbat-lib) build_girlbat_lib ;;
-  girlbat)    build_girlbat ;;
+  chromium)   build_chromiumd ;;
+  webkit-fork) build_webkit_fork ;;
+  webkit-lib) build_webkit_lib ;;
+  webkit)     build_webkitd ;;
+  ladybird-lib) build_ladybird_lib ;;
+  ladybird)   build_ladybirdd ;;
   aht)        build_aht ;;
   all)
-    build_chromium
+    build_chromium_fork
     build_webtui
     build_gtui
     build_ahsh
-    build_roamium
-    build_webkit
-    build_surfari
-    build_girlbat
+    build_chromiumd
+    build_webkit_fork
+    build_webkitd
+    build_ladybirdd
     build_aht
     echo ""
     echo "Done (all)."

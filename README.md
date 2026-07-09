@@ -10,7 +10,7 @@ private Astrohacker monorepo for source releases. It includes:
 - `assets/astrohacker-terminal/` — product images and Terminal assets.
 - `docs/` — product docs and public Terminal records.
 - `scripts/` — public build/install helpers and smoke scripts.
-- `rust/` — Rust workspace crates for `web`, Roamium, Surfari, Girlbat, GTUI,
+- `rust/` — Rust workspace crates for `web`, Chromium, WebKit, Ladybird, GTUI,
   and protocol/native support code.
 - `bun/gtui-app/` — GTUI app assets used by the Terminal package.
 - `patches/` — fork patch archives and reconstruction notes for Chromium,
@@ -54,9 +54,9 @@ client components:
 
 ```bash
 ./scripts/build.sh chromium
-./scripts/build.sh roamium
+./scripts/build.sh chromium
 ./scripts/build.sh webkit
-./scripts/build.sh surfari
+./scripts/build.sh webkit
 ./scripts/build.sh webtui
 ./scripts/build.sh aht
 ```

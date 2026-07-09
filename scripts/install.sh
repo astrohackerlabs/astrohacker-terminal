@@ -6,11 +6,11 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 RUST_DIR="$REPO_DIR/rust"
 BUN_DIR="$REPO_DIR/bun"
 CHROMIUM_OUT="$REPO_DIR/forks/chromium/src/out/Default"
-source "$SCRIPT_DIR/roamium-resources.sh"
+source "$SCRIPT_DIR/chromium-resources.sh"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
 AHT_RELEASE_APP="$REPO_DIR/forks/ghostty/macos/build/Release/Astrohacker Terminal.app"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
-CHROMIUMD_INSTALL_DIR="${TERMSURF_ROAMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
+CHROMIUMD_INSTALL_DIR="${ASTROHACKER_CHROMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
 GTUI_BIN_DIR="${TERMSURF_GTUI_BIN_DIR:-/usr/local/bin}"
 GTUI_INSTALL_DIR="${TERMSURF_GTUI_INSTALL_DIR:-/usr/local/share/termsurf/gtui}"
 
@@ -40,11 +40,11 @@ fi
 needs_root() {
   if [ "$COMPONENT" = "ah-chromiumd" ] && [ "$CHROMIUMD_INSTALL_DIR" != "/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd" ]; then
     mkdir -p "$CHROMIUMD_INSTALL_DIR" || {
-      echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
+      echo "Error: ASTROHACKER_CHROMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
       exit 1
     }
     [ -w "$CHROMIUMD_INSTALL_DIR" ] && return 1
-    echo "Error: TERMSURF_ROAMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
+    echo "Error: ASTROHACKER_CHROMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
     exit 1
   fi
   if [ "$COMPONENT" = "aht" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
@@ -68,7 +68,7 @@ needs_root() {
 if [ "$(id -u)" -ne 0 ] && needs_root; then
   exec sudo env \
     TERMSURF_APPLICATIONS_DIR="$APPLICATIONS_DIR" \
-    TERMSURF_ROAMIUM_INSTALL_DIR="$CHROMIUMD_INSTALL_DIR" \
+    ASTROHACKER_CHROMIUM_INSTALL_DIR="$CHROMIUMD_INSTALL_DIR" \
     TERMSURF_GTUI_BIN_DIR="$GTUI_BIN_DIR" \
     TERMSURF_GTUI_INSTALL_DIR="$GTUI_INSTALL_DIR" \
     "$0" "$@"
@@ -80,7 +80,7 @@ install_chromiumd() {
 
   if [ ! -f "$CHROMIUMD_SRC" ]; then
     echo "Error: Release build not found at $CHROMIUMD_SRC"
-    echo "Run: scripts/build.sh roamium --release"
+    echo "Run: scripts/build.sh chromium --release"
     exit 1
   fi
 
@@ -88,16 +88,16 @@ install_chromiumd() {
   mkdir -p "$INSTALL_DIR"
   cp "$CHROMIUMD_SRC" "$INSTALL_DIR/ah-chromiumd"
 
-  copy_roamium_runtime_resources "$CHROMIUM_OUT" "$INSTALL_DIR"
+  copy_chromium_runtime_resources "$CHROMIUM_OUT" "$INSTALL_DIR"
 
   echo "==> Codesigning ah-chromiumd..."
   codesign --force --sign - "$INSTALL_DIR/ah-chromiumd" || true
 
   # Clean up old install locations.
-  rm -rf /usr/local/roamium
-  rm -f /usr/local/bin/roamium
-  rm -rf /usr/local/lib/roamium
-  rm -rf /opt/homebrew/opt/astrohacker-terminal-roamium
+  rm -rf /usr/local/chromium
+  rm -f /usr/local/bin/chromium
+  rm -rf /usr/local/lib/chromium
+  rm -rf /opt/homebrew/opt/astrohacker-terminal-chromium
 
   echo "  Dir: $INSTALL_DIR"
   echo "  Bin: $INSTALL_DIR/ah-chromiumd"

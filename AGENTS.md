@@ -18,10 +18,10 @@ Common build commands:
 
 ```bash
 ./scripts/build.sh chromium
-./scripts/build.sh roamium
+./scripts/build.sh chromium
 ./scripts/build.sh webkit
-./scripts/build.sh surfari-lib
-./scripts/build.sh surfari
+./scripts/build.sh webkit-lib
+./scripts/build.sh webkit
 ./scripts/build.sh webtui
 ./scripts/build.sh aht
 ./scripts/build.sh all --release

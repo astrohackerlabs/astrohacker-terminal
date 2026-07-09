@@ -1,15 +1,14 @@
 [workspace]
 members = [
     "webtui",
-    "roamium",
-    "surfari",
-    "girlbat",
+    "chromium",
+    "webkit",
+    "ladybird",
     "gtui",
 ]
 exclude = [
     "ahsh",
     "vendor",
-    "chromium",
     "proto/test-rust",
 ]
 resolver = "2"
