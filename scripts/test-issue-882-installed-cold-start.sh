@@ -185,19 +185,19 @@ verify_postflight_warmup() {
       fail "postflight warmup did not report success for $engine in $copy_path"
     case "$engine" in
       chromium)
-        main_line="$(grep -F "TermSurfEngineStartup event=main_entry" "$copy_path" | grep -F "engine=roamium" | grep -F "browser=roamium" | tail -1 || true)"
-        exit_line="$(grep -F "TermSurfEngineStartup event=warmup_exit" "$copy_path" | grep -F "engine=roamium" | grep -F "browser=chromium" | tail -1 || true)"
+        main_line="$(grep -F "TermSurfEngineStartup event=main_entry" "$copy_path" | grep -F "engine=chromium" | grep -F "browser=chromium" | tail -1 || true)"
+        exit_line="$(grep -F "TermSurfEngineStartup event=warmup_exit" "$copy_path" | grep -F "engine=chromium" | grep -F "browser=chromium" | tail -1 || true)"
         [ -n "$main_line" ] || fail "missing postflight warmup Chromium main_entry in $copy_path"
         [ -n "$exit_line" ] || fail "missing postflight warmup Chromium warmup_exit in $copy_path"
         ;;
       webkit)
-        main_line="$(grep -F "TermSurfEngineStartup event=main_entry" "$copy_path" | grep -F "engine=surfari" | grep -F "browser=surfari" | tail -1 || true)"
-        exit_line="$(grep -F "TermSurfEngineStartup event=warmup_exit" "$copy_path" | grep -F "engine=surfari" | grep -F "browser=webkit" | tail -1 || true)"
+        main_line="$(grep -F "TermSurfEngineStartup event=main_entry" "$copy_path" | grep -F "engine=webkit" | grep -F "browser=webkit" | tail -1 || true)"
+        exit_line="$(grep -F "TermSurfEngineStartup event=warmup_exit" "$copy_path" | grep -F "engine=webkit" | grep -F "browser=webkit" | tail -1 || true)"
         [ -n "$main_line" ] || fail "missing postflight warmup WebKit main_entry in $copy_path"
         [ -n "$exit_line" ] || fail "missing postflight warmup WebKit warmup_exit in $copy_path"
         ;;
       ladybird)
-        grep -F "[Girlbat] warmup " "$copy_path" | grep -F "ok=true" >/dev/null ||
+        grep -E "\[(Ladybird|Girlbat)\] warmup " "$copy_path" | grep -F "ok=true" >/dev/null ||
           fail "missing postflight warmup Ladybird ok=true output in $copy_path"
         ;;
     esac
@@ -401,10 +401,6 @@ append_summary() {
   ca_context="$(field_ms_after "$app_log" "$start_line" "TermSurfBrowserStartup event=ca_context .* browser=${browser}")"
   present_overlay="$(field_ms_after "$app_log" "$start_line" "TermSurfBrowserStartup event=present_overlay .* browser=${browser}")"
   main_entry_browser="$browser"
-  case "$browser" in
-    chromium) main_entry_browser="roamium" ;;
-    webkit) main_entry_browser="surfari" ;;
-  esac
   main_entry="$(field_ms_after "$engine_trace" 0 "TermSurfEngineStartup event=main_entry .* browser=${main_entry_browser} .* pid=${engine_pid}")"
   ts_entry="$(field_ms_after "$engine_trace" 0 "TermSurfEngineStartup event=ts_content_main_entry .* browser=${browser} .* pid=${engine_pid}")"
   init_entry="$(field_ms_after "$engine_trace" 0 "TermSurfEngineStartup event=on_initialized_entry .* browser=${browser} .* pid=${engine_pid}")"
@@ -486,10 +482,6 @@ EOF
   process_start="$(ps -o lstart= -p "$engine_pid" 2>/dev/null || true)"
   log "engine_process_start browser=$browser mode=$mode pid=$engine_pid lstart=$process_start"
   main_entry_browser="$browser"
-  case "$browser" in
-    chromium) main_entry_browser="roamium" ;;
-    webkit) main_entry_browser="surfari" ;;
-  esac
   first_engine_line="$(wait_for_line_after "$engine_trace" 0 "TermSurfEngineStartup event=main_entry .* browser=${main_entry_browser} .* pid=${engine_pid}" "$browser $mode engine main entry" 180)"
   log "engine_first_trace browser=$browser mode=$mode line=$first_engine_line"
   ready="$(wait_for_line_after "$app_log" "$start" "BrowserReady: pane_id=.* browser=${browser}" "$browser $mode BrowserReady" 180)"
