@@ -21023,7 +21023,7 @@ index c84cf2f6c..c83cf51f6 100644
      </command>
  
 diff --git a/macos/Ghostty.xcodeproj/project.pbxproj b/macos/Ghostty.xcodeproj/project.pbxproj
-index 6d883ded8..a2772e725 100644
+index 6d883ded8..9ed6f9876 100644
 --- a/macos/Ghostty.xcodeproj/project.pbxproj
 +++ b/macos/Ghostty.xcodeproj/project.pbxproj
 @@ -86,7 +86,7 @@
@@ -21067,7 +21067,7 @@ index 6d883ded8..a2772e725 100644
  				ENABLE_HARDENED_RUNTIME = YES;
  				ENABLE_PREVIEWS = YES;
 -				EXECUTABLE_NAME = ghostty;
-+				EXECUTABLE_NAME = aht;
++				EXECUTABLE_NAME = ahterm;
  				GCC_OPTIMIZATION_LEVEL = fast;
  				GENERATE_INFOPLIST_FILE = YES;
  				INFOPLIST_FILE = "Ghostty-Info.plist";
@@ -21177,7 +21177,7 @@ index 6d883ded8..a2772e725 100644
  				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
  				SWIFT_VERSION = 5.0;
 -				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ghostty.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ghostty";
-+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Astrohacker Terminal.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/aht";
++				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Astrohacker Terminal.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ahterm";
  			};
  			name = Debug;
  		};
@@ -21186,7 +21186,7 @@ index 6d883ded8..a2772e725 100644
  				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
  				SWIFT_VERSION = 5.0;
 -				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ghostty.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ghostty";
-+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Astrohacker Terminal.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/aht";
++				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Astrohacker Terminal.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ahterm";
  			};
  			name = Release;
  		};
@@ -21195,7 +21195,7 @@ index 6d883ded8..a2772e725 100644
  				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
  				SWIFT_VERSION = 5.0;
 -				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ghostty.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ghostty";
-+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Astrohacker Terminal.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/aht";
++				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Astrohacker Terminal.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ahterm";
  			};
  			name = ReleaseLocal;
  		};
@@ -21213,7 +21213,7 @@ index 6d883ded8..a2772e725 100644
  				ENABLE_HARDENED_RUNTIME = YES;
  				ENABLE_PREVIEWS = YES;
 -				EXECUTABLE_NAME = ghostty;
-+				EXECUTABLE_NAME = aht;
++				EXECUTABLE_NAME = ahterm;
  				GENERATE_INFOPLIST_FILE = YES;
  				INFOPLIST_FILE = "Ghostty-Info.plist";
 -				INFOPLIST_KEY_CFBundleDisplayName = "Ghostty[DEBUG]";
@@ -21278,7 +21278,7 @@ index 6d883ded8..a2772e725 100644
  				ENABLE_HARDENED_RUNTIME = YES;
  				ENABLE_PREVIEWS = YES;
 -				EXECUTABLE_NAME = ghostty;
-+				EXECUTABLE_NAME = aht;
++				EXECUTABLE_NAME = ahterm;
  				GCC_OPTIMIZATION_LEVEL = fast;
  				GENERATE_INFOPLIST_FILE = YES;
  				INFOPLIST_FILE = "Ghostty-Info.plist";

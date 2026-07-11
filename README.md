@@ -1,6 +1,6 @@
 # Astrohacker Terminal
 
-Astrohacker Terminal is a terminal with a real browser in the pane. Run `web`,
+Astrohacker Terminal is a terminal with a real browser in the pane. Run `ahweb`,
 open a URL, and the page appears alongside shells, editors, and other terminal
 workflows.
 
@@ -10,7 +10,7 @@ private Astrohacker monorepo for source releases. It includes:
 - `assets/astrohacker-terminal/` — product images and Terminal assets.
 - `docs/` — product docs and public Terminal records.
 - `scripts/` — public build/install helpers and smoke scripts.
-- `rust/` — Rust workspace crates for `web`, Chromium, WebKit, Ladybird, GTUI,
+- `rust/` — Rust workspace crates for `ahweb`, Chromium, WebKit, Ladybird, GTUI,
   and protocol/native support code.
 - `bun/gtui-app/` — GTUI app assets used by the Terminal package.
 - `patches/` — fork patch archives and reconstruction notes for Chromium,
@@ -58,7 +58,7 @@ client components:
 ./scripts/build.sh webkit
 ./scripts/build.sh webkit
 ./scripts/build.sh webtui
-./scripts/build.sh aht
+./scripts/build.sh ahterm
 ```
 
 For a release-style local build:
@@ -85,11 +85,11 @@ cd macos
 ./build.nu --configuration Debug --action build
 ```
 
-Inside Astrohacker Terminal, run the debug `web` binary and point it at a local
+Inside Astrohacker Terminal, run the debug `ahweb` binary and point it at a local
 engine build:
 
 ```bash
-./rust/target/debug/web \
+./rust/target/debug/ahweb \
   --browser ./forks/chromium/src/out/Default/ah-chromiumd \
   https://example.com
 ```

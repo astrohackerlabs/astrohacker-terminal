@@ -146,7 +146,7 @@ index 3a8bfd9a4..a452f3b4f 100644
  license = "MPL-2.0"
  rust-version = "1.90"
 diff --git a/README.md b/README.md
-index c1beb780a..0553a1d34 100644
+index c1beb780a..fe330d629 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,64 +1,84 @@
@@ -171,7 +171,7 @@ index c1beb780a..0553a1d34 100644
 -[![Matrix Space](https://img.shields.io/matrix/helix-community:matrix.org)](https://matrix.to/#/#helix-community:matrix.org)
 -
 -</div>
-+The terminal binary is `ahe`.
++The terminal binary is `ahed`.
  
  ![Screenshot](./screenshot.png)
  
@@ -213,11 +213,11 @@ index c1beb780a..0553a1d34 100644
 +Verify the install:
 +
 +```bash
-+ahe --version
-+ahe --health rust
++ahed --version
++ahed --health rust
 +```
 +
-+The current Homebrew formula targets macOS arm64. It installs the `ahe` binary
++The current Homebrew formula targets macOS arm64. It installs the `ahed` binary
 +and the runtime assets needed for syntax highlighting.
 +
 +### From Source
@@ -235,7 +235,7 @@ index c1beb780a..0553a1d34 100644
 -Note: Only certain languages have indentation definitions at the moment. Check
 -`runtime/queries/<lang>/` for `indents.scm`.
 +```bash
-+target/release/ahe
++target/release/ahed
 +```
  
 -# Installation
@@ -243,8 +243,8 @@ index c1beb780a..0553a1d34 100644
  
 -[Installation documentation](https://docs.helix-editor.com/install.html).
 +```bash
-+target/release/ahe --grammar fetch
-+target/release/ahe --grammar build
++target/release/ahed --grammar fetch
++target/release/ahed --grammar build
 +```
  
 -[![Packaging status](https://repology.org/badge/vertical-allrepos/helix-editor.svg?exclude_unsupported=1)](https://repology.org/project/helix-editor/versions)
@@ -288,7 +288,7 @@ index ec3a9df7e..3921e3d4a 100644
  - [Configuration](./configuration.md)
    - [Editor](./editor.md)
 diff --git a/book/src/building-from-source.md b/book/src/building-from-source.md
-index f8cc04b4e..bec0b7b10 100644
+index f8cc04b4e..5667f1185 100644
 --- a/book/src/building-from-source.md
 +++ b/book/src/building-from-source.md
 @@ -11,15 +11,18 @@ ## Building from source
@@ -328,7 +328,7 @@ index f8cc04b4e..bec0b7b10 100644
     ```
  
 -   Either command will create the `hx` executable and construct the tree-sitter
-+   Either command will create the `ahe` executable and construct the tree-sitter
++   Either command will create the `ahed` executable and construct the tree-sitter
     grammars in the local `runtime` folder.
  
 -> 💡 If you do not want to fetch or build grammars, set an environment variable `HELIX_DISABLE_AUTO_GRAMMAR_BUILD`
@@ -339,8 +339,8 @@ index f8cc04b4e..bec0b7b10 100644
 -> grammars with `hx --grammar fetch` and compile them with
 -> `hx --grammar build`. This will install them in
 -> the `runtime` directory within the user's helix config directory (more
-+> grammars with `ahe --grammar fetch` and compile them with
-+> `ahe --grammar build`. This will install them in the `runtime` directory
++> grammars with `ahed --grammar fetch` and compile them with
++> `ahed --grammar build`. This will install them in the `runtime` directory
 +> within the user's helix config directory (more
  > [details below](#multiple-runtime-directories)).
  
@@ -446,12 +446,12 @@ index f8cc04b4e..bec0b7b10 100644
  1. `cargo build --profile opt --locked`
  1. `cp -r runtime $BUILD_DIR/usr/lib/helix/`
 -1. `cp target/opt/hx $BUILD_DIR/usr/bin/hx`
-+1. `cp target/opt/ahe $BUILD_DIR/usr/bin/ahe`
++1. `cp target/opt/ahed $BUILD_DIR/usr/bin/ahed`
  
 -This way the resulting `hx` binary will always look for its runtime directory in
 -`/usr/lib/helix/runtime` if the user has no custom runtime in `~/.config/helix`
 -or `HELIX_RUNTIME`.
-+This way the resulting `ahe` binary will always look for its runtime directory
++This way the resulting `ahed` binary will always look for its runtime directory
 +in `/usr/lib/helix/runtime` if the user has no custom runtime in
 +`~/.config/helix` or `ASTROHACKER_EDITOR_RUNTIME`.
  
@@ -462,7 +462,7 @@ index f8cc04b4e..bec0b7b10 100644
  
  ```sh
 -hx --health
-+ahe --health
++ahed --health
  ```
  
  For more information on the health check results refer to
@@ -477,7 +477,7 @@ index f8cc04b4e..bec0b7b10 100644
  
  ```sh
 -sed -i -e "s|Exec=hx %F|Exec=$(readlink -f ~/.cargo/bin/hx) %F|g" \
-+sed -i -e "s|Exec=ahe %F|Exec=$(readlink -f ~/.cargo/bin/ahe) %F|g" \
++sed -i -e "s|Exec=ahed %F|Exec=$(readlink -f ~/.cargo/bin/ahed) %F|g" \
    -e "s|Icon=helix|Icon=$(readlink -f ~/.icons/helix.png)|g" ~/.local/share/applications/Helix.desktop
  ```
  
@@ -486,7 +486,7 @@ index f8cc04b4e..bec0b7b10 100644
  
  ```sh
 -sed -i "s|Exec=hx %F|Exec=kitty hx %F|g" ~/.local/share/applications/Helix.desktop
-+sed -i "s|Exec=ahe %F|Exec=kitty ahe %F|g" ~/.local/share/applications/Helix.desktop
++sed -i "s|Exec=ahed %F|Exec=kitty ahed %F|g" ~/.local/share/applications/Helix.desktop
  sed -i "s|Terminal=true|Terminal=false|g" ~/.local/share/applications/Helix.desktop
  ```
  
@@ -507,7 +507,7 @@ index f8cc04b4e..bec0b7b10 100644
 -> 💡 This locks you into the `--release` profile. But you can also build helix in any way you like.
 -> As long as you leave a `target/release/hx` file, it will get packaged with `cargo deb --no-build`
 +> 💡 This locks you into the `--release` profile. But you can also build helix
-+> in any way you like. As long as you leave a `target/release/ahe` file, it will
++> in any way you like. As long as you leave a `target/release/ahed` file, it will
 +> get packaged with `cargo deb --no-build`
  
  > 💡 Don't worry about the following:
@@ -546,7 +546,7 @@ index 3d9be1224..40d00fa6e 100644
  | `selection` | A string containing the contents of the primary selection of the currently focused document. |
  | `selection_line_start` | The line number of the start of the primary selection in the currently focused document, starting at 1. |
 diff --git a/book/src/configuration.md b/book/src/configuration.md
-index df5f89554..8abfb37c8 100644
+index df5f89554..b86408dc8 100644
 --- a/book/src/configuration.md
 +++ b/book/src/configuration.md
 @@ -1,11 +1,13 @@
@@ -577,10 +577,10 @@ index df5f89554..8abfb37c8 100644
 -Its settings will be merged with the configuration directory and the built-in configuration.
 -
 +`--config` command line argument, for example
-+`ahe -c path/to/custom-config.toml`. You can reload the config file by issuing
++`ahed -c path/to/custom-config.toml`. You can reload the config file by issuing
 +the `:config-reload` command. Alternatively, on Unix operating systems, you can
 +reload it by sending the USR1 signal to the Helix process, such as by using the
-+command `pkill -USR1 ahe`.
++command `pkill -USR1 ahed`.
 +
 +Finally, you can have a `config.toml` and a `languages.toml` local to a project
 +by putting it under a `.astrohacker/editor` directory in your repository. Its settings will
@@ -624,7 +624,7 @@ index 872fa8a62..95d9bcf42 100644
  trusted = ["~/src/github.com/me/*"]
  ```
 diff --git a/book/src/guides/adding_languages.md b/book/src/guides/adding_languages.md
-index 6eca02831..3ce898d4b 100644
+index 6eca02831..a09713227 100644
 --- a/book/src/guides/adding_languages.md
 +++ b/book/src/guides/adding_languages.md
 @@ -8,8 +8,9 @@ ## Language configuration
@@ -682,8 +682,8 @@ index 6eca02831..3ce898d4b 100644
  - If you encounter errors when running Helix after switching branches, you may
 -  need to update the tree-sitter grammars. Run the command `hx --grammar fetch`
 -  to fetch the grammars and `hx --grammar build` to build any out-of-date
-+  need to update the tree-sitter grammars. Run the command `ahe --grammar fetch`
-+  to fetch the grammars and `ahe --grammar build` to build any out-of-date
++  need to update the tree-sitter grammars. Run the command `ahed --grammar fetch`
++  to fetch the grammars and `ahed --grammar build` to build any out-of-date
    grammars.
  - If a parser is causing a segfault, or you want to remove it, make sure to
    remove the compiled parser located at `runtime/grammars/<name>.so`.
@@ -697,7 +697,7 @@ index 6eca02831..3ce898d4b 100644
 +  additionally run the real highlighter and indenter over the test fixtures
 +  catch mistakes.
 diff --git a/book/src/install.md b/book/src/install.md
-index 021feceb2..cc462e280 100644
+index 021feceb2..9cd15bf01 100644
 --- a/book/src/install.md
 +++ b/book/src/install.md
 @@ -1,6 +1,7 @@
@@ -718,22 +718,22 @@ index 021feceb2..cc462e280 100644
 -To set up Helix:
 +Download pre-built binaries from the
 +[GitHub Releases page](https://github.com/helix-editor/helix/releases). The
-+tarball contents include a `ahe` binary and a `runtime` directory. To set up
++tarball contents include a `ahed` binary and a `runtime` directory. To set up
 +Helix:
  
 -1. Add the `hx` binary to your system's `$PATH` to allow it to be used from the command line.
 -2. Copy the `runtime` directory to a location that `hx` searches for runtime files. A typical location on Linux/macOS is `~/.config/helix/runtime`.
-+1. Add the `ahe` binary to your system's `$PATH` to allow it to be used from the
++1. Add the `ahed` binary to your system's `$PATH` to allow it to be used from the
 +   command line.
-+2. Copy the `runtime` directory to a location that `ahe` searches for runtime
++2. Copy the `runtime` directory to a location that `ahed` searches for runtime
 +   files. A typical location on Linux/macOS is `~/.config/helix/runtime`.
  
 -To see the runtime directories that `hx` searches, run `hx --health`. If necessary, you can override the default runtime location by setting the `HELIX_RUNTIME` environment variable.
-+To see the runtime directories that `ahe` searches, run `ahe --health`. If
++To see the runtime directories that `ahed` searches, run `ahed --health`. If
 +necessary, you can override the default runtime location by setting the
 +`ASTROHACKER_EDITOR_RUNTIME` environment variable.
 diff --git a/book/src/lang-support.md b/book/src/lang-support.md
-index 3b3261645..4b2c8c5c1 100644
+index 3b3261645..213355496 100644
 --- a/book/src/lang-support.md
 +++ b/book/src/lang-support.md
 @@ -1,16 +1,18 @@
@@ -748,7 +748,7 @@ index 3b3261645..4b2c8c5c1 100644
  
 -You can check the language support in your installed helix version with `hx --health`.
 +You can check the language support in your installed helix version with
-+`ahe --health`.
++`ahed --health`.
  
  Also see the [Language Configuration][lang-config] docs and the [Adding
  Languages][adding-languages] guide for more language configuration information.
@@ -761,7 +761,7 @@ index 3b3261645..4b2c8c5c1 100644
  [lang-config]: ./languages.md
  [adding-languages]: ./guides/adding_languages.md
 diff --git a/book/src/languages.md b/book/src/languages.md
-index 8882b44c7..291cc222f 100644
+index 8882b44c7..366ce97d1 100644
 --- a/book/src/languages.md
 +++ b/book/src/languages.md
 @@ -1,7 +1,7 @@
@@ -1048,14 +1048,14 @@ index 8882b44c7..291cc222f 100644
 +| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 +| `git`     | A git remote URL from which the grammar should be cloned                                                                                                                                                                                                                                                                        |
 +| `rev`     | The revision (commit hash or tag) which should be fetched                                                                                                                                                                                                                                                                       |
-+| `subpath` | A path within the grammar directory which should be built. Some grammar repositories host multiple grammars (for example `tree-sitter-typescript` and `tree-sitter-ocaml`) in subdirectories. This key is used to point `ahe --grammar build` to the correct path for compilation. When omitted, the root of repository is used |
++| `subpath` | A path within the grammar directory which should be built. Some grammar repositories host multiple grammars (for example `tree-sitter-typescript` and `tree-sitter-ocaml`) in subdirectories. This key is used to point `ahed --grammar build` to the correct path for compilation. When omitted, the root of repository is used |
  
  ### Choosing grammars
  
 -You may use a top-level `use-grammars` key to control which grammars are
 -fetched and built when using `hx --grammar fetch` and `hx --grammar build`.
 +You may use a top-level `use-grammars` key to control which grammars are fetched
-+and built when using `ahe --grammar fetch` and `ahe --grammar build`.
++and built when using `ahed --grammar fetch` and `ahed --grammar build`.
  
  ```toml
  # Note: this key must come **before** the [[language]] and [[grammar]] sections
@@ -1067,7 +1067,7 @@ index 8882b44c7..291cc222f 100644
 +[treesitter-language-injection]:
 +  https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html#language-injection
 diff --git a/book/src/lsp.md b/book/src/lsp.md
-index 8862b0998..c1581d0c7 100644
+index 8862b0998..022e4bb6b 100644
 --- a/book/src/lsp.md
 +++ b/book/src/lsp.md
 @@ -4,10 +4,10 @@ # Language servers
@@ -1080,7 +1080,7 @@ index 8862b0998..c1581d0c7 100644
 +configuration wiki][wiki] has per-server installation notes.
  
 -Run `hx --health <language>` to check whether Helix found the configured server
-+Run `ahe --health <language>` to check whether Helix found the configured server
++Run `ahed --health <language>` to check whether Helix found the configured server
  for a language. After changing a server's configuration, `:lsp-restart` reloads
  it and `:lsp-stop` stops it; `:lsp-workspace-command` runs a command the server
  exposes for the workspace.
@@ -1382,7 +1382,7 @@ index 0963388d4..596f63164 100644
  | `ui.background.separator`         | Picker separator below input line                                                              |
  | `ui.cursor`                       |                                                                                                |
 diff --git a/book/src/usage.md b/book/src/usage.md
-index b0d77613c..a6ff24bd6 100644
+index b0d77613c..86e929fcf 100644
 --- a/book/src/usage.md
 +++ b/book/src/usage.md
 @@ -2,32 +2,47 @@ # Using Helix
@@ -1390,7 +1390,7 @@ index b0d77613c..a6ff24bd6 100644
  For a full interactive introduction to Helix, refer to the
  [tutor](https://github.com/helix-editor/helix/blob/master/runtime/tutor) which
 -can be accessed via the command `hx --tutor` or `:tutor`.
-+can be accessed via the command `ahe --tutor` or `:tutor`.
++can be accessed via the command `ahed --tutor` or `:tutor`.
  
  > 💡 Currently, not all functionality is fully documented, please refer to the
  > [key mappings](./keymap.md) list.
@@ -1747,7 +1747,7 @@ index d501110c8..87670078a 100644
  > repository that later lands under a matching path — including one you
  > clone into `~/src/github.com/me/` from an untrusted source. Prefer
 diff --git a/contrib/Helix.appdata.xml b/contrib/Helix.appdata.xml
-index eb8ce9dc6..b0e1c7682 100644
+index eb8ce9dc6..acd7b9c5b 100644
 --- a/contrib/Helix.appdata.xml
 +++ b/contrib/Helix.appdata.xml
 @@ -4,7 +4,7 @@
@@ -1764,12 +1764,12 @@ index eb8ce9dc6..b0e1c7682 100644
  
    <provides>
 -    <binary>hx</binary>
-+    <binary>ahe</binary>
++    <binary>ahed</binary>
      <mediatype>text/english</mediatype>
      <mediatype>text/plain</mediatype>
      <mediatype>text/x-makefile</mediatype>
 diff --git a/contrib/Helix.desktop b/contrib/Helix.desktop
-index 666828716..3ad354b5f 100644
+index 666828716..2e1ccb064 100644
 --- a/contrib/Helix.desktop
 +++ b/contrib/Helix.desktop
 @@ -75,8 +75,8 @@ Comment[vi]=Soạn thảo tập tin văn bản
@@ -1778,33 +1778,33 @@ index 666828716..3ad354b5f 100644
  Comment[zh_TW]=編輯文字檔
 -TryExec=hx
 -Exec=hx %F
-+TryExec=ahe
-+Exec=ahe %F
++TryExec=ahed
++Exec=ahed %F
  Terminal=true
  Type=Application
  Keywords=Text;editor;
-diff --git a/contrib/ahe_launcher.sh b/contrib/ahe_launcher.sh
+diff --git a/contrib/ahed_launcher.sh b/contrib/ahed_launcher.sh
 new file mode 100755
-index 000000000..5f396eda5
+index 000000000..c4fe07954
 --- /dev/null
-+++ b/contrib/ahe_launcher.sh
++++ b/contrib/ahed_launcher.sh
 @@ -0,0 +1,3 @@
 +#!/usr/bin/env sh
 +
-+ASTROHACKER_EDITOR_RUNTIME=/usr/lib/helix/runtime exec /usr/lib/helix/ahe "$@"
-diff --git a/contrib/completion/hx.bash b/contrib/completion/ahe.bash
++ASTROHACKER_EDITOR_RUNTIME=/usr/lib/helix/runtime exec /usr/lib/helix/ahed "$@"
+diff --git a/contrib/completion/hx.bash b/contrib/completion/ahed.bash
 similarity index 83%
 rename from contrib/completion/hx.bash
-rename to contrib/completion/ahe.bash
-index 8dbb0cbbb..fd265fc03 100644
+rename to contrib/completion/ahed.bash
+index 8dbb0cbbb..9ea1e5292 100644
 --- a/contrib/completion/hx.bash
-+++ b/contrib/completion/ahe.bash
++++ b/contrib/completion/ahed.bash
 @@ -1,7 +1,7 @@
  #!/usr/bin/env bash
  # Bash completion script for Helix editor
  
 -_hx() {
-+_ahe() {
++_ahed() {
      local cur prev languages
      COMPREPLY=()
      cur="${COMP_WORDS[COMP_CWORD]}"
@@ -1813,7 +1813,7 @@ index 8dbb0cbbb..fd265fc03 100644
          ;;
      --health)
 -        languages=$(hx --health all-languages | tail -n '+2' | awk '{print $1}' | sed 's/\x1b\[[0-9;]*m//g')
-+        languages=$(ahe --health all-languages | tail -n '+2' | awk '{print $1}' | sed 's/\x1b\[[0-9;]*m//g')
++        languages=$(ahed --health all-languages | tail -n '+2' | awk '{print $1}' | sed 's/\x1b\[[0-9;]*m//g')
          mapfile -t COMPREPLY < <(compgen -W """clipboard languages all-languages all $languages""" -- "$cur")
          return 0
          ;;
@@ -1822,19 +1822,19 @@ index 8dbb0cbbb..fd265fc03 100644
          ;;
      esac
 -} && complete -o filenames -F _hx hx
-+} && complete -o filenames -F _ahe ahe
-diff --git a/contrib/completion/hx.elv b/contrib/completion/ahe.elv
++} && complete -o filenames -F _ahed ahed
+diff --git a/contrib/completion/hx.elv b/contrib/completion/ahed.elv
 similarity index 89%
 rename from contrib/completion/hx.elv
-rename to contrib/completion/ahe.elv
-index d5ff7828c..948d0d542 100644
+rename to contrib/completion/ahed.elv
+index d5ff7828c..697fa8d4a 100644
 --- a/contrib/completion/hx.elv
-+++ b/contrib/completion/ahe.elv
++++ b/contrib/completion/ahed.elv
 @@ -1,5 +1,5 @@
 -# You can move it here ~/.config/elvish/lib/hx.elv
 -# Or add `eval (slurp < ~/$REPOS/helix/contrib/completion/hx.elv)`
-+# You can move it here ~/.config/elvish/lib/ahe.elv
-+# Or add `eval (slurp < ~/$REPOS/helix/contrib/completion/ahe.elv)`
++# You can move it here ~/.config/elvish/lib/ahed.elv
++# Or add `eval (slurp < ~/$REPOS/helix/contrib/completion/ahed.elv)`
  # Be sure to replace `$REPOS` with something that makes sense for you!
  
  ### Renders a pretty completion candidate
@@ -1844,53 +1844,53 @@ index d5ff7828c..948d0d542 100644
  
 -### Set an arg-completer for the `hx` binary
 -set edit:completion:arg-completer[hx] = {|@args|
-+### Set an arg-completer for the `ahe` binary
-+set edit:completion:arg-completer[ahe] = {|@args|
++### Set an arg-completer for the `ahed` binary
++set edit:completion:arg-completer[ahed] = {|@args|
    var n = (count $args)
    if (>= $n 3) {
      # Stop completions if passed arg will take precedence
-diff --git a/contrib/completion/ahe.fish b/contrib/completion/ahe.fish
+diff --git a/contrib/completion/ahed.fish b/contrib/completion/ahed.fish
 new file mode 100644
-index 000000000..a6123fffc
+index 000000000..504b0fb5c
 --- /dev/null
-+++ b/contrib/completion/ahe.fish
++++ b/contrib/completion/ahed.fish
 @@ -0,0 +1,23 @@
 +#!/usr/bin/env fish
 +# Fish completion script for Helix editor
 +
-+complete -c ahe -s h -l help -d "Prints help information"
-+complete -c ahe -l strict -d "Bail on error for commands that can fail"
-+complete -c ahe -l tutor -d "Loads the tutorial"
-+complete -c ahe -l health -xa "(__ahe_langs_ops)" -d "Checks for errors"
-+complete -c ahe -l health -xka all -d "Prints all diagnostic informations"
-+complete -c ahe -l health -xka all-languages -d "Lists all languages"
-+complete -c ahe -l health -xka languages -d "Lists user configured languages"
-+complete -c ahe -l health -xka clipboard -d "Prints system clipboard provider"
-+complete -c ahe -s g -l grammar -x -a "fetch build" -d "Fetch or build tree-sitter grammars"
-+complete -c ahe -s v -o vv -o vvv -d "Increases logging verbosity"
-+complete -c ahe -s V -l version -d "Prints version information"
-+complete -c ahe -l vsplit -d "Splits all given files vertically"
-+complete -c ahe -l hsplit -d "Splits all given files horizontally"
-+complete -c ahe -s c -l config -r -d "Specifies a file to use for config"
-+complete -c ahe -l log -r -d "Specifies a file to use for logging"
-+complete -c ahe -s w -l working-dir -d "Specify initial working directory" -xa "(__fish_complete_directories)"
++complete -c ahed -s h -l help -d "Prints help information"
++complete -c ahed -l strict -d "Bail on error for commands that can fail"
++complete -c ahed -l tutor -d "Loads the tutorial"
++complete -c ahed -l health -xa "(__ahed_langs_ops)" -d "Checks for errors"
++complete -c ahed -l health -xka all -d "Prints all diagnostic informations"
++complete -c ahed -l health -xka all-languages -d "Lists all languages"
++complete -c ahed -l health -xka languages -d "Lists user configured languages"
++complete -c ahed -l health -xka clipboard -d "Prints system clipboard provider"
++complete -c ahed -s g -l grammar -x -a "fetch build" -d "Fetch or build tree-sitter grammars"
++complete -c ahed -s v -o vv -o vvv -d "Increases logging verbosity"
++complete -c ahed -s V -l version -d "Prints version information"
++complete -c ahed -l vsplit -d "Splits all given files vertically"
++complete -c ahed -l hsplit -d "Splits all given files horizontally"
++complete -c ahed -s c -l config -r -d "Specifies a file to use for config"
++complete -c ahed -l log -r -d "Specifies a file to use for logging"
++complete -c ahed -s w -l working-dir -d "Specify initial working directory" -xa "(__fish_complete_directories)"
 +
-+function __ahe_langs_ops
-+    ahe --health all-languages | tail -n '+2' | string replace -fr '^(\S+) .*' '$1'
++function __ahed_langs_ops
++    ahed --health all-languages | tail -n '+2' | string replace -fr '^(\S+) .*' '$1'
 +end
-diff --git a/contrib/completion/hx.nu b/contrib/completion/ahe.nu
+diff --git a/contrib/completion/hx.nu b/contrib/completion/ahed.nu
 similarity index 92%
 rename from contrib/completion/hx.nu
-rename to contrib/completion/ahe.nu
-index 0bb85736b..a8a5f9352 100644
+rename to contrib/completion/ahed.nu
+index 0bb85736b..d8bced32e 100644
 --- a/contrib/completion/hx.nu
-+++ b/contrib/completion/ahe.nu
++++ b/contrib/completion/ahed.nu
 @@ -5,15 +5,15 @@
  #       The help message won't be overridden though, so it will still be present here
  
  def health_categories [] {
 -    let languages = ^hx --health all-languages | detect columns | get Language | where { $in != null }
-+    let languages = ^ahe --health all-languages | detect columns | get Language | where { $in != null }
++    let languages = ^ahed --health all-languages | detect columns | get Language | where { $in != null }
      let completions = [ "all", "clipboard", "languages", "all-languages" ] | append $languages
      return $completions
  }
@@ -1900,24 +1900,24 @@ index 0bb85736b..a8a5f9352 100644
 -# A post-modern text editor.
 -export extern hx [
 +# Astrohacker Editor.
-+export extern ahe [
++export extern ahed [
      --help(-h),                                 # Prints help information
      --strict,                                   # Bail on error for commands that can fail
      --tutor,                                    # Loads the tutorial
-diff --git a/contrib/completion/hx.zsh b/contrib/completion/ahe.zsh
+diff --git a/contrib/completion/hx.zsh b/contrib/completion/ahed.zsh
 similarity index 87%
 rename from contrib/completion/hx.zsh
-rename to contrib/completion/ahe.zsh
-index be86fdf65..17bce26a2 100644
+rename to contrib/completion/ahed.zsh
+index be86fdf65..8dd494527 100644
 --- a/contrib/completion/hx.zsh
-+++ b/contrib/completion/ahe.zsh
++++ b/contrib/completion/ahed.zsh
 @@ -1,7 +1,7 @@
 -#compdef _hx hx
-+#compdef _ahe ahe
++#compdef _ahed ahed
  # Zsh completion script for Helix editor
  
 -_hx() {
-+_ahe() {
++_ahed() {
  	_arguments -C \
  		"-h[Prints help information]" \
  		"--help[Prints help information]" \
@@ -1926,7 +1926,7 @@ index be86fdf65..17bce26a2 100644
  	case "$state" in
  	health)
 -		local languages=($(hx --health all-languages | tail -n '+2' | awk '{print $1}' | sed 's/\x1b\[[0-9;]*m//g;s/[✘✓]//g'))
-+		local languages=($(ahe --health all-languages | tail -n '+2' | awk '{print $1}' | sed 's/\x1b\[[0-9;]*m//g;s/[✘✓]//g'))
++		local languages=($(ahed --health all-languages | tail -n '+2' | awk '{print $1}' | sed 's/\x1b\[[0-9;]*m//g;s/[✘✓]//g'))
  		_values 'language' $languages
  		;;
  	grammar)
@@ -1969,7 +1969,7 @@ index 148f7776a..000000000
 -
 -HELIX_RUNTIME=/usr/lib/helix/runtime exec /usr/lib/helix/hx "$@"
 diff --git a/default.nix b/default.nix
-index 137dee5a0..8da926c74 100644
+index 137dee5a0..8ae786d4a 100644
 --- a/default.nix
 +++ b/default.nix
 @@ -71,17 +71,17 @@ in
@@ -1983,7 +1983,7 @@ index 137dee5a0..8da926c74 100644
      postInstall = ''
        mkdir -p $out/lib
 -      installShellCompletion ${./contrib/completion}/hx.{bash,fish,zsh}
-+      installShellCompletion ${./contrib/completion}/ahe.{bash,fish,zsh}
++      installShellCompletion ${./contrib/completion}/ahed.{bash,fish,zsh}
        mkdir -p $out/share/{applications,icons/hicolor/{256x256,scalable}/apps}
        cp ${./contrib/Helix.desktop} $out/share/applications/Helix.desktop
        cp ${./logo.svg} $out/share/icons/hicolor/scalable/apps/helix.svg
@@ -1991,10 +1991,10 @@ index 137dee5a0..8da926c74 100644
      '';
  
 -    meta.mainProgram = "hx";
-+    meta.mainProgram = "ahe";
++    meta.mainProgram = "ahed";
    })
 diff --git a/docs/CONTRIBUTING.md b/docs/CONTRIBUTING.md
-index 865190331..5a098a5cf 100644
+index 865190331..d1c752399 100644
 --- a/docs/CONTRIBUTING.md
 +++ b/docs/CONTRIBUTING.md
 @@ -1,31 +1,39 @@
@@ -2018,7 +2018,7 @@ index 865190331..5a098a5cf 100644
 -- Looking for even faster compile times? Give [mold](https://github.com/rui314/mold) a try
 +  - Print using `log::info!`, `warn!`, or `error!`. (`log::info!("helix!")`)
 +  - Pass the appropriate verbosity level option for the desired log level.
-+    (`ahe -v <file>` for info, more `v`s for higher verbosity)
++    (`ahed -v <file>` for info, more `v`s for higher verbosity)
 +  - Want to display the logs in a separate file instead of using the `:log-open`
 +    command in your compiled Helix editor? Start your debug version with
 +    `cargo run -- --log foo.log` and in a new terminal use `tail -f foo.log`
@@ -2189,7 +2189,7 @@ index c3c83385e..f886b8b83 100644
  pub fn user_lang_config(trust: &WorkspaceTrust) -> Result<toml::Value, toml::de::Error> {
      let global_config = crate::lang_config_file();
 diff --git a/helix-loader/src/grammar.rs b/helix-loader/src/grammar.rs
-index f1ee137f3..2fdd8f4c3 100644
+index f1ee137f3..0ef3322ad 100644
 --- a/helix-loader/src/grammar.rs
 +++ b/helix-loader/src/grammar.rs
 @@ -88,7 +88,7 @@ fn ensure_git_is_available() -> Result<()> {
@@ -2215,7 +2215,7 @@ index f1ee137f3..2fdd8f4c3 100644
      let grammar_dir_entries = grammar_dir.read_dir().with_context(|| {
          format!(
 -            "Failed to read directory {:?}. Did you use 'hx --grammar fetch'?",
-+            "Failed to read directory {:?}. Did you use 'ahe --grammar fetch'?",
++            "Failed to read directory {:?}. Did you use 'ahed --grammar fetch'?",
              grammar_dir
          )
      })?;
@@ -2223,7 +2223,7 @@ index f1ee137f3..2fdd8f4c3 100644
      if grammar_dir_entries.count() == 0 {
          return Err(anyhow!(
 -            "Directory {:?} is empty. Did you use 'hx --grammar fetch'?",
-+            "Directory {:?} is empty. Did you use 'ahe --grammar fetch'?",
++            "Directory {:?} is empty. Did you use 'ahed --grammar fetch'?",
              grammar_dir
          ));
      };
@@ -2689,7 +2689,7 @@ index 677840b24..0b26f21f5 100644
  
          assert_eq!(trust.status(workspace), TrustStatus::Stale);
 diff --git a/helix-term/Cargo.toml b/helix-term/Cargo.toml
-index 2f3809da1..804dacdb3 100644
+index 2f3809da1..04174b421 100644
 --- a/helix-term/Cargo.toml
 +++ b/helix-term/Cargo.toml
 @@ -1,8 +1,8 @@
@@ -2699,7 +2699,7 @@ index 2f3809da1..804dacdb3 100644
 +description = "Astrohacker Editor."
  include = ["src/**/*", "README.md"]
 -default-run = "hx"
-+default-run = "ahe"
++default-run = "ahed"
  version.workspace = true
  authors.workspace = true
  edition.workspace = true
@@ -2709,8 +2709,8 @@ index 2f3809da1..804dacdb3 100644
  assets = [
 -  { source = "target/release/hx", dest = "/usr/lib/helix/", mode = "755" },
 -  { source = "../contrib/hx_launcher.sh", dest = "/usr/bin/hx", mode = "755" },
-+  { source = "target/release/ahe", dest = "/usr/lib/helix/", mode = "755" },
-+  { source = "../contrib/ahe_launcher.sh", dest = "/usr/bin/ahe", mode = "755" },
++  { source = "target/release/ahed", dest = "/usr/lib/helix/", mode = "755" },
++  { source = "../contrib/ahed_launcher.sh", dest = "/usr/bin/ahed", mode = "755" },
    { source = "../runtime/*", dest = "/usr/lib/helix/runtime/", mode = "644" },
    { source = "../runtime/grammars/*", dest = "/usr/lib/helix/runtime/grammars/", mode = "644" }, # to avoid sources/
    { source = "../runtime/queries/**/*", dest = "/usr/lib/helix/runtime/queries/", mode = "644" },
@@ -2719,9 +2719,9 @@ index 2f3809da1..804dacdb3 100644
 -  { source = "../contrib/completion/hx.bash", dest = "/usr/share/bash-completion/completions/hx", mode = "644" },
 -  { source = "../contrib/completion/hx.fish", dest = "/usr/share/fish/vendor_completions.d/hx.fish", mode = "644" },
 -  { source = "../contrib/completion/hx.zsh", dest = "/usr/share/zsh/vendor-completions/_hx", mode = "644" },
-+  { source = "../contrib/completion/ahe.bash", dest = "/usr/share/bash-completion/completions/ahe", mode = "644" },
-+  { source = "../contrib/completion/ahe.fish", dest = "/usr/share/fish/vendor_completions.d/ahe.fish", mode = "644" },
-+  { source = "../contrib/completion/ahe.zsh", dest = "/usr/share/zsh/vendor-completions/_ahe", mode = "644" },
++  { source = "../contrib/completion/ahed.bash", dest = "/usr/share/bash-completion/completions/ahed", mode = "644" },
++  { source = "../contrib/completion/ahed.fish", dest = "/usr/share/fish/vendor_completions.d/ahed.fish", mode = "644" },
++  { source = "../contrib/completion/ahed.zsh", dest = "/usr/share/zsh/vendor-completions/_ahed", mode = "644" },
    { source = "../contrib/Helix.desktop", dest = "/usr/share/applications/Helix.desktop", mode = "644" },
    { source = "../contrib/helix.png", dest = "/usr/share/icons/hicolor/256x256/apps/helix.png", mode = "644" },
  ]
@@ -2730,7 +2730,7 @@ index 2f3809da1..804dacdb3 100644
  
  [[bin]]
 -name = "hx"
-+name = "ahe"
++name = "ahed"
  path = "src/main.rs"
  
  [dependencies]
@@ -3233,7 +3233,7 @@ index 765107bed..755d73762 100644
  use std::io::Write;
  use std::path::Path;
 diff --git a/helix-term/src/main.rs b/helix-term/src/main.rs
-index bd3782ca7..135f8475a 100644
+index bd3782ca7..3de90693c 100644
 --- a/helix-term/src/main.rs
 +++ b/helix-term/src/main.rs
 @@ -4,6 +4,9 @@
@@ -3251,7 +3251,7 @@ index bd3782ca7..135f8475a 100644
  
  USAGE:
 -    hx [FLAGS] [files]...
-+    ahe [FLAGS] [files]...
++    ahed [FLAGS] [files]...
  
  ARGS:
      <files>...    Set the input file to use, position can also be specified via file[:row[:col]]
@@ -4781,7 +4781,7 @@ index 9066acd10..25e4280d0 100644
  comment-token = "#"
  grammar = "gitignore"
 diff --git a/runtime/tutor b/runtime/tutor
-index e6e4fc499..0511aba4f 100644
+index e6e4fc499..91db0ade7 100644
 --- a/runtime/tutor
 +++ b/runtime/tutor
 @@ -142,7 +142,7 @@
@@ -4789,7 +4789,7 @@ index e6e4fc499..0511aba4f 100644
   1. Exit Helix using :q! as explained before, or open a new
      terminal.
 - 2. Open a file in Helix by running: hx FILENAME
-+ 2. Open a file in Helix by running: ahe FILENAME
++ 2. Open a file in Helix by running: ahed FILENAME
   3. Make some edits to the file.
   4. Type : to enter Command mode.
   5. Type w or write, and press Enter to save the file.

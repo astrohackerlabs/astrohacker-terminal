@@ -26,13 +26,13 @@ fn main() -> io::Result<()> {
     let pane_id = std::env::var("TERMSURF_PANE_ID").map_err(|_| {
         io::Error::new(
             io::ErrorKind::NotFound,
-            "TERMSURF_PANE_ID not set; run termsurf inside TermSurf",
+            "TERMSURF_PANE_ID not set; run ahapp inside Astrohacker Terminal",
         )
     })?;
     let socket = std::env::var("TERMSURF_SOCKET").map_err(|_| {
         io::Error::new(
             io::ErrorKind::NotFound,
-            "TERMSURF_SOCKET not set; run termsurf inside TermSurf",
+            "TERMSURF_SOCKET not set; run ahapp inside Astrohacker Terminal",
         )
     })?;
 

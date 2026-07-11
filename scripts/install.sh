@@ -18,7 +18,7 @@ COMPONENT="${1:-}"
 
 if [ -z "$COMPONENT" ]; then
   echo "Usage: $0 <component>"
-  echo "Components: aht, ah-chromiumd, webtui, gtui, all"
+  echo "Components: ahterm (alias aht), ah-chromiumd, webtui, gtui, all"
   exit 1
 fi
 
@@ -26,12 +26,12 @@ case "$COMPONENT" in
   ah-chromiumd | aht | webtui | gtui | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: aht, ah-chromiumd, webtui, gtui, all"
+    echo "Components: ahterm (alias aht), ah-chromiumd, webtui, gtui, all"
     exit 1
     ;;
 esac
 
-if [ "$COMPONENT" = "aht" ] && [ ! -x "$AHT_RELEASE_APP/Contents/MacOS/aht" ]; then
+if [ "$COMPONENT" = "aht" ] && [ ! -x "$AHT_RELEASE_APP/Contents/MacOS/ahterm" ]; then
   echo "Error: Release app not found at $AHT_RELEASE_APP"
   echo "Run: scripts/build.sh aht --release"
   exit 1
@@ -111,7 +111,7 @@ install_aht() {
   fi
   local APP="$APP_DIR/Astrohacker Terminal.app"
 
-  if [ ! -x "$APP_SRC/Contents/MacOS/aht" ]; then
+  if [ ! -x "$APP_SRC/Contents/MacOS/ahterm" ]; then
     echo "Error: Release app not found at $APP_SRC"
     echo "Run: scripts/build.sh aht --release"
     exit 1
@@ -132,7 +132,7 @@ install_aht() {
 }
 
 install_webtui() {
-  local WEB="$RUST_DIR/target/release/web"
+  local WEB="$RUST_DIR/target/release/ahweb"
 
   if [ ! -f "$WEB" ]; then
     echo "Error: Release build not found at $WEB"
@@ -140,15 +140,15 @@ install_webtui() {
     exit 1
   fi
 
-  echo "==> Installing webtui to /usr/local/bin/web..."
-  cp "$WEB" /usr/local/bin/web
-  codesign --force --sign - /usr/local/bin/web || true
+  echo "==> Installing webtui to /usr/local/bin/ahweb..."
+  cp "$WEB" /usr/local/bin/ahweb
+  codesign --force --sign - /usr/local/bin/ahweb || true
 
-  echo "  Bin: /usr/local/bin/web"
+  echo "  Bin: /usr/local/bin/ahweb"
 }
 
 install_gtui() {
-  local TERMSURF_CLI="$RUST_DIR/target/release/termsurf"
+  local TERMSURF_CLI="$RUST_DIR/target/release/ahapp"
 
   if [ ! -f "$TERMSURF_CLI" ]; then
     echo "Error: Release build not found at $TERMSURF_CLI"
@@ -156,14 +156,14 @@ install_gtui() {
     exit 1
   fi
 
-  echo "==> Installing TermSurf GTUI to $GTUI_BIN_DIR/termsurf..."
+  echo "==> Installing Astrohacker ahapp to $GTUI_BIN_DIR/ahapp..."
   mkdir -p "$GTUI_BIN_DIR" "$GTUI_INSTALL_DIR"
-  cp "$TERMSURF_CLI" "$GTUI_BIN_DIR/termsurf"
+  cp "$TERMSURF_CLI" "$GTUI_BIN_DIR/ahapp"
   rm -rf "$GTUI_INSTALL_DIR/app"
   cp -R "$BUN_DIR/gtui-app" "$GTUI_INSTALL_DIR/app"
-  codesign --force --sign - "$GTUI_BIN_DIR/termsurf" || true
+  codesign --force --sign - "$GTUI_BIN_DIR/ahapp" || true
 
-  echo "  Bin: $GTUI_BIN_DIR/termsurf"
+  echo "  Bin: $GTUI_BIN_DIR/ahapp"
   echo "  App: $GTUI_INSTALL_DIR/app"
 }
 

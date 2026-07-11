@@ -355,7 +355,7 @@ impl ClipboardTrait for UrlClipboard {
 }
 
 #[derive(Parser)]
-#[command(name = "web", about = "TermSurf Webtui")]
+#[command(name = "ahweb", about = "Astrohacker Web — open URLs in Terminal browser panes")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,

@@ -22,7 +22,7 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: aht, ahsh, ahe, webtui, gtui, chromium-fork, chromium, webkit-fork, webkit-lib, webkit, ladybird-lib, ladybird, all"
+  echo "Components: ahterm, ahsh, ahed, webtui, gtui, chromium-fork, chromium, webkit-fork, webkit-lib, webkit, ladybird-lib, ladybird, all"
 }
 
 configuration() {
@@ -102,11 +102,11 @@ build_webtui() {
   if $RELEASE; then
     echo "==> Building webtui (release)..."
     cargo build --release -p webtui
-    echo "  webtui: $RUST_DIR/target/release/web"
+    echo "  webtui: $RUST_DIR/target/release/ahweb"
   else
     echo "==> Building webtui (debug)..."
     cargo build -p webtui
-    echo "  webtui: $RUST_DIR/target/debug/web"
+    echo "  webtui: $RUST_DIR/target/debug/ahweb"
   fi
 }
 
@@ -119,11 +119,11 @@ build_gtui() {
   if $RELEASE; then
     echo "==> Building gtui (release)..."
     cargo build --release -p gtui
-    echo "  gtui: $RUST_DIR/target/release/termsurf"
+    echo "  gtui: $RUST_DIR/target/release/ahapp"
   else
     echo "==> Building gtui (debug)..."
     cargo build -p gtui
-    echo "  gtui: $RUST_DIR/target/debug/termsurf"
+    echo "  gtui: $RUST_DIR/target/debug/ahapp"
   fi
 }
 
@@ -155,10 +155,10 @@ build_ahsh() {
   fi
 }
 
-build_ahe() {
+build_ahed() {
   if [ ! -d "$HELIX_DIR" ]; then
     echo "Missing Helix fork checkout: $HELIX_DIR" >&2
-    echo "Reconstruct it from patches/helix before building ahe." >&2
+    echo "Reconstruct it from patches/helix before building ahed." >&2
     exit 1
   fi
   if [ ! -f "$HELIX_DIR/helix-term/Cargo.toml" ]; then
@@ -168,17 +168,20 @@ build_ahe() {
   fi
   cd "$HELIX_DIR"
   if $CLEAN; then
-    echo "==> Cleaning ahe..."
+    echo "==> Cleaning ahed..."
     cargo clean
   fi
   if $RELEASE; then
-    echo "==> Building ahe (release)..."
+    echo "==> Building ahed (release)..."
     HELIX_DISABLE_AUTO_GRAMMAR_BUILD=1 cargo build --release -p helix-term
-    echo "  ahe: $HELIX_DIR/target/release/ahe"
+    # Reject sticky old editor binary name.
+    rm -f "$HELIX_DIR/target/release/ahe" "$HELIX_DIR/target/debug/ahe"
+    echo "  ahed: $HELIX_DIR/target/release/ahed"
   else
-    echo "==> Building ahe (debug)..."
+    echo "==> Building ahed (debug)..."
     HELIX_DISABLE_AUTO_GRAMMAR_BUILD=1 cargo build -p helix-term
-    echo "  ahe: $HELIX_DIR/target/debug/ahe"
+    rm -f "$HELIX_DIR/target/release/ahe" "$HELIX_DIR/target/debug/ahe"
+    echo "  ahed: $HELIX_DIR/target/debug/ahed"
   fi
 }
 
@@ -330,7 +333,7 @@ build_ladybird_lib() {
   echo "  libtermsurf_ladybird: $LADYBIRD_LIB_DIR/build/libtermsurf_ladybird.dylib"
 }
 
-build_aht() {
+build_ahterm() {
   local CONFIGURATION="Debug"
   local ZIG_OPTIMIZE="Debug"
   if $RELEASE; then
@@ -348,11 +351,11 @@ build_aht() {
 
   cd "$GHOSTTY_DIR/macos"
   if $CLEAN; then
-    echo "==> Cleaning AHT ($CONFIGURATION)..."
+    echo "==> Cleaning ahterm ($CONFIGURATION)..."
     ./build.nu --configuration "$CONFIGURATION" --action clean
   fi
 
-  echo "==> Building AHT ($CONFIGURATION)..."
+  echo "==> Building ahterm ($CONFIGURATION)..."
   if [ -n "${TERMSURF_VERSION:-}" ]; then
     ./build.nu --configuration "$CONFIGURATION" --action build --version "$TERMSURF_VERSION"
   else
@@ -361,33 +364,34 @@ build_aht() {
   if $RELEASE; then
     codesign --force --deep --sign - "build/$CONFIGURATION/Astrohacker Terminal.app"
   fi
-  echo "  AHT: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app"
-  echo "  AHT executable: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app/Contents/MacOS/aht"
+  echo "  ahterm: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app"
+  echo "  ahterm executable: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app/Contents/MacOS/ahterm"
 }
 
 case "$COMPONENT" in
   chromium-fork) build_chromium_fork ;;
-  webtui)     build_webtui ;;
-  gtui)       build_gtui ;;
+  webtui|ahweb) build_webtui ;;
+  gtui|ahapp) build_gtui ;;
   ahsh)       build_ahsh ;;
-  ahe)        build_ahe ;;
+  ahed|ahe)   build_ahed ;;
   chromium)   build_chromiumd ;;
   webkit-fork) build_webkit_fork ;;
   webkit-lib) build_webkit_lib ;;
   webkit)     build_webkitd ;;
   ladybird-lib) build_ladybird_lib ;;
   ladybird)   build_ladybirdd ;;
-  aht)        build_aht ;;
+  ahterm|aht) build_ahterm ;;
   all)
     build_chromium_fork
     build_webtui
     build_gtui
     build_ahsh
+    build_ahed
     build_chromiumd
     build_webkit_fork
     build_webkitd
     build_ladybirdd
-    build_aht
+    build_ahterm
     echo ""
     echo "Done (all)."
     ;;

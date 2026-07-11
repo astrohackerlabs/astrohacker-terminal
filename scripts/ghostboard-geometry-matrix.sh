@@ -10,8 +10,8 @@ APP="${TERMSURF_GHOSTBOARD_APP:-$ROOT/forks/ghostty/macos/build/Debug/Astrohacke
 if [ "$SCENARIO" = "installed-chromium-release-launch" ] && [ -z "${TERMSURF_GHOSTBOARD_APP:-}" ]; then
   APP="$ROOT/forks/ghostty/macos/build/Release/Astrohacker Terminal.app"
 fi
-APP_BIN="$APP/Contents/MacOS/aht"
-WEB="${TERMSURF_WEB:-$ROOT/rust/target/debug/web}"
+APP_BIN="$APP/Contents/MacOS/ahterm"
+WEB="${TERMSURF_WEB:-$ROOT/rust/target/debug/ahweb}"
 CHROMIUM="${ASTROHACKER_CHROMIUM:-$ROOT/forks/chromium/src/out/Default/ah-chromiumd}"
 INSTALLED_CHROMIUM="${TERMSURF_INSTALLED_CHROMIUM:-$CHROMIUM}"
 CHROMIUM_PATH_FOR_APP="$CHROMIUM"

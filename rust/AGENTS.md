@@ -27,5 +27,4 @@ fork working trees here.
   app bundles, xcframeworks, logs, and caches are not source.
 - Keep path fixes scoped and document any temporary compatibility path in the
   issue experiment that introduces it.
-- When adding an `AGENTS.md` in a subdirectory, also add a relative
-  `CLAUDE.md` symlink to it.
+- When a subdirectory needs agent guidance, add an `AGENTS.md` there.

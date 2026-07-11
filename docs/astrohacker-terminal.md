@@ -131,10 +131,12 @@ logging into Google in one profile doesn't affect the others.
 
 ### Install with Homebrew
 
-The Homebrew cask currently supports Apple silicon macOS and installs the
-current Astrohacker Terminal app, the `web` CLI, the `termsurf` GTUI CLI,
-`ah-chromiumd` with Chromium runtime resources, `ah-webkitd` with WebKit runtime
-resources, and the `ah-ladybirdd` Ladybird prototype:
+The Homebrew cask `astrohacker` is the one desktop Astrohacker download. On
+Apple silicon macOS it installs Astrohacker Terminal, Shell (`ahsh`), Editor
+(`ahe`), the `web` CLI, the `termsurf` GTUI CLI, `ah-chromiumd` with Chromium
+runtime resources, `ah-webkitd` with WebKit runtime resources, and the
+`ah-ladybirdd` Ladybird prototype. Wallet is planned for the same product later
+and is not available yet:
 
 ```bash
 brew tap astrohackerlabs/astrohacker
@@ -205,9 +207,9 @@ caffeinate gclient sync --revision src@148.0.7778.271 --no-history
 
 `gclient config` creates the `.gclient` file that tells Chromium's tooling where
 `src/` lives. `gclient sync --revision src@148.0.7778.271` checks out the
-Chromium version Astrohacker Terminal currently tracks and fetches the matching third-party
-dependencies, build tools, and SDKs. `caffeinate` prevents macOS from sleeping
-during the long download.
+Chromium version Astrohacker Terminal currently tracks and fetches the matching
+third-party dependencies, build tools, and SDKs. `caffeinate` prevents macOS
+from sleeping during the long download.
 
 Apply Astrohacker Terminal's current Chromium patch archive:
 
@@ -239,12 +241,11 @@ cargo build --workspace
 cd ../bun
 bun install
 bun run build:website
-bun run build:terminal-cloud
 ```
 
-`rust/` builds the `web`, `termsurf`, `ah-chromiumd`, `ah-webkitd`, `ah-ladybirdd`, and
-Roastty support targets. `bun/` builds the Astrohacker website, Astrohacker
-Terminal Cloud package, and GTUI app support code.
+`rust/` builds the `web`, `termsurf`, `ah-chromiumd`, `ah-webkitd`,
+`ah-ladybirdd`, and Roastty support targets. `bun/` builds the Astrohacker
+website and contains GTUI app support code.
 
 The build helper under `scripts/build.sh` uses the monorepo paths while
 preserving the historical component selectors:
@@ -266,9 +267,8 @@ zig build -Demit-macos-app=false
 macos/build.nu --scheme Ghostty --configuration Debug --action build
 ```
 
-The app output is
-`forks/ghostty/macos/build/Debug/Astrohacker Terminal.app`. Launch that app and
-run:
+The app output is `forks/ghostty/macos/build/Debug/Astrohacker Terminal.app`.
+Launch that app and run:
 
 ```bash
 web google.com
@@ -281,7 +281,7 @@ Astrohacker website.
 
 ## Contributing
 
-See [CLAUDE.md](./CLAUDE.md) for architecture details, build instructions, and
+See [AGENTS.md](../AGENTS.md) for architecture details, build instructions, and
 the full development guide.
 
 ## License
