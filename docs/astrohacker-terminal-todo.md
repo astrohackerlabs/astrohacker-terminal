@@ -9,7 +9,7 @@
 - [x] Clipboard (copy/cut/paste in browser overlays)
 - [x] target="\_blank" handling (OAuth, "open in new tab" links fail)
 - [ ] Drag-and-drop support, including file uploads and native HTML5 drag/drop
-      (Issue 780 suppresses native Chromium drag start to prevent freezes; real
+      (Issue 26041712000780 suppresses native Chromium drag start to prevent freezes; real
       cross-process drag/drop still needs a design)
 - [ ] JavaScript dialogs (alert/confirm/prompt)
 - [ ] Downloads
@@ -37,13 +37,13 @@ ready.
       a blank white screen with no indication of what happened. The progress bar
       continues as if the page is still loading, then times out. Need to detect
       renderer termination, display an error page, clear the progress bar, and
-      show what went wrong. Discovered in Issue 655 Experiment 1.
+      show what went wrong. Discovered in Issue 26022712000655 Experiment 1.
 - [ ] Mojo interface audit — The Content API build is missing handlers for Mojo
       interfaces that a full Chrome browser registers. Every missing binder is a
       ticking time bomb — the renderer crashes when any page's JavaScript calls
-      that API. Fixed `blink.mojom.BadgeService` in Issue 655, but there are
+      that API. Fixed `blink.mojom.BadgeService` in Issue 26022712000655, but there are
       likely many more. Need to systematically review all Mojo interfaces.
-      Discovered in Issue 655 Experiment 1.
+      Discovered in Issue 26022712000655 Experiment 1.
 
 ## 1.0 Milestone
 

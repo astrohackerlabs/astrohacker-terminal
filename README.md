@@ -57,7 +57,7 @@ client components:
 ./scripts/build.sh chromium
 ./scripts/build.sh webkit
 ./scripts/build.sh webkit
-./scripts/build.sh webtui
+./scripts/build.sh ahweb
 ./scripts/build.sh ahterm
 ```
 

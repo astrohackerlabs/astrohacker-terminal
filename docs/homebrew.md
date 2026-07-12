@@ -1,5 +1,7 @@
 # Homebrew
 
+Full environment variable taxonomy: [`docs/environment.md`](./environment.md).
+
 Astrohacker ships to macOS through the `astrohackerlabs/astrohacker` Homebrew
 tap. There is **one desktop download**: the cask `astrohacker`. It targets
 Apple silicon macOS and installs Astrohacker Terminal, Shell, Editor, and
@@ -215,16 +217,16 @@ Publish mode requires **clean** public and tap worktrees. It only rewrites cask
 
 | Script | Role |
 | --- | --- |
-| `scripts/test-issue-869-installed-homebrew-browser-smoke.sh` | installed three-engine browser smoke (**gate**) |
-| `scripts/test-issue-882-installed-cold-start.sh` | cold-start + warmup (**gate** when GUI available) |
-| `scripts/test-issue-867-release-no-env-browser-discovery.sh` | useful discovery check |
+| `scripts/test-issue-26062812000869-installed-homebrew-browser-smoke.sh` | installed three-engine browser smoke (**gate**) |
+| `scripts/test-issue-26070112000882-installed-cold-start.sh` | cold-start + warmup (**gate** when GUI available) |
+| `scripts/test-issue-26062812000867-release-no-env-browser-discovery.sh` | useful discovery check |
 | Older Surfari-named 871/872 harnesses | historical; not current gates until updated |
 
 Example:
 
 ```sh
 ASTROHACKER_TERMINAL_SMOKE_VERSION=<version> \
-  scripts/test-issue-869-installed-homebrew-browser-smoke.sh
+  scripts/test-issue-26062812000869-installed-homebrew-browser-smoke.sh
 ```
 
 ### Traps
@@ -264,3 +266,20 @@ Helpers resolve under `/opt/homebrew/opt/astrohacker-terminal-ah-*` without
 browser path env overrides.
 
 Ladybird is a prototype packaging surface, not production browser parity.
+
+## Engine path environment variables
+
+Primary product overrides (preferred):
+
+- `ASTROHACKER_CHROMIUM_PATH`
+- `ASTROHACKER_WEBKIT_PATH`
+- `ASTROHACKER_LADYBIRD_PATH`
+
+Legacy dual-read aliases (deprecated; still accepted):
+
+- `TERMSURF_ROAMIUM_PATH` / `TERMSURF_INSTALLED_ROAMIUM_PATH`
+- `TERMSURF_SURFARI_PATH` / `TERMSURF_INSTALLED_SURFARI_PATH`
+- `TERMSURF_GIRLBAT_PATH` / `TERMSURF_INSTALLED_GIRLBAT_PATH`
+
+Values must be nonempty absolute paths. Protocol vars such as `TERMSURF_SOCKET`
+and `TERMSURF_PANE_ID` are unchanged.

@@ -15,7 +15,7 @@ python3 scripts/build-ladybird-protobuf-coverage.py --check
 
 That check is intentionally inventory-only. It proves that every current wire
 message appears exactly once and that the matrix does not mention stale wire
-messages. It does not prove Issue 884 is complete. Before Issue 884 can close, a
+messages. It does not prove Issue 26070112000884 is complete. Before Issue 26070112000884 can close, a
 later strict closure gate must fail if any engine-relevant Ladybird row remains
 `Missing`, lacks verified implementation evidence, or lacks an explicit
 unsupported/capability-denied behavior.
@@ -97,7 +97,7 @@ semantics are implemented. A later experiment may split receive-side and
 send-side coverage more finely if this conservative under-claim becomes
 confusing.
 
-Issue 884 Experiment 12 proved that the Ladybird C ABI can reach and export a
+Issue 26070112000884 Experiment 12 proved that the Ladybird C ABI can reach and export a
 presentable `Gfx::SharedImageBuffer`. Experiments 13-18 proved that ID-only
 protobuf is insufficient, that the render side channel can carry the OS surface
 authority, and that Ghostboard can import a deterministic test surface.

@@ -11,7 +11,7 @@ Suggested shape:
 
 ```text
 ladybird/patches/
-  issue-0884/
+  issue-26070112000884/
     0001-add-termsurf-ladybird-embedding.patch
 ```
 

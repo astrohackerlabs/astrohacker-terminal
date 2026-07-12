@@ -1,6 +1,6 @@
 # Ladybird Render-Surface Transport
 
-Issue 884 Experiment 13 audits the transport boundary between Ladybird's Ladybird
+Issue 26070112000884 Experiment 13 audits the transport boundary between Ladybird's Ladybird
 render surface and Ghostboard. Experiment 12 proved ABI-local access to a
 presentable `Gfx::SharedImageBuffer`; this document records why that surface
 cannot simply be represented as a protobuf integer and what the next rendering
@@ -145,13 +145,13 @@ proven. Nonzero `attachment_id` values mean Ghostboard imported a side-channel
 attachment with the same correlation key and matching dimensions, bytes per row,
 pixel format, and generation.
 
-Issue 884 Experiment 20 proves the first nonzero case for Ladybird. The real
+Issue 26070112000884 Experiment 20 proves the first nonzero case for Ladybird. The real
 Ladybird ABI exports an IOSurface Mach send right from the headless
 `TermSurfWebView`, Ladybird sends it over the render side channel with
 `attachment_id = 1`, and the smoke path verifies Ghostboard/probe-side import
 with matching metadata.
 
-Issue 884 Experiment 21 then makes that matched attachment structurally
+Issue 26070112000884 Experiment 21 then makes that matched attachment structurally
 presentable in Ghostboard. Ghostboard retains the imported receive result, a
 matched nonzero `RenderSurface.attachment_id` calls the IOSurface-specific
 AppKit bridge, Swift retains the `IOSurfaceRef` before async dispatch, and the
@@ -159,7 +159,7 @@ AppKit path attaches a normal `CALayer` whose `contents` is that IOSurface. This
 is still a one-shot, per-server proof. It does not yet prove continuous per-tab
 frame delivery or screenshot/readback-backed visual correctness.
 
-Issue 884 Experiment 35 proves that the structural path also works through the
+Issue 26070112000884 Experiment 35 proves that the structural path also works through the
 normal runtime route: a repo Debug Ghostboard app launches WebTUI with
 `web --browser ladybird`, resolves Ladybird by name through
 `ASTROHACKER_LADYBIRD_PATH`, spawns Ladybird with a render side-channel, loads a
@@ -182,7 +182,7 @@ presenting a frame:
 
 ## Next Experiment
 
-Issue 884 Experiment 14 proved the first concrete Mach-port transport spike with
+Issue 26070112000884 Experiment 14 proved the first concrete Mach-port transport spike with
 `scripts/test-ladybird-iosurface-mach-port-transport.py`:
 
 - a parent process registers a bootstrap control Mach port;
@@ -198,7 +198,7 @@ The bootstrap registration in that probe is test scaffolding. It proves the Mach
 send-right transfer, but it is not a commitment to use `bootstrap_register` in
 Ghostboard's production integration.
 
-Issue 884 Experiment 15 then proved the spawned-process topology that matches
+Issue 26070112000884 Experiment 15 then proved the spawned-process topology that matches
 Ghostboard's browser launch model:
 
 - a parent process registers a per-process side-channel service;
@@ -223,7 +223,7 @@ side-channel topology, but the production implementation may use a different
 Mach/XPC bootstrap mechanism if that is more robust inside Ghostboard's runtime
 environment.
 
-Issue 884 Experiment 16 adds the first production launch contract for that
+Issue 26070112000884 Experiment 16 adds the first production launch contract for that
 topology:
 
 - Ghostboard builds browser spawn argv through a testable helper.
@@ -259,7 +259,7 @@ intentional. `RenderSurface` remains the authoritative Ladybird metadata path,
 with the side channel carrying the actual IOSurface authority. A Ladybird
 `CaContext` emission would be a regression against this transport design.
 
-Issue 884 Experiment 17 wires the first production side-channel handshake:
+Issue 26070112000884 Experiment 17 wires the first production side-channel handshake:
 
 - `render-channel/termsurf_render_channel.h` and
   `render-channel/termsurf_render_channel.c` define the shared C ABI for the
@@ -288,7 +288,7 @@ Experiment 18 sent a test IOSurface Mach send right over the established channel
 and added the Ghostboard import primitive needed to convert that right into an
 `IOSurface`.
 
-Issue 884 Experiment 18 proves that bidirectional test-surface transfer:
+Issue 26070112000884 Experiment 18 proves that bidirectional test-surface transfer:
 
 - the Experiment 17 bootstrap still gives Ghostboard a send right to Ladybird's
   child render-channel receive port;
@@ -308,10 +308,10 @@ The directionality was correct for rendering: Ladybird could deliver IOSurface
 authority to Ghostboard. That proof deliberately sent a deterministic test
 surface instead of a real Ladybird frame.
 
-Issue 884 Experiment 19 adds only protobuf metadata/routing. Issue 884
+Issue 26070112000884 Experiment 19 adds only protobuf metadata/routing. Issue 26070112000884
 Experiment 20 then uses the same side channel as the attachment path for one
 real Ladybird frame surface and connects that attachment to nonzero
-`RenderSurface.attachment_id` metadata. Issue 884 Experiment 21 stores the
+`RenderSurface.attachment_id` metadata. Issue 26070112000884 Experiment 21 stores the
 retained imported surface and routes the matched attachment to an IOSurface
 AppKit overlay. The existing `CaContext` path remains the Chromium/WebKit path
 and should not be reused for Ladybird IOSurface frames.

@@ -9,15 +9,16 @@ GTUI_INSTALL_DIR="${TERMSURF_GTUI_INSTALL_DIR:-/usr/local/share/termsurf/gtui}"
 
 if [ -z "$COMPONENT" ]; then
   echo "Usage: $0 <component>"
-  echo "Components: aht, ah-chromiumd, webtui, gtui, all"
+  echo "Components: aht, ah-chromiumd, ahweb, ahapp, all"
+  echo "Aliases: webtui→ahweb, gtui→ahapp"
   exit 1
 fi
 
 case "$COMPONENT" in
-  ah-chromiumd | aht | webtui | gtui | all) ;;
+  ah-chromiumd | aht | ahweb | webtui | ahapp | gtui | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: aht, ah-chromiumd, webtui, gtui, all"
+    echo "Components: aht, ah-chromiumd, ahweb, ahapp, all"
     exit 1
     ;;
 esac
@@ -80,32 +81,34 @@ uninstall_aht() {
   echo "  Removed: $APP"
 }
 
-uninstall_webtui() {
-  echo "==> Uninstalling webtui..."
+uninstall_ahweb() {
+  echo "==> Uninstalling ahweb..."
+  rm -f /usr/local/bin/ahweb
   rm -f /usr/local/bin/web
 
-  echo "  Removed: /usr/local/bin/web"
+  echo "  Removed: /usr/local/bin/ahweb (and legacy /usr/local/bin/web if present)"
 }
 
-uninstall_gtui() {
-  echo "==> Uninstalling TermSurf GTUI..."
+uninstall_ahapp() {
+  echo "==> Uninstalling ahapp..."
+  rm -f "$GTUI_BIN_DIR/ahapp"
   rm -f "$GTUI_BIN_DIR/termsurf"
   rm -rf "$GTUI_INSTALL_DIR"
 
-  echo "  Removed: $GTUI_BIN_DIR/termsurf"
+  echo "  Removed: $GTUI_BIN_DIR/ahapp (and legacy termsurf if present)"
   echo "  Removed: $GTUI_INSTALL_DIR"
 }
 
 case "$COMPONENT" in
   ah-chromiumd) uninstall_chromiumd ;;
   aht)          uninstall_aht ;;
-  webtui)       uninstall_webtui ;;
-  gtui)         uninstall_gtui ;;
+  ahweb|webtui) uninstall_ahweb ;;
+  ahapp|gtui)   uninstall_ahapp ;;
   all)
     uninstall_chromiumd
     uninstall_aht
-    uninstall_webtui
-    uninstall_gtui
+    uninstall_ahweb
+    uninstall_ahapp
     echo ""
     echo "Done (all)."
     ;;

@@ -15,27 +15,21 @@ Policy:
 
 Current fork areas:
 
-- `chromium/`
-- `webkit/`
-- `ladybird/`
-- `ghostty/`
-- `gecko/`
-- `nushell/`
-- `reedline/`
-- `helix/`
+- `chromium/` — **Issue 26071112000924:** Electron stable Chromium **150.0.7871.47** /
+  archive `issue-26071112000924` (authoritative after Exp4 Pass).
+- `webkit/` — **Issue 26071112000924:** main tip `f1a2d7cc…` / archive `issue-26071112000924`;
+  residual focus smoke → Issue 26071112000926.
+- `ladybird/` — **Issue 26071112000924:** master tip `2a3bc6a3…` / archive `issue-26071112000924`
+  (18 patches).
+- `ghostty/` — **Issue 26071112000924:** host Exp2 archive `issue-26071112000924` (also historical
+  `issue-26070412000013`).
+- `gecko/` — optional; no product patch set required for 924.
+- `nushell/` / `reedline/` / `helix/` — **Issue 26071112000924** host Exp2 tips/archives.
 
-Ghostty has a current path-aware patch archive under
-`patches/ghostty/patches/issue-0013/` generated from the current Astrohacker
-Terminal/Ghostboard state. Gecko has an ignored shallow/partial checkout under
-`forks/gecko`, but no implementation patch set yet; `patches/gecko/` records
-that current checkout state for the future Waterwolf path.
+### Merge-upstream (portfolio)
 
-Nushell and Reedline support the Astrohacker Shell migration from Shannon.
-Nushell has an issue 0903 patch archive. Reedline currently records that the
-Shannon subtree matches upstream `v0.48.0` with no effective patch.
-
-Helix supports the Astrohacker Editor migration from Velix. The current audit
-records the selected upstream base and patch-generation method under
-`patches/helix/`; Issue 904 carries the current Astrohacker Editor patch
-archive with `ahe` naming, Astrohacker paths, runtime environment changes, and
-build support.
+1. Identify targets (Electron stable Chromium; main/master tips for others).
+2. Per fork: branch → apply/regenerate patches → build → smoke → update
+   per-fork README + issue-scoped archive under `patches/<fork>/patches/`.
+3. Integrated: `TERMSURF_LADYBIRD_BACKEND=real scripts/build.sh all --release`.
+4. Do not publish Homebrew from upgrade issues (use Issue 26071112000925+).

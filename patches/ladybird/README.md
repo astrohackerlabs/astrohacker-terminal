@@ -6,36 +6,71 @@ tracks patch archives and branch notes that are safe to commit.
 
 ## Current State
 
-- Current local branch: `a80d01fc-issue-0884-visible-runtime-load-finish`
-- Current local HEAD: `53ecd819952f3992b6b634378a372b3d3ad5c82d`
+- **Upstream policy:** default branch **`master`** tip (remote HEAD is
+  `refs/heads/master`, not `main`).
+- **Current base:** `2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd`
+- **Current branch:** `2a3bc6a3-issue-26071112000924`
+- **Current HEAD:** `616dd0cdc9061fc17f49248fa507770df4df92de`
+- **Archive:** `patches/ladybird/patches/issue-26071112000924/` (18 patches; TREE_MATCH)
 - Working tree: `forks/ladybird`
-- Patch archives: `patches/ladybird/patches`
 
-The imported patch set contains issue 0884 patches for the initial Girlbat /
-Ladybird ABI work plus issue 0890 packaging fixes.
+Historical flat 0884/0890 files under `patches/ladybird/patches/` remain as
+pre-924 imports; issue-26071112000924 is the reconstructable current stack.
+
+## Merge-upstream
+
+1. Discover tip: `git ls-remote --symref
+   https://github.com/LadybirdBrowser/ladybird.git HEAD`
+2. Fetch tip; branch `{short8}-issue-26071112000924` at tip commit.
+3. Apply `patches/ladybird/patches/issue-26071112000924/*.patch` in numeric order
+   (`git am`).
+4. Build real backend:
+
+   ```bash
+   TERMSURF_LADYBIRD_BACKEND=real scripts/build.sh ladybird --release
+   ```
+
+5. Smokes (ensure `Ladybird.app/Contents/MacOS` helpers are on `PATH` or
+   symlinked beside `ah-ladybirdd`):
+
+   ```bash
+   ah-ladybirdd --termsurf-warmup
+   ah-ladybirdd --termsurf-abi-negative-smoke
+   ah-ladybirdd --termsurf-engine-thread-smoke
+   ah-ladybirdd --termsurf-render-surface-smoke
+   ah-ladybirdd --termsurf-real-frame-attachment-smoke
+   ah-ladybirdd --termsurf-renderer-crash-smoke
+   ah-ladybirdd --termsurf-resource-root-smoke
+   cargo test -p ladybird
+   ```
+
+6. Regenerate archive:
+
+   ```bash
+   rm -rf patches/ladybird/patches/issue-26071112000924
+   mkdir -p patches/ladybird/patches/issue-26071112000924
+   git -C forks/ladybird format-patch {base}..HEAD \
+     -o "$PWD/patches/ladybird/patches/issue-26071112000924"
+   ```
+
+7. Update this README Current State.
 
 ## Applying Patches
 
-Apply the issue 0884 patches from the relevant upstream base recorded in the
-patch history:
-
 ```bash
 cd forks/ladybird
-git switch -c a80d01fc-issue-0884-visible-runtime-load-finish {base-commit}
-git am ../../patches/ladybird/patches/*.patch
+git fetch origin 2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd
+git switch -C 2a3bc6a3-issue-26071112000924 2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd
+git am ../../patches/ladybird/patches/issue-26071112000924/*.patch
 ```
 
 ## Generating Patches
 
-After committing Ladybird changes inside `forks/ladybird`:
-
 ```bash
-git -C forks/ladybird format-patch {base-commit}..HEAD \
-  -o ../../patches/ladybird/patches
+git -C forks/ladybird format-patch \
+  2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd..HEAD \
+  -o "$PWD/patches/ladybird/patches/issue-26071112000924"
 ```
-
-Then commit the patch archive and the issue experiment result in the
-Astrohacker repo.
 
 ## Verification
 
@@ -43,5 +78,5 @@ Astrohacker repo.
 git -C forks/ladybird status --short
 git -C forks/ladybird rev-parse --abbrev-ref HEAD
 git -C forks/ladybird rev-parse HEAD
-git diff --check
+TERMSURF_LADYBIRD_BACKEND=real scripts/build.sh ladybird --release
 ```

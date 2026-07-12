@@ -8,7 +8,7 @@ BUN_DIR="$REPO_DIR/bun"
 CHROMIUM_OUT="$REPO_DIR/forks/chromium/src/out/Default"
 source "$SCRIPT_DIR/chromium-resources.sh"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
-AHT_RELEASE_APP="$REPO_DIR/forks/ghostty/macos/build/Release/Astrohacker Terminal.app"
+AHTERM_RELEASE_APP="$REPO_DIR/forks/ghostty/macos/build/Release/Astrohacker Terminal.app"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
 CHROMIUMD_INSTALL_DIR="${ASTROHACKER_CHROMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
 GTUI_BIN_DIR="${TERMSURF_GTUI_BIN_DIR:-/usr/local/bin}"
@@ -18,21 +18,22 @@ COMPONENT="${1:-}"
 
 if [ -z "$COMPONENT" ]; then
   echo "Usage: $0 <component>"
-  echo "Components: ahterm (alias aht), ah-chromiumd, webtui, gtui, all"
+  echo "Components: ahterm (alias aht), ah-chromiumd, ahweb, ahapp, all"
+  echo "Aliases: webtui→ahweb, gtui→ahapp"
   exit 1
 fi
 
 case "$COMPONENT" in
-  ah-chromiumd | aht | webtui | gtui | all) ;;
+  ah-chromiumd | aht | ahweb | webtui | ahapp | gtui | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: ahterm (alias aht), ah-chromiumd, webtui, gtui, all"
+    echo "Components: ahterm (alias aht), ah-chromiumd, ahweb, ahapp, all"
     exit 1
     ;;
 esac
 
-if [ "$COMPONENT" = "aht" ] && [ ! -x "$AHT_RELEASE_APP/Contents/MacOS/ahterm" ]; then
-  echo "Error: Release app not found at $AHT_RELEASE_APP"
+if [ "$COMPONENT" = "aht" ] && [ ! -x "$AHTERM_RELEASE_APP/Contents/MacOS/ahterm" ]; then
+  echo "Error: Release app not found at $AHTERM_RELEASE_APP"
   echo "Run: scripts/build.sh aht --release"
   exit 1
 fi
@@ -56,7 +57,7 @@ needs_root() {
     echo "Error: TERMSURF_APPLICATIONS_DIR is not writable: $APPLICATIONS_DIR"
     exit 1
   fi
-  if [ "$COMPONENT" = "gtui" ]; then
+  if [ "$COMPONENT" = "gtui" ] || [ "$COMPONENT" = "ahapp" ]; then
     mkdir -p "$GTUI_BIN_DIR" "$GTUI_INSTALL_DIR" 2>/dev/null || return 0
     [ -w "$GTUI_BIN_DIR" ] && [ -w "$GTUI_INSTALL_DIR" ] && return 1
     return 0
@@ -104,7 +105,7 @@ install_chromiumd() {
 }
 
 install_aht() {
-  local APP_SRC="$AHT_RELEASE_APP"
+  local APP_SRC="$AHTERM_RELEASE_APP"
   local APP_DIR="/Applications"
   if [ "$COMPONENT" = "aht" ]; then
     APP_DIR="$APPLICATIONS_DIR"
@@ -131,34 +132,34 @@ install_aht() {
   echo "  App: $APP"
 }
 
-install_webtui() {
+install_ahweb() {
   local WEB="$RUST_DIR/target/release/ahweb"
 
   if [ ! -f "$WEB" ]; then
     echo "Error: Release build not found at $WEB"
-    echo "Run: scripts/build.sh webtui --release"
+    echo "Run: scripts/build.sh ahweb --release"
     exit 1
   fi
 
-  echo "==> Installing webtui to /usr/local/bin/ahweb..."
+  echo "==> Installing ahweb to /usr/local/bin/ahweb..."
   cp "$WEB" /usr/local/bin/ahweb
   codesign --force --sign - /usr/local/bin/ahweb || true
 
   echo "  Bin: /usr/local/bin/ahweb"
 }
 
-install_gtui() {
-  local TERMSURF_CLI="$RUST_DIR/target/release/ahapp"
+install_ahapp() {
+  local AHAPP_CLI="$RUST_DIR/target/release/ahapp"
 
-  if [ ! -f "$TERMSURF_CLI" ]; then
-    echo "Error: Release build not found at $TERMSURF_CLI"
-    echo "Run: scripts/build.sh gtui --release"
+  if [ ! -f "$AHAPP_CLI" ]; then
+    echo "Error: Release build not found at $AHAPP_CLI"
+    echo "Run: scripts/build.sh ahapp --release"
     exit 1
   fi
 
-  echo "==> Installing Astrohacker ahapp to $GTUI_BIN_DIR/ahapp..."
+  echo "==> Installing ahapp to $GTUI_BIN_DIR/ahapp..."
   mkdir -p "$GTUI_BIN_DIR" "$GTUI_INSTALL_DIR"
-  cp "$TERMSURF_CLI" "$GTUI_BIN_DIR/ahapp"
+  cp "$AHAPP_CLI" "$GTUI_BIN_DIR/ahapp"
   rm -rf "$GTUI_INSTALL_DIR/app"
   cp -R "$BUN_DIR/gtui-app" "$GTUI_INSTALL_DIR/app"
   codesign --force --sign - "$GTUI_BIN_DIR/ahapp" || true
@@ -170,13 +171,13 @@ install_gtui() {
 case "$COMPONENT" in
   ah-chromiumd) install_chromiumd ;;
   aht)          install_aht ;;
-  webtui)       install_webtui ;;
-  gtui)         install_gtui ;;
+  ahweb|webtui) install_ahweb ;;
+  ahapp|gtui)   install_ahapp ;;
   all)
     install_chromiumd
     install_aht
-    install_webtui
-    install_gtui
+    install_ahweb
+    install_ahapp
     echo ""
     echo "Done (all)."
     ;;

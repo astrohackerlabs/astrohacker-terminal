@@ -216,8 +216,8 @@ Apply Astrohacker Terminal's current Chromium patch archive:
 ```bash
 cd src
 git checkout 148.0.7778.271
-git checkout -b 148.0.7778.271-issue-860
-git am ../../../patches/chromium/patches/issue-860/*.patch
+git checkout -b 148.0.7778.271-issue-26062712000860
+git am ../../../patches/chromium/patches/issue-26062712000860/*.patch
 ```
 
 Configure and build Chromium:
@@ -251,8 +251,8 @@ The build helper under `scripts/build.sh` uses the monorepo paths while
 preserving the historical component selectors:
 
 ```bash
-scripts/build.sh webtui
-scripts/build.sh gtui
+scripts/build.sh ahweb
+scripts/build.sh ahapp
 scripts/build.sh chromium
 scripts/build.sh webkit
 scripts/build.sh ladybird

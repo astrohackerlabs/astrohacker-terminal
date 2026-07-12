@@ -1,10 +1,11 @@
 [workspace]
 members = [
-    "webtui",
-    "chromium",
-    "webkit",
-    "ladybird",
-    "gtui",
+    "ahweb",
+    "ah-chromiumd",
+    "ah-webkitd",
+    "ah-ladybirdd",
+    "ah-geckod",
+    "ahapp",
 ]
 exclude = [
     "ahsh",

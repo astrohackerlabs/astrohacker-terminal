@@ -6,52 +6,52 @@ archives and branch notes that are safe to commit.
 
 ## Current State
 
-- Current upstream base: `d144dd782ee6ba6fe20cd04b9c8d3e492f3c4254`
-- Current branch: `webkit-d144dd78-issue-857`
+- **Current upstream base:** `f1a2d7ccc011b8da238839e6e66172d50f283e4f`
+- **Current branch:** `webkit-f1a2d7cc-issue-26071112000924`
+- **Current HEAD:** `60899f4934ec2f66e175cecd44398d834c745b0c`
+- **Archive:** `patches/webkit/patches/issue-26071112000924/` (2 patches; TREE_MATCH)
 - Shallow checkout: `true`
 - Working tree: `forks/webkit/src`
-- Patch archives: `patches/webkit/patches`
+- **Residual:** wrapper `smoke-test` focus observation fails; tracked by
+  [Issue 26071112000926](../../issues/0926-webkit-focus-residual/README.md). Daemon
+  warmup is green.
 
-## Branch Strategy
+Historical issue-26062712000857 archive remains under `patches/webkit/patches/issue-26062712000857/`
+for the pre-924 baseline (`d144dd78…`).
 
-WebKit branches encode the upstream base and issue:
+## Merge-upstream
 
-```text
-webkit-{short-upstream-commit}-issue-{N}
-webkit-{short-upstream-commit}-issue-{N}-exp{M}
-```
+1. `git ls-remote https://github.com/WebKit/WebKit.git refs/heads/main`
+2. Fetch tip; branch `webkit-{short8}-issue-NNNN` at tip.
+3. `git am` current issue archive.
+4. `scripts/build.sh webkit-fork --release` then `webkit --release`.
+5. Smoke: `ah-webkitd --termsurf-warmup` (+ wrapper smoke when fixed).
+6. Regenerate format-patch archive; update this README.
 
 ## Applying Patches
 
 ```bash
-git -C forks/webkit/src fetch --depth 1 origin {base-commit}
-git -C forks/webkit/src switch -C webkit-{short-base}-issue-{N} {base-commit}
-git -C forks/webkit/src am ../../../patches/webkit/patches/issue-{N}/*.patch
+cd forks/webkit/src
+git fetch --depth 1 origin f1a2d7ccc011b8da238839e6e66172d50f283e4f
+git switch -C webkit-f1a2d7cc-issue-26071112000924 f1a2d7ccc011b8da238839e6e66172d50f283e4f
+git am ../../../patches/webkit/patches/issue-26071112000924/*.patch
 ```
 
 ## Generating Patches
 
-After committing WebKit changes inside `forks/webkit/src`:
-
 ```bash
-rm -rf patches/webkit/patches/issue-{N}
-mkdir -p patches/webkit/patches/issue-{N}
-git -C forks/webkit/src format-patch {base-commit}..HEAD \
-  -o ../../../patches/webkit/patches/issue-{N}
+rm -rf patches/webkit/patches/issue-26071112000924
+mkdir -p patches/webkit/patches/issue-26071112000924
+git -C forks/webkit/src format-patch \
+  f1a2d7ccc011b8da238839e6e66172d50f283e4f..HEAD \
+  -o "$PWD/patches/webkit/patches/issue-26071112000924"
 ```
-
-Then commit the patch archive and the issue experiment result in the
-Astrohacker repo.
 
 ## Verification
 
 ```bash
 git -C forks/webkit/src status --short
-git -C forks/webkit/src rev-parse --abbrev-ref HEAD
 git -C forks/webkit/src rev-parse HEAD
-git -C forks/webkit/src rev-parse --is-shallow-repository
-git diff --check
+scripts/build.sh webkit-fork --release
+scripts/build.sh webkit --release
 ```
-
-When WebKit source changed, build through the migrated Terminal build helper
-after it has been adapted to the new monorepo layout.

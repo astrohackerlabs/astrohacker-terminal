@@ -4,9 +4,9 @@ Ghostboard has two local launch modes that must stay distinct while
 Astrohacker Terminal is under active development:
 
 - debug runs from this repository; and
-- installed distribution runs, which are tracked separately by Issue 819.
+- installed distribution runs, which are tracked separately by Issue 26061712000819.
 
-Issue 814 defines the debug contract. The goal is to make it obvious which
+Issue 26061712000814 defines the debug contract. The goal is to make it obvious which
 binary Ghostboard will spawn and to fail clearly instead of silently using an
 old installed Chromium helper.
 
@@ -38,10 +38,11 @@ Ghostboard currently supports these browser selection rules:
 | `web --browser chromium URL`                  | named `chromium`                     | Debug: resolve through `ASTROHACKER_CHROMIUM_PATH`; release: installed `ah-chromiumd`.    |
 | `web --browser webkit URL`                    | named `webkit`                       | Debug: resolve through `ASTROHACKER_WEBKIT_PATH`; release: installed `ah-webkitd`.      |
 | `web --browser ladybird URL`                  | named `ladybird`                     | Debug: resolve through `ASTROHACKER_LADYBIRD_PATH`; release: installed `ah-ladybirdd`.    |
+| `web --browser gecko URL`                     | named `gecko`                        | Debug: resolve through `ASTROHACKER_GECKO_PATH`; release: reserved installed `ah-geckod` path (experimental; no Homebrew ship required for Exp9). |
 | `web --browser unsupported-name URL`          | unsupported named browser            | Fail as unsupported.                                                                  |
 
-The supported named browsers are currently `chromium`, `webkit`, and the
-prototype `ladybird`. Any other relative browser name is unsupported; pass an
+The supported named browsers are currently `chromium`, `webkit`, the
+prototype `ladybird`, and experimental `gecko`. Any other relative browser name is unsupported; pass an
 absolute path when testing a custom browser executable.
 
 In debug builds, named browser paths are intentionally explicit:
@@ -119,19 +120,19 @@ Runtime coverage is provided by:
 - `scripts/ghostboard-geometry-matrix.sh installed-chromium-release-launch` for
   release named/default `chromium` resolving through installed discovery without
   `ASTROHACKER_CHROMIUM_PATH`; and
-- `scripts/test-issue-867-release-no-env-browser-discovery.sh` for release named
+- `scripts/test-issue-26062812000867-release-no-env-browser-discovery.sh` for release named
   `chromium`, `webkit`, and `ladybird` resolving through installed defaults
   without any browser path environment variable.
 
-## Boundary With Issue 819
+## Boundary With Issue 26061712000819
 
-Issue 814 does not define the final installed distribution path. It defines the
+Issue 26061712000814 does not define the final installed distribution path. It defines the
 debug contract and prevents accidental installed-binary fallback while the app
 is being tested from the repository.
 
-Issue 819 owns packaging identity and normal installed distribution behavior. It
+Issue 26061712000819 owns packaging identity and normal installed distribution behavior. It
 defines the installed Chromium helper location as
 `/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd` and the installed WebKit helper
-location as `/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd`. Issue 885 adds the installed
+location as `/opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd`. Issue 26070212000885 adds the installed
 Ladybird prototype location as `/opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd`,
 matching the Homebrew cask and manual install scripts.

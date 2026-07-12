@@ -6,7 +6,7 @@
 #
 #   * HARD_CAP (900s = 15 minutes): absolute wall-clock ceiling. The command is
 #     SIGKILLed and the wrapper exits no matter what — this is the guarantee that
-#     no run can ever take longer than 15 minutes (Issue 801).
+#     no run can ever take longer than 15 minutes (Issue 26053112000801).
 #   * IDLE_CAP (90s): if the log stops growing (no test makes progress), the
 #     command is killed early as a likely hang. A `sample` of the process group is
 #     captured to <logfile>.hang before the kill.

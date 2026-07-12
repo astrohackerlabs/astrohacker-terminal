@@ -22,7 +22,7 @@ Common build commands:
 ./scripts/build.sh webkit
 ./scripts/build.sh webkit-lib
 ./scripts/build.sh webkit
-./scripts/build.sh webtui
+./scripts/build.sh ahweb
 ./scripts/build.sh aht
 ./scripts/build.sh all --release
 ```

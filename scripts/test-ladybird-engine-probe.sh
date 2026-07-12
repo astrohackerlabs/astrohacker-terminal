@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 LADYBIRD_DIR="$REPO_DIR/forks/ladybird"
-PROBE_SRC="$REPO_DIR/rust/ladybird/libtermsurf_ladybird/probes/headless-lifecycle"
+PROBE_SRC="$REPO_DIR/rust/ah-ladybirdd/libtermsurf_ladybird/probes/headless-lifecycle"
 IN_TREE_PROBE="$LADYBIRD_DIR/Tests/LibWebView/TestLadybirdHeadlessLifecycle.cpp"
 PRESET="${TERMSURF_LADYBIRD_PROBE_PRESET:-Debug}"
 GUI="${TERMSURF_LADYBIRD_PROBE_GUI:-AppKit}"
@@ -25,9 +25,9 @@ esac
 BUILD_DIR="$LADYBIRD_DIR/Build/$BUILD_PRESET_DIR"
 PROBE_BUILD_DIR="$REPO_DIR/build/ladybird-headless-lifecycle-probe"
 if [ -f "$IN_TREE_PROBE" ]; then
-  LOG_DIR="$REPO_DIR/logs/issue-0884/exp5-in-tree-ladybird-headless-probe"
+  LOG_DIR="$REPO_DIR/logs/issue-26070112000884/exp5-in-tree-ladybird-headless-probe"
 else
-  LOG_DIR="$REPO_DIR/logs/issue-0884/exp4-ladybird-headless-probe"
+  LOG_DIR="$REPO_DIR/logs/issue-26070112000884/exp4-ladybird-headless-probe"
 fi
 SUMMARY="$LOG_DIR/summary.txt"
 

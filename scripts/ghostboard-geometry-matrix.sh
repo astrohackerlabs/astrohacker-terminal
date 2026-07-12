@@ -18,7 +18,7 @@ CHROMIUM_PATH_FOR_APP="$CHROMIUM"
 POINTER_DRIVER="${TERMSURF_GEOMETRY_POINTER_DRIVER:-cgevent}"
 URL="${TERMSURF_GEOMETRY_URL:-https://example.com}"
 BORDER_CONFIG_CASE="${TERMSURF_SPLIT_BORDER_CONFIG_CASE:-enabled}"
-HELLO_CONFIG_HOMEPAGE="${TERMSURF_HELLO_CONFIG_HOMEPAGE:-https://example.net/issue-815-homepage}"
+HELLO_CONFIG_HOMEPAGE="${TERMSURF_HELLO_CONFIG_HOMEPAGE:-https://example.net/issue-26061712000815-homepage}"
 HELLO_CONFIG_SECOND_BROWSER="${TERMSURF_HELLO_CONFIG_SECOND_BROWSER:-webkit}"
 URL_B="${TERMSURF_GEOMETRY_SECOND_URL:-https://example.org}"
 URL_C="${TERMSURF_GEOMETRY_THIRD_URL:-https://example.net}"
@@ -1966,7 +1966,7 @@ PY
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 816 State Smoke Initial</title>
+    <title>Issue 26061712000816 State Smoke Initial</title>
     <style>
       html,
       body {
@@ -2012,7 +2012,7 @@ PY
       document.getElementById("reload-count").textContent = `ISSUE816_RELOAD_COUNT_${count}`;
       console.log(`ISSUE816_CONSOLE_MARKER_${count}`);
       window.addEventListener("load", () => {
-        document.title = `Issue 816 State Smoke Updated ${count}`;
+        document.title = `Issue 26061712000816 State Smoke Updated ${count}`;
         document.body.dataset.loaded = "true";
       });
     </script>
@@ -2022,14 +2022,14 @@ EOF
   cat >"$STATE_WEB_ROOT/hover-target.html" <<'EOF'
 <!doctype html>
 <html>
-  <head><title>Issue 816 Hover Target</title></head>
+  <head><title>Issue 26061712000816 Hover Target</title></head>
   <body>ISSUE816_HOVER_TARGET</body>
 </html>
 EOF
   cat >"$STATE_WEB_ROOT/blank-target.html" <<'EOF'
 <!doctype html>
 <html>
-  <head><title>Issue 816 Blank Target</title></head>
+  <head><title>Issue 26061712000816 Blank Target</title></head>
   <body>ISSUE816_BLANK_TARGET</body>
 </html>
 EOF
@@ -2076,7 +2076,7 @@ PY
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 816 Dialog Initial Pending</title>
+    <title>Issue 26061712000816 Dialog Initial Pending</title>
     <style>
       html,
       body {
@@ -2109,7 +2109,7 @@ PY
       function record(name, value) {
         const marker = `ISSUE816_DIALOG_RESULT case=${name} value=${value}`;
         console.log(marker);
-        document.title = `Issue 816 Dialog ${name} ${value}`;
+        document.title = `Issue 26061712000816 Dialog ${name} ${value}`;
         const result = document.getElementById("result");
         if (result) result.textContent = marker;
       }
@@ -2137,7 +2137,7 @@ EOF
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 816 Dialog away loaded</title>
+    <title>Issue 26061712000816 Dialog away loaded</title>
     <script>
       console.log("ISSUE816_DIALOG_RESULT case=beforeunload-proceed value=away");
     </script>
@@ -2233,13 +2233,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.end_headers()
                 return
             marker = "ISSUE816_AUTH_CANCEL_UNEXPECTED_SUCCESS" if self.path.startswith("/auth-cancel/") else "ISSUE816_AUTH_SUCCESS"
-            title = "Issue 816 Auth Cancel Unexpected Success" if self.path.startswith("/auth-cancel/") else "Issue 816 Auth Success"
+            title = "Issue 26061712000816 Auth Cancel Unexpected Success" if self.path.startswith("/auth-cancel/") else "Issue 26061712000816 Auth Success"
             self.send_html(title, marker)
             return
         if self.path.startswith("/public.html"):
-            self.send_html("Issue 816 Auth Public", "ISSUE816_AUTH_PUBLIC")
+            self.send_html("Issue 26061712000816 Auth Public", "ISSUE816_AUTH_PUBLIC")
             return
-        self.send_html("Issue 816 Auth Index", "ISSUE816_AUTH_INDEX")
+        self.send_html("Issue 26061712000816 Auth Index", "ISSUE816_AUTH_INDEX")
 
 with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as httpd:
     httpd.serve_forever()
@@ -2287,7 +2287,7 @@ PY
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 816 Crash Initial</title>
+    <title>Issue 26061712000816 Crash Initial</title>
     <style>
       html,
       body {
@@ -2300,7 +2300,7 @@ PY
     <script>
       console.log("ISSUE816_CRASH_INITIAL_READY");
       window.addEventListener("load", () => {
-        document.title = "Issue 816 Crash Initial Ready";
+        document.title = "Issue 26061712000816 Crash Initial Ready";
       });
     </script>
   </head>
@@ -2312,7 +2312,7 @@ EOF
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 816 Crash Recovery</title>
+    <title>Issue 26061712000816 Crash Recovery</title>
     <style>
       html,
       body {
@@ -2375,7 +2375,7 @@ PY
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 816 Color Initial</title>
+    <title>Issue 26061712000816 Color Initial</title>
     <style>
       html,
       body {
@@ -2394,7 +2394,7 @@ PY
         seq += 1;
         const marker = `ISSUE816_COLOR_SCHEME seq=${seq} label=${label} scheme=${scheme}`;
         console.log(marker);
-        document.title = `Issue 816 Color ${label} ${scheme} ${seq}`;
+        document.title = `Issue 26061712000816 Color ${label} ${scheme} ${seq}`;
         document.body.dataset.scheme = scheme;
       }
 
@@ -2451,7 +2451,7 @@ PY
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 816 Copy URL Initial</title>
+    <title>Issue 26061712000816 Copy URL Initial</title>
     <style>
       html,
       body {
@@ -2464,7 +2464,7 @@ PY
     <script>
       console.log(`ISSUE816_COPY_URL_READY ${window.location.href}`);
       window.addEventListener("load", () => {
-        document.title = "Issue 816 Copy URL Ready";
+        document.title = "Issue 26061712000816 Copy URL Ready";
       });
     </script>
   </head>
@@ -2515,7 +2515,7 @@ PY
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 817 Input Initial</title>
+    <title>Issue 26061712000817 Input Initial</title>
     <style>
       html,
       body {
@@ -2575,7 +2575,7 @@ PY
         seq += 1;
         const marker = `ISSUE817_INPUT seq=${seq} kind=${kind} ${detail}`.trim();
         console.log(marker);
-        document.title = `Issue 817 Input ${kind} ${seq}`;
+        document.title = `Issue 26061712000817 Input ${kind} ${seq}`;
         const result = document.getElementById("result");
         if (result) result.textContent = marker;
       }
@@ -2681,7 +2681,7 @@ PY
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 840 Clipboard Initial</title>
+    <title>Issue 26062412000840 Clipboard Initial</title>
     <style>
       html,
       body {
@@ -2730,7 +2730,7 @@ PY
         seq += 1;
         const marker = `ISSUE840_CLIPBOARD seq=${seq} kind=${kind} ${detail}`.trim();
         console.log(marker);
-        document.title = `Issue 840 Clipboard ${kind} ${seq}`;
+        document.title = `Issue 26062412000840 Clipboard ${kind} ${seq}`;
         const result = document.getElementById("result");
         if (result) result.textContent = marker;
       }
@@ -2824,7 +2824,7 @@ PY
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Issue 818 Profile Fixture</title>
+    <title>Issue 26061712000818 Profile Fixture</title>
   </head>
   <body>
     <input id="profile-input" value="ISSUE818_PROFILE_INPUT">
@@ -2836,7 +2836,7 @@ PY
       localStorage.setItem(key, profile);
       const after = localStorage.getItem(key) || "none";
       console.log(`ISSUE818_PROFILE_STORAGE profile=${profile} before=${before} after=${after}`);
-      document.title = `Issue 818 Profile ${profile} before ${before} after ${after}`;
+      document.title = `Issue 26061712000818 Profile ${profile} before ${before} after ${after}`;
       document.getElementById("profile-input").focus();
     </script>
   </body>
@@ -4448,9 +4448,9 @@ if [ "$SCENARIO" = "browser-state-smoke" ]; then
   wait_for_state_trace "event=url_changed.*url=${URL}" "webtui URL state changed to fixture URL" 45
   wait_for_state_trace "event=loading_state.*state=loading" "webtui initial loading state started" 45
   wait_for_state_trace "event=loading_state.*state=done" "webtui loading state finished" 45
-  wait_for_state_trace "event=title_changed.*title=Issue 816 State Smoke Updated 1" "webtui received updated page title" 45
+  wait_for_state_trace "event=title_changed.*title=Issue 26061712000816 State Smoke Updated 1" "webtui received updated page title" 45
   wait_for_state_trace "event=console_message.*message=ISSUE816_CONSOLE_MARKER_1" "webtui received console marker" 45
-  require_state_trace "event=render_state.*title=Issue 816 State Smoke Updated 1" "webtui render state includes updated title"
+  require_state_trace "event=render_state.*title=Issue 26061712000816 State Smoke Updated 1" "webtui render state includes updated title"
   require_state_trace "event=render_state.*latest_console=.*ISSUE816_CONSOLE_MARKER_1" "webtui render state includes console marker"
 
   STATE_WIN_LINE="$(window_bounds)" || fail "failed to resolve browser-state window bounds"
@@ -4472,8 +4472,8 @@ if [ "$SCENARIO" = "browser-state-smoke" ]; then
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 15 command >>"$HARNESS_LOG" 2>&1
   if try_wait_state_trace "event=console_message.*message=ISSUE816_CONSOLE_MARKER_2" 20; then
     log "PASS: webtui received reload console marker"
-    wait_for_state_trace "event=title_changed.*title=Issue 816 State Smoke Updated 2" "webtui received reload title update" 45
-    require_state_trace "event=render_state.*title=Issue 816 State Smoke Updated 2" "webtui render state includes reload title"
+    wait_for_state_trace "event=title_changed.*title=Issue 26061712000816 State Smoke Updated 2" "webtui received reload title update" 45
+    require_state_trace "event=render_state.*title=Issue 26061712000816 State Smoke Updated 2" "webtui render state includes reload title"
   else
     log "PARTIAL: Cmd-R in Browse mode did not produce a reload console marker"
   fi
@@ -4484,7 +4484,7 @@ if [ "$SCENARIO" = "browser-state-smoke" ]; then
   BLANK_TRACE_START_LINE="$(state_trace_line_count)"
   click_global_point "$BLANK_X" "$BLANK_Y" "browser_state_blank_target"
   wait_for_state_trace_after "$BLANK_TRACE_START_LINE" "event=url_changed[[:space:]]+url=${STATE_BLANK_URL}" "webtui target blank URL navigation" 45
-  wait_for_state_trace_after "$BLANK_TRACE_START_LINE" "event=title_changed[[:space:]]+title=Issue 816 Blank Target" "webtui target blank title" 45
+  wait_for_state_trace_after "$BLANK_TRACE_START_LINE" "event=title_changed[[:space:]]+title=Issue 26061712000816 Blank Target" "webtui target blank title" 45
   screencapture -x -o -l"$WID" "$SCREENSHOT_BROWSER_STATE_BLANK"
   log "blank_screenshot_exit=$?"
 fi
@@ -4931,7 +4931,7 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
     wait_for_state_trace_after "$start_line" "event=javascript_dialog_reply.*request_id=${request_id}.*accepted=${accepted}" "webtui ${label} dialog reply" 45
     wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${request_id} accepted=${accepted} ok=true" "Chromium ${label} dialog reply" 45
     wait_for_state_trace_after "$start_line" "event=console_message.*message=ISSUE816_DIALOG_RESULT case=${label} value=${result_value}" "page observed ${label} result" 45
-    wait_for_state_trace_after "$start_line" "event=title_changed.*title=Issue 816 Dialog ${label} ${result_value}" "webtui received ${label} title" 45
+    wait_for_state_trace_after "$start_line" "event=title_changed.*title=Issue 26061712000816 Dialog ${label} ${result_value}" "webtui received ${label} title" 45
   }
 
   wait_for_state_trace "event=javascript_dialog_request.*dialog_type=alert.*message=ISSUE816_INITIAL_ALERT" "webtui initial alert dialog request" 45
@@ -4942,7 +4942,7 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
   wait_for_state_trace "event=javascript_dialog_reply.*request_id=${INITIAL_DIALOG_REQUEST_ID}.*accepted=true" "webtui initial alert reply" 45
   wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${INITIAL_DIALOG_REQUEST_ID} accepted=true ok=true" "Chromium initial alert reply" 45
   wait_for_state_trace "event=console_message.*message=ISSUE816_DIALOG_RESULT case=initial-alert value=resumed" "page observed initial alert result" 45
-  wait_for_state_trace "event=title_changed.*title=Issue 816 Dialog initial-alert resumed" "webtui received initial alert title" 45
+  wait_for_state_trace "event=title_changed.*title=Issue 26061712000816 Dialog initial-alert resumed" "webtui received initial alert title" 45
 
   DIALOG_WIN_LINE="$(window_bounds)" || fail "failed to resolve JavaScript dialog window bounds"
   run_dialog_button_case "alert" 84 "alert" "ISSUE816_ALERT" "enter" "true" "" "resumed"
@@ -4955,7 +4955,7 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
   IFS=$'\t' read -r BEFOREUNLOAD_ARM_X BEFOREUNLOAD_ARM_Y <<<"$(global_point_for_web_point "$DIALOG_WIN_LINE" "$APPKIT_PRESENT_LINE" 150 334)"
   click_global_point "$BEFOREUNLOAD_ARM_X" "$BEFOREUNLOAD_ARM_Y" "javascript_dialog_beforeunload_arm"
   wait_for_state_trace_after "$BEFOREUNLOAD_ARM_START_LINE" "event=console_message.*message=ISSUE816_DIALOG_RESULT case=beforeunload-armed value=true" "page observed beforeunload activation" 45
-  wait_for_state_trace_after "$BEFOREUNLOAD_ARM_START_LINE" "event=title_changed.*title=Issue 816 Dialog beforeunload-armed true" "webtui received beforeunload armed title" 45
+  wait_for_state_trace_after "$BEFOREUNLOAD_ARM_START_LINE" "event=title_changed.*title=Issue 26061712000816 Dialog beforeunload-armed true" "webtui received beforeunload armed title" 45
 
   BEFOREUNLOAD_CANCEL_START_LINE="$(state_trace_line_count)"
   IFS=$'\t' read -r BEFOREUNLOAD_LEAVE_X BEFOREUNLOAD_LEAVE_Y <<<"$(global_point_for_web_point "$DIALOG_WIN_LINE" "$APPKIT_PRESENT_LINE" 150 384)"
@@ -4969,7 +4969,7 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
   wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_CANCEL_REQUEST_ID} accepted=false ok=true" "Chromium beforeunload stay reply" 45
   delay 2
   require_no_state_trace_after "$BEFOREUNLOAD_CANCEL_START_LINE" "event=url_changed[[:space:]]+url=${DIALOG_AWAY_URL}" "beforeunload stay did not emit away URL"
-  require_no_state_trace_after "$BEFOREUNLOAD_CANCEL_START_LINE" "event=title_changed.*title=Issue 816 Dialog away loaded" "beforeunload stay did not navigate away"
+  require_no_state_trace_after "$BEFOREUNLOAD_CANCEL_START_LINE" "event=title_changed.*title=Issue 26061712000816 Dialog away loaded" "beforeunload stay did not navigate away"
 
   BEFOREUNLOAD_PROCEED_START_LINE="$(state_trace_line_count)"
   click_global_point "$BEFOREUNLOAD_LEAVE_X" "$BEFOREUNLOAD_LEAVE_Y" "javascript_dialog_beforeunload_proceed"
@@ -4981,7 +4981,7 @@ if [ "$SCENARIO" = "javascript-dialog-smoke" ]; then
   wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=javascript_dialog_reply.*request_id=${BEFOREUNLOAD_PROCEED_REQUEST_ID}.*accepted=true" "webtui beforeunload proceed reply" 45
   wait_for_trace_regex "javascript-dialog-reply tab=${BROWSER_TAB_ID} .*request_id=${BEFOREUNLOAD_PROCEED_REQUEST_ID} accepted=true ok=true" "Chromium beforeunload proceed reply" 45
   wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=url_changed[[:space:]]+url=${DIALOG_AWAY_URL}" "beforeunload proceed navigated away" 45
-  wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=title_changed[[:space:]]+title=Issue 816 Dialog away loaded" "beforeunload proceed loaded away title" 45
+  wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=title_changed[[:space:]]+title=Issue 26061712000816 Dialog away loaded" "beforeunload proceed loaded away title" 45
   wait_for_state_trace_after "$BEFOREUNLOAD_PROCEED_START_LINE" "event=console_message.*message=ISSUE816_DIALOG_RESULT case=beforeunload-proceed value=away" "page observed beforeunload proceed result" 45
 fi
 
@@ -5015,7 +5015,7 @@ if [ "$SCENARIO" = "http-auth-smoke" ]; then
   log "http_auth_key_password=enter"
   wait_for_state_trace "event=http_auth_reply.*request_id=${AUTH_SUCCESS_REQUEST_ID}.*accepted=true.*username=user.*password_len=6" "webtui HTTP auth success reply" 45
   wait_for_trace_regex "http-auth-reply tab=${BROWSER_TAB_ID} .*request_id=${AUTH_SUCCESS_REQUEST_ID} accepted=true username=user password_len=6 ok=true" "Chromium HTTP auth success reply" 45
-  wait_for_state_trace "event=title_changed.*title=Issue 816 Auth Success" "authenticated page title" 45
+  wait_for_state_trace "event=title_changed.*title=Issue 26061712000816 Auth Success" "authenticated page title" 45
   wait_for_state_trace "event=console_message.*message=ISSUE816_AUTH_SUCCESS" "authenticated page success marker" 45
 
   AUTH_WIN_LINE="$(window_bounds)" || fail "failed to resolve HTTP auth window bounds"
@@ -5045,7 +5045,7 @@ if [ "$SCENARIO" = "http-auth-smoke" ]; then
   swift "$ROOT/scripts/ghostty-app/inject.swift" type "$AUTH_TYPE_COMMAND" >>"$HARNESS_LOG" 2>&1
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
   wait_for_state_trace_after "$AUTH_PUBLIC_START_LINE" "event=url_changed[[:space:]]+url=${AUTH_PUBLIC_URL}" "public navigation after auth cancel" 45
-  wait_for_state_trace_after "$AUTH_PUBLIC_START_LINE" "event=title_changed.*title=Issue 816 Auth Public" "public page title after auth cancel" 45
+  wait_for_state_trace_after "$AUTH_PUBLIC_START_LINE" "event=title_changed.*title=Issue 26061712000816 Auth Public" "public page title after auth cancel" 45
   wait_for_state_trace_after "$AUTH_PUBLIC_START_LINE" "event=console_message.*message=ISSUE816_AUTH_PUBLIC" "public page marker after auth cancel" 45
 
   if grep -F "passwd" "$APP_LOG" "$CHROMIUM_TRACE" "$WEBTUI_STATE_TRACE" "$HARNESS_LOG" >/dev/null 2>&1; then
@@ -5059,7 +5059,7 @@ if [ "$SCENARIO" = "renderer-crash-smoke" ]; then
   CRASH_RECOVERY_URL="http://127.0.0.1:${CRASH_HTTP_PORT}/recovery.html"
 
   wait_for_state_trace "event=url_changed.*url=${URL}" "webtui initial crash fixture URL" 45
-  wait_for_state_trace "event=title_changed.*title=Issue 816 Crash Initial Ready" "webtui initial crash fixture title" 45
+  wait_for_state_trace "event=title_changed.*title=Issue 26061712000816 Crash Initial Ready" "webtui initial crash fixture title" 45
   wait_for_state_trace "event=console_message.*message=ISSUE816_CRASH_INITIAL_READY" "webtui initial crash fixture console marker" 45
 
   CRASH_TRACE_START_LINE="$(trace_line_count)"
@@ -5094,10 +5094,10 @@ if [ "$SCENARIO" = "renderer-crash-smoke" ]; then
   edit_url_replace "renderer_crash_recovery" "$CRASH_RECOVERY_URL"
   wait_for_trace_line_after "$RECOVERY_TRACE_START_LINE" "navigate tab=${BROWSER_TAB_ID} pane=${PANE_ID} url=${CRASH_RECOVERY_URL}" "Chromium recovery navigation" 60 >/dev/null
   wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=url_changed[[:space:]]+url=${CRASH_RECOVERY_URL}" "webtui recovery URL" 60
-  wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=title_changed.*title=Issue 816 Crash Recovery" "webtui recovery title" 60
+  wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=title_changed.*title=Issue 26061712000816 Crash Recovery" "webtui recovery title" 60
   wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=console_message.*message=ISSUE816_CRASH_RECOVERY" "webtui recovery console marker" 60
-  wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=render_state.*title=Issue 816 Crash Recovery.*loading_bar_active=false.*renderer_crash_active=false.*latest_console=ISSUE816_CRASH_RECOVERY" "webtui render state cleared crash after recovery"
-  require_trace_after "$RECOVERY_TRACE_START_LINE" "title-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} title=Issue 816 Crash Recovery" "Chromium stayed alive through recovery"
+  wait_for_state_trace_after "$RECOVERY_STATE_START_LINE" "event=render_state.*title=Issue 26061712000816 Crash Recovery.*loading_bar_active=false.*renderer_crash_active=false.*latest_console=ISSUE816_CRASH_RECOVERY" "webtui render state cleared crash after recovery"
+  require_trace_after "$RECOVERY_TRACE_START_LINE" "title-changed tab=${BROWSER_TAB_ID} pane=${PANE_ID} title=Issue 26061712000816 Crash Recovery" "Chromium stayed alive through recovery"
 fi
 
 if [ "$SCENARIO" = "color-scheme-smoke" ]; then
@@ -5116,7 +5116,7 @@ if [ "$SCENARIO" = "color-scheme-smoke" ]; then
     wait_for_state_trace_after "$state_start_line" "event=color_scheme_command.*action=${action}.*scheme=${scheme}.*dark=${dark}.*source=${source}.*tab_id=${BROWSER_TAB_ID}" "webtui accepted ${label} color scheme command" 45
     require_trace_after "$trace_start_line" "set-color-scheme tab=${BROWSER_TAB_ID} pane=${PANE_ID} dark=${dark} ffi=ts_set_color_scheme" "Chromium received ${label} SetColorScheme"
     wait_for_state_trace_after "$state_start_line" "event=console_message.*message=ISSUE816_COLOR_SCHEME .*scheme=${scheme}" "page observed ${label} ${scheme} media scheme" 45
-    wait_for_state_trace_after "$state_start_line" "event=title_changed.*title=Issue 816 Color .* ${scheme}" "webtui received ${label} ${scheme} title" 45
+    wait_for_state_trace_after "$state_start_line" "event=title_changed.*title=Issue 26061712000816 Color .* ${scheme}" "webtui received ${label} ${scheme} title" 45
   }
 
   wait_for_state_trace "event=url_changed.*url=${URL}" "webtui initial color fixture URL" 45
@@ -5131,7 +5131,7 @@ fi
 
 if [ "$SCENARIO" = "copy-current-url-smoke" ]; then
   wait_for_state_trace "event=url_changed.*url=${URL}" "webtui copy URL fixture URL" 45
-  wait_for_state_trace "event=title_changed.*title=Issue 816 Copy URL Ready" "webtui copy URL fixture title" 45
+  wait_for_state_trace "event=title_changed.*title=Issue 26061712000816 Copy URL Ready" "webtui copy URL fixture title" 45
   wait_for_state_trace "event=console_message.*message=ISSUE816_COPY_URL_READY ${URL}" "webtui copy URL fixture ready marker" 45
 
   COPY_URL_SENTINEL="ISSUE816_COPY_URL_SENTINEL_${TS}"

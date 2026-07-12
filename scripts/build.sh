@@ -9,8 +9,8 @@ CHROMIUM_SRC="$COMPANY_DIR/forks/chromium/src"
 CHROMIUM_OUT="$CHROMIUM_SRC/out/Default"
 CHROMIUM_PROTOC="$CHROMIUM_OUT/protoc"
 WEBKIT_SRC="$COMPANY_DIR/forks/webkit/src"
-WEBKIT_LIB_DIR="$RUST_DIR/webkit/libtermsurf_webkit"
-LADYBIRD_LIB_DIR="$RUST_DIR/ladybird/libtermsurf_ladybird"
+WEBKIT_LIB_DIR="$RUST_DIR/ah-webkitd/libtermsurf_webkit"
+LADYBIRD_LIB_DIR="$RUST_DIR/ah-ladybirdd/libtermsurf_ladybird"
 GHOSTTY_DIR="$COMPANY_DIR/forks/ghostty"
 HELIX_DIR="$COMPANY_DIR/forks/helix"
 
@@ -22,7 +22,8 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: ahterm, ahsh, ahed, webtui, gtui, chromium-fork, chromium, webkit-fork, webkit-lib, webkit, ladybird-lib, ladybird, all"
+  echo "Components: ahterm, ahsh, ahed, ahweb, ahapp, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
+  echo "Aliases: webtui→ahweb, gtui→ahapp, chromium→ah-chromiumd, webkit→ah-webkitd, ladybird→ah-ladybirdd"
 }
 
 configuration() {
@@ -93,37 +94,37 @@ build_chromium_fork() {
   echo "  Chromium: $CHROMIUM_OUT"
 }
 
-build_webtui() {
+build_ahweb() {
   cd "$RUST_DIR"
   if $CLEAN; then
-    echo "==> Cleaning webtui..."
-    cargo clean -p webtui
+    echo "==> Cleaning ahweb..."
+    cargo clean -p ahweb
   fi
   if $RELEASE; then
-    echo "==> Building webtui (release)..."
-    cargo build --release -p webtui
-    echo "  webtui: $RUST_DIR/target/release/ahweb"
+    echo "==> Building ahweb (release)..."
+    cargo build --release -p ahweb
+    echo "  ahweb: $RUST_DIR/target/release/ahweb"
   else
-    echo "==> Building webtui (debug)..."
-    cargo build -p webtui
-    echo "  webtui: $RUST_DIR/target/debug/ahweb"
+    echo "==> Building ahweb (debug)..."
+    cargo build -p ahweb
+    echo "  ahweb: $RUST_DIR/target/debug/ahweb"
   fi
 }
 
-build_gtui() {
+build_ahapp() {
   cd "$RUST_DIR"
   if $CLEAN; then
-    echo "==> Cleaning gtui..."
-    cargo clean -p gtui
+    echo "==> Cleaning ahapp..."
+    cargo clean -p ahapp
   fi
   if $RELEASE; then
-    echo "==> Building gtui (release)..."
-    cargo build --release -p gtui
-    echo "  gtui: $RUST_DIR/target/release/ahapp"
+    echo "==> Building ahapp (release)..."
+    cargo build --release -p ahapp
+    echo "  ahapp: $RUST_DIR/target/release/ahapp"
   else
-    echo "==> Building gtui (debug)..."
-    cargo build -p gtui
-    echo "  gtui: $RUST_DIR/target/debug/ahapp"
+    echo "==> Building ahapp (debug)..."
+    cargo build -p ahapp
+    echo "  ahapp: $RUST_DIR/target/debug/ahapp"
   fi
 }
 
@@ -194,15 +195,15 @@ build_chromiumd() {
   fi
   if $CLEAN; then
     echo "==> Cleaning Chromium..."
-    cargo clean -p chromium
+    cargo clean -p ah-chromiumd
   fi
   if $RELEASE; then
     echo "==> Building Chromium (release)..."
-    cargo build --release -p chromium
+    cargo build --release -p ah-chromiumd
     cp "$RUST_DIR/target/release/ah-chromiumd" "$CHROMIUM_OUT/ah-chromiumd"
   else
     echo "==> Building Chromium (debug)..."
-    cargo build -p chromium
+    cargo build -p ah-chromiumd
     cp "$RUST_DIR/target/debug/ah-chromiumd" "$CHROMIUM_OUT/ah-chromiumd"
   fi
   echo "  Chromium: $CHROMIUM_OUT/ah-chromiumd"
@@ -283,15 +284,15 @@ build_webkitd() {
   cd "$RUST_DIR"
   if $CLEAN; then
     echo "==> Cleaning WebKit..."
-    cargo clean -p webkit
+    cargo clean -p ah-webkitd
   fi
   if $RELEASE; then
     echo "==> Building WebKit (release)..."
-    cargo build --release -p webkit
+    cargo build --release -p ah-webkitd
     echo "  WebKit: $RUST_DIR/target/release/ah-webkitd"
   else
     echo "==> Building WebKit (debug)..."
-    cargo build -p webkit
+    cargo build -p ah-webkitd
     echo "  WebKit: $RUST_DIR/target/debug/ah-webkitd"
   fi
 }
@@ -302,15 +303,15 @@ build_ladybirdd() {
   cd "$RUST_DIR"
   if $CLEAN; then
     echo "==> Cleaning Ladybird..."
-    cargo clean -p ladybird
+    cargo clean -p ah-ladybirdd
   fi
   if $RELEASE; then
     echo "==> Building Ladybird (release)..."
-    cargo build --release -p ladybird
+    cargo build --release -p ah-ladybirdd
     echo "  Ladybird: $RUST_DIR/target/release/ah-ladybirdd"
   else
     echo "==> Building Ladybird (debug)..."
-    cargo build -p ladybird
+    cargo build -p ah-ladybirdd
     echo "  Ladybird: $RUST_DIR/target/debug/ah-ladybirdd"
   fi
 }
@@ -370,21 +371,21 @@ build_ahterm() {
 
 case "$COMPONENT" in
   chromium-fork) build_chromium_fork ;;
-  webtui|ahweb) build_webtui ;;
-  gtui|ahapp) build_gtui ;;
+  ahweb|webtui) build_ahweb ;;
+  ahapp|gtui) build_ahapp ;;
   ahsh)       build_ahsh ;;
   ahed|ahe)   build_ahed ;;
-  chromium)   build_chromiumd ;;
+  ah-chromiumd|chromium)   build_chromiumd ;;
   webkit-fork) build_webkit_fork ;;
   webkit-lib) build_webkit_lib ;;
-  webkit)     build_webkitd ;;
+  ah-webkitd|webkit)     build_webkitd ;;
   ladybird-lib) build_ladybird_lib ;;
-  ladybird)   build_ladybirdd ;;
+  ah-ladybirdd|ladybird)   build_ladybirdd ;;
   ahterm|aht) build_ahterm ;;
   all)
     build_chromium_fork
-    build_webtui
-    build_gtui
+    build_ahweb
+    build_ahapp
     build_ahsh
     build_ahed
     build_chromiumd

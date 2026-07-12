@@ -1,11 +1,11 @@
 # Ladybird Rendering Strategy
 
-Issue 884 needs Ladybird to render a normal Ladybird page inside Ghostboard. The
+Issue 26070112000884 needs Ladybird to render a normal Ladybird page inside Ghostboard. The
 current Ladybird implementation is still headless: it can create tabs, navigate,
 query state, and emit headless `TabReady`/`UrlChanged`/`LoadingState` events,
 but it does not expose a render surface.
 
-This document records the render-surface audit from Issue 884 Experiment 11 and
+This document records the render-surface audit from Issue 26070112000884 Experiment 11 and
 the ABI reachability update from Experiment 12. The follow-on transport audit is
 recorded in
 [ladybird-render-surface-transport.md](ladybird-render-surface-transport.md).
@@ -13,7 +13,7 @@ recorded in
 ## Audited Source
 
 - Ladybird checkout: `vendor/ladybird`
-- Branch: `a80d01fc-issue-0884-persistent-ladybird-abi-handles`
+- Branch: `a80d01fc-issue-26070112000884-persistent-ladybird-abi-handles`
 - Commit: `abba707e84f9ba7398ab3d031fa4178b25a70aba`
 - Audit command: `scripts/audit-ladybird-render-surface.py`
 
@@ -141,7 +141,7 @@ should be designed in the implementation experiment, but the likely data is:
 - possibly bytes-per-row/pixel-format metadata if Ghostboard cannot obtain it
   from IOSurface APIs.
 
-Issue 884 Experiment 13 made that transport choice sharper:
+Issue 26070112000884 Experiment 13 made that transport choice sharper:
 
 - ID-only protobuf is rejected for Ladybird's current non-global IOSurfaces. A
   two-process probe shows that `IOSurfaceLookup(id)` fails for non-global
@@ -174,7 +174,7 @@ without regressing CAContext overlays.
 
 ## Next Experiment
 
-Issue 884 Experiment 12 proved the first concrete render-surface boundary:
+Issue 26070112000884 Experiment 12 proved the first concrete render-surface boundary:
 
 - `LibTermSurfLadybird` can define a TermSurf protocol-owned `HeadlessWebView` subclass
   in the existing Ladybird target without patching core `LibWebView`.

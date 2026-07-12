@@ -5,20 +5,20 @@ Ghostty defaults or user-configured Ghostty keybindings.
 
 ## `web` TUI keybindings
 
-These are handled by the `web` TUI process (`webtui/src/main.rs`) via crossterm
+These are handled by the `ahweb` process (`rust/ahweb/src/main.rs`) via crossterm
 key events received through the terminal PTY.
 
 | Key    | Mode    | Action                      | Notes                                        |
 | ------ | ------- | --------------------------- | -------------------------------------------- |
 | Esc    | Browse  | Switch to Control           | Sends `mode_changed(browsing: false)` to GUI |
 | Enter  | Control | Switch to Browse            | Sends `mode_changed(browsing: true)` to GUI  |
-| i      | Control | Edit URL (insert at cursor) | Opens editor in insert mode (Issue 646)      |
-| A      | Control | Edit URL (insert at end)    | Cursor jumps to end of line (Issue 658)      |
-| I      | Control | Edit URL (insert at start)  | Cursor jumps to start of line (Issue 658)    |
-| n      | Control | Edit URL (normal mode)      | Cursor at last position (Issue 658)          |
-| v      | Control | Edit URL (visual mode)      | Empty selection at cursor (Issue 658)        |
-| V      | Control | Edit URL (visual line)      | Entire URL selected (Issue 658)              |
-| :      | Control | Enter Command mode          | Yellow command bar (Issue 659)               |
+| i      | Control | Edit URL (insert at cursor) | Opens editor in insert mode (Issue 26022612000646)      |
+| A      | Control | Edit URL (insert at end)    | Cursor jumps to end of line (Issue 26022712000658)      |
+| I      | Control | Edit URL (insert at start)  | Cursor jumps to start of line (Issue 26022712000658)    |
+| n      | Control | Edit URL (normal mode)      | Cursor at last position (Issue 26022712000658)          |
+| v      | Control | Edit URL (visual mode)      | Empty selection at cursor (Issue 26022712000658)        |
+| V      | Control | Edit URL (visual line)      | Entire URL selected (Issue 26022712000658)              |
+| :      | Control | Enter Command mode          | Yellow command bar (Issue 26022712000659)               |
 | Cmd+C  | Control | Copy current URL            | Shows brief `url copied` feedback            |
 | q      | Control | Quit                        |                                              |
 | Ctrl+C | Any     | Force quit                  |                                              |
@@ -46,7 +46,7 @@ Chromium handles them internally via its default keybinding logic.
 
 ## Commands
 
-Entered via `:` in Control mode. Exact match only (Issue 772).
+Entered via `:` in Control mode. Exact match only (Issue 26040512000772).
 
 | Command              | Shortcut | Action                      |
 | -------------------- | -------- | --------------------------- |
@@ -71,7 +71,7 @@ Command all map to `browsing: false` from the GUI's perspective.
 ## Mode synchronization
 
 Mode state is shared between the GUI and `web` via `mode_changed` protobuf
-socket messages on the existing direct connection (Issue 513). Both sides send
+socket messages on the existing direct connection (Issue 26021712000513). Both sides send
 and receive:
 
 - **`web` changes mode** (Esc, Enter) → sends `mode_changed` to GUI

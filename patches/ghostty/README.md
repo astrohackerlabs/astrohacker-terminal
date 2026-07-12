@@ -3,36 +3,59 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-Current archive:
+## Current State (Issue 26071112000924)
 
-- Issue archive: `patches/issue-0013/`
+- Upstream repository: `https://github.com/ghostty-org/ghostty`
+- Upstream base policy: **latest commit on upstream `main`**
+- Upstream base commit: `53bd14fecfd68c6c0ab64d37b5943247299e2b40`
+- Local fork working tree: `forks/ghostty`
+- Product branch: `issue-26071112000924-ghostty-upstream`
+- Product HEAD (base + product commit):
+  `ad9768db5138df928b3c307754e7dae0f7945af9`
+- Issue archive: `patches/ghostty/patches/issue-26071112000924/`
 - Patch:
-  `patches/issue-0013/0001-current-astrohacker-terminal-ghostty.patch`
-- Upstream base commit: `2c62d182cec246764ff725096a70b9ef44996f7f`
-- Source snapshot: current ignored fork checkout at `forks/ghostty`
+  `patches/ghostty/patches/issue-26071112000924/0001-astrohacker-terminal-ghostty.patch`
+- Prior archive (historical): `patches/ghostty/patches/issue-26070412000013/`
+  on base `2c62d182cec246764ff725096a70b9ef44996f7f`
 
-This first archive captures the current Astrohacker Terminal/Ghostboard state
-only. Historical Ghostty patch reconstruction is intentionally out of scope for
-issue 13.
+Executable product name: **`ahterm`** inside
+`Astrohacker Terminal.app`.
 
-To apply the current patch to a temporary worktree:
-
-```sh
-git -C forks/ghostty worktree add /tmp/astrohacker-ghostty-issue-0013 \
-  2c62d182cec246764ff725096a70b9ef44996f7f
-git -C /tmp/astrohacker-ghostty-issue-0013 apply \
-  "$PWD/patches/ghostty/patches/issue-0013/0001-current-astrohacker-terminal-ghostty.patch"
-```
-
-To rebuild the patched app in the ignored local checkout:
+## Apply (clean base)
 
 ```sh
-cd forks/ghostty
-zig build -Demit-macos-app=false
-macos/build.nu --scheme Ghostty --configuration Debug --action build
+BASE=53bd14fecfd68c6c0ab64d37b5943247299e2b40
+git -C forks/ghostty fetch origin
+git -C forks/ghostty worktree add /tmp/astrohacker-ghostty-0924 "$BASE"
+git -C /tmp/astrohacker-ghostty-0924 am \
+  "$PWD/patches/ghostty/patches/issue-26071112000924/0001-astrohacker-terminal-ghostty.patch"
 ```
 
-The Debug app bundle is
-`forks/ghostty/macos/build/Debug/Astrohacker Terminal.app`.
+## Generate
+
+```sh
+git -C forks/ghostty format-patch -1 HEAD --stdout \
+  > patches/ghostty/patches/issue-26071112000924/0001-astrohacker-terminal-ghostty.patch
+```
+
+## Build / verify
+
+```sh
+scripts/build.sh ahterm --release
+# identity
+"./forks/ghostty/macos/build/Release/Astrohacker Terminal.app/Contents/MacOS/ahterm" +version
+# host TermSurf browser-resolution unit test
+cd forks/ghostty && zig build test \
+  -Dtest-filter="termsurf server register matches profile and browser"
+```
+
+## Merge-upstream checklist
+
+1. Discover tip: `git ls-remote https://github.com/ghostty-org/ghostty.git refs/heads/main`
+2. Fetch; create `issue-NNNN-ghostty-upstream` from the tip SHA.
+3. `git am` current archive (or re-apply prior product commit); resolve conflicts.
+4. Build `ahterm` Release; run `+version` and TermSurf unit filters.
+5. `git format-patch -1` into `patches/ghostty/patches/issue-NNNN/`.
+6. Update this README Current State (base SHA, branch, archive path, date).
 
 Do not commit `forks/ghostty` or temporary worktrees to the Astrohacker repo.
