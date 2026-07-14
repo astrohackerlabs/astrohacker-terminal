@@ -30,6 +30,7 @@ name = "ah-geckod"
 version = "0.1.0"
 dependencies = [
  "cc",
+ "libc",
  "prost",
  "prost-build",
 ]
@@ -47,6 +48,7 @@ dependencies = [
 name = "ah-webkitd"
 version = "0.1.0"
 dependencies = [
+ "libloading",
  "prost",
  "prost-build",
 ]

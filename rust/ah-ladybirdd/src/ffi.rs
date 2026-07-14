@@ -54,6 +54,12 @@ extern "C" {
         utf8: *const c_char,
         modifiers: c_ulonglong,
     ) -> bool;
+    fn ts_ladybird_view_run_javascript_for_testing(view: *mut View, script: *const c_char) -> bool;
+    fn ts_ladybird_view_navigation_action(view: *mut View, action: *const c_char) -> bool;
+    fn ts_ladybird_view_navigation_state(
+        view: *const View,
+        out_state: *mut NavigationStateRecord,
+    ) -> bool;
     fn ts_ladybird_view_take_title_changed(
         view: *mut View,
         out_title: *mut c_char,
@@ -149,6 +155,14 @@ pub struct RendererCrashRecord {
     pub termination_status_code: c_int,
     pub url: [c_char; 1024],
     pub can_reload: bool,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct NavigationStateRecord {
+    pub can_go_back: bool,
+    pub can_go_forward: bool,
+    pub can_refresh: bool,
 }
 
 impl Default for RendererCrashRecord {
@@ -375,6 +389,34 @@ impl AbiView {
             )
         } {
             Ok(())
+        } else {
+            Err(last_error(ptr::null()))
+        }
+    }
+
+    pub fn navigation_action(&self, action: &str) -> Result<(), String> {
+        let action =
+            CString::new(action).map_err(|_| "navigation action contains nul byte".to_string())?;
+        if unsafe { ts_ladybird_view_navigation_action(self.raw, action.as_ptr()) } {
+            Ok(())
+        } else {
+            Err(last_error(ptr::null()))
+        }
+    }
+
+    pub fn run_javascript_for_testing(&self, script: &str) -> Result<(), String> {
+        let script = CString::new(script).map_err(|_| "script contains nul byte".to_string())?;
+        if unsafe { ts_ladybird_view_run_javascript_for_testing(self.raw, script.as_ptr()) } {
+            Ok(())
+        } else {
+            Err(last_error(ptr::null()))
+        }
+    }
+
+    pub fn navigation_state(&self) -> Result<NavigationStateRecord, String> {
+        let mut state = NavigationStateRecord::default();
+        if unsafe { ts_ladybird_view_navigation_state(self.raw, &mut state as *mut _) } {
+            Ok(state)
         } else {
             Err(last_error(ptr::null()))
         }
@@ -859,6 +901,482 @@ pub fn renderer_crash_smoke() -> bool {
 
     eprintln!("[Ladybird] renderer-crash-smoke failed: crash callback timed out");
     false
+}
+
+pub fn navigation_actions_smoke() -> bool {
+    let runtime_name = runtime_name();
+    if runtime_name.contains("stub") {
+        eprintln!(
+            "[Ladybird] navigation-actions-smoke failed: stub backend cannot prove the real Ladybird navigation contract"
+        );
+        return false;
+    }
+
+    let base_url = match std::env::var("TERMSURF_LADYBIRD_SMOKE_BASE_URL") {
+        Ok(value) if !value.is_empty() => value,
+        _ => {
+            eprintln!(
+                "[Ladybird] navigation-actions-smoke failed: TERMSURF_LADYBIRD_SMOKE_BASE_URL is unset"
+            );
+            return false;
+        }
+    };
+
+    let runtime = match AbiRuntime::create() {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("[Ladybird] navigation-actions-smoke failed to create runtime: {error}");
+            return false;
+        }
+    };
+
+    let a = match runtime.create_view(800, 600) {
+        Ok(view) => view,
+        Err(error) => {
+            eprintln!("[Ladybird] navigation-actions-smoke failed to create view A: {error}");
+            return false;
+        }
+    };
+    let b = match runtime.create_view(800, 600) {
+        Ok(view) => view,
+        Err(error) => {
+            eprintln!("[Ladybird] navigation-actions-smoke failed to create view B: {error}");
+            return false;
+        }
+    };
+
+    let mut state = NavigationSmokeState::default();
+    if !expect_nav("pre_commit_a", &a, false, false, false)
+        || !expect_nav("pre_commit_b", &b, false, false, false)
+    {
+        return false;
+    }
+
+    let a1 = format!("{base_url}/a?peer=A");
+    let a2 = format!("{base_url}/b?peer=A");
+    let b1 = format!("{base_url}/a?peer=B");
+
+    if !load_and_wait(&runtime, &a, &mut state.title_a, "A", &a1)
+        || !load_and_wait(&runtime, &b, &mut state.title_b, "B", &b1)
+    {
+        return false;
+    }
+    if !expect_page(
+        "initial_a",
+        &a,
+        &state.title_a,
+        "/a?peer=A",
+        "NAV_A peer=A reload=1",
+    ) || !expect_page(
+        "initial_b",
+        &b,
+        &state.title_b,
+        "/a?peer=B",
+        "NAV_A peer=B reload=1",
+    ) || !expect_nav("initial_a", &a, false, false, true)
+        || !expect_nav("initial_b", &b, false, false, true)
+    {
+        return false;
+    }
+
+    if !load_and_wait(&runtime, &a, &mut state.title_a, "A", &a2)
+        || !expect_page(
+            "a2",
+            &a,
+            &state.title_a,
+            "/b?peer=A",
+            "NAV_B peer=A reload=1",
+        )
+        || !expect_nav("a2_a", &a, true, false, true)
+        || !expect_nav("a2_b", &b, false, false, true)
+        || !expect_page(
+            "a2_b_peer",
+            &b,
+            &state.title_b,
+            "/a?peer=B",
+            "NAV_A peer=B reload=1",
+        )
+    {
+        return false;
+    }
+
+    if !action_and_wait(
+        &runtime,
+        &a,
+        &mut state.title_a,
+        "A",
+        "back",
+        "/a?peer=A",
+        "NAV_A peer=A",
+    ) || !expect_nav("back_a", &a, false, true, true)
+        || !expect_nav("back_b", &b, false, false, true)
+    {
+        return false;
+    }
+
+    if a.navigation_action("back").is_ok() {
+        eprintln!("[Ladybird] navigation-actions-smoke failed: disabled back was accepted");
+        return false;
+    }
+    if !pump_for(
+        &runtime,
+        "disabled_back_settle",
+        Duration::from_millis(250),
+        || {
+            drain_title(&a, &mut state.title_a, "A")?;
+            Ok(true)
+        },
+    ) || !expect_page(
+        "disabled_back_no_mutation",
+        &a,
+        &state.title_a,
+        "/a?peer=A",
+        "NAV_A peer=A",
+    ) {
+        return false;
+    }
+
+    if !action_and_wait(
+        &runtime,
+        &a,
+        &mut state.title_a,
+        "A",
+        "forward",
+        "/b?peer=A",
+        "NAV_B peer=A",
+    ) || !expect_nav("forward_a", &a, true, false, true)
+        || !expect_nav("forward_b", &b, false, false, true)
+    {
+        return false;
+    }
+
+    let push_state_script = r##"
+(() => {
+  const reload = document.documentElement.dataset.reload || "unknown";
+  const update = () => {
+    document.title = "NAV_B peer=A" + (location.hash === "#state" ? " state" : "") + " reload=" + reload;
+  };
+  window.addEventListener("popstate", update);
+  history.pushState({ termsurf: "state" }, "", location.pathname + location.search + "#state");
+  update();
+})();
+"##;
+    let same_document_entry = match a.run_javascript_for_testing(push_state_script) {
+        Ok(()) => wait_for_page(
+            &runtime,
+            &a,
+            &mut state.title_a,
+            "same_document_entry",
+            "/b?peer=A#state",
+            "NAV_B peer=A state",
+        ),
+        Err(error) => {
+            eprintln!(
+                "[Ladybird] navigation-actions-smoke same_document_entry pushState script failed: {error}"
+            );
+            false
+        }
+    } && expect_page(
+        "same_document_entry",
+        &a,
+        &state.title_a,
+        "/b?peer=A#state",
+        "NAV_B peer=A state",
+    ) && expect_nav("same_document_entry_a", &a, true, false, true)
+        && expect_nav("same_document_entry_b", &b, false, false, true);
+    if !same_document_entry {
+        return false;
+    }
+
+    if !action_and_wait(
+        &runtime,
+        &a,
+        &mut state.title_a,
+        "A",
+        "back",
+        "/b?peer=A",
+        "NAV_B peer=A",
+    ) || !expect_nav("same_document_back_a", &a, true, true, true)
+    {
+        return false;
+    }
+    if !action_and_wait(
+        &runtime,
+        &a,
+        &mut state.title_a,
+        "A",
+        "forward",
+        "/b?peer=A#state",
+        "NAV_B peer=A state",
+    ) || !expect_nav("same_document_forward_a", &a, true, false, true)
+    {
+        return false;
+    }
+
+    let reload_before = reload_count(&state.title_a).unwrap_or(0);
+    if let Err(error) = a.navigation_action("refresh") {
+        eprintln!("[Ladybird] navigation-actions-smoke A refresh failed: {error}");
+        return false;
+    }
+    if !pump_for(&runtime, "refresh", Duration::from_secs(30), || {
+        drain_title(&a, &mut state.title_a, "A_refresh")?;
+        let reload_after = reload_count(&state.title_a).unwrap_or(0);
+        Ok(url_path(&a.last_url()) == "/b?peer=A#state"
+            && state.title_a.contains("NAV_B peer=A")
+            && reload_after > reload_before)
+    }) {
+        let reload_after = reload_count(&state.title_a).unwrap_or(0);
+        eprintln!(
+            "[Ladybird] navigation-actions-smoke failed: reload counter did not advance before={reload_before} after={reload_after} title={}",
+            state.title_a
+        );
+        return false;
+    }
+    if !expect_nav("refresh_a", &a, true, false, true)
+        || !expect_nav("refresh_b", &b, false, false, true)
+        || !expect_page(
+            "refresh_b_peer",
+            &b,
+            &state.title_b,
+            "/a?peer=B",
+            "NAV_A peer=B reload=1",
+        )
+    {
+        return false;
+    }
+
+    if let Err(error) = a.crash_current_page_for_testing() {
+        eprintln!("[Ladybird] navigation-actions-smoke failed to trigger crash: {error}");
+        return false;
+    }
+    let mut crash_seen = false;
+    if !pump_for(&runtime, "crash", Duration::from_secs(30), || {
+        match a.take_renderer_crashed()? {
+            Some(crash) => {
+                crash_seen = crash.termination_status == "crashed" && crash.can_reload;
+                Ok(crash_seen)
+            }
+            None => Ok(false),
+        }
+    }) || !crash_seen
+    {
+        eprintln!("[Ladybird] navigation-actions-smoke failed: crash callback missing");
+        return false;
+    }
+    if !expect_nav("crash_a", &a, false, false, true)
+        || !expect_nav("crash_b", &b, false, false, true)
+        || !expect_page(
+            "crash_b_peer",
+            &b,
+            &state.title_b,
+            "/a?peer=B",
+            "NAV_A peer=B reload=1",
+        )
+    {
+        return false;
+    }
+
+    if !action_and_wait(
+        &runtime,
+        &a,
+        &mut state.title_a,
+        "A",
+        "refresh",
+        "/b?peer=A#state",
+        "NAV_B peer=A",
+    ) || !expect_nav("crash_recovery_a", &a, true, false, true)
+        || !expect_nav("crash_recovery_b", &b, false, false, true)
+    {
+        return false;
+    }
+
+    eprintln!(
+        "NAVIGATION_ACTIONS_SMOKE_PASS engine=ladybird tabs=2 back=1 forward=1 refresh=1 capabilities=1 disabled=1 isolation=1 same_document=1 crash_recovery=1 cleanup=1"
+    );
+    true
+}
+
+#[derive(Default)]
+struct NavigationSmokeState {
+    title_a: String,
+    title_b: String,
+}
+
+fn load_and_wait(
+    runtime: &AbiRuntime,
+    view: &AbiView,
+    title: &mut String,
+    label: &str,
+    url: &str,
+) -> bool {
+    if let Err(error) = view.load_url(url) {
+        eprintln!("[Ladybird] navigation-actions-smoke {label} load failed url={url}: {error}");
+        return false;
+    }
+    wait_for_page(runtime, view, title, label, url_path(url), "")
+}
+
+fn action_and_wait(
+    runtime: &AbiRuntime,
+    view: &AbiView,
+    title: &mut String,
+    label: &str,
+    action: &str,
+    expected_path: &str,
+    expected_title: &str,
+) -> bool {
+    if let Ok(state) = view.navigation_state() {
+        eprintln!(
+            "[Ladybird] navigation-actions-smoke {label} {action} before state=({},{},{}) url={} title={}",
+            state.can_go_back,
+            state.can_go_forward,
+            state.can_refresh,
+            view.last_url(),
+            title
+        );
+    }
+    if let Err(error) = view.navigation_action(action) {
+        eprintln!("[Ladybird] navigation-actions-smoke {label} {action} failed: {error}");
+        return false;
+    }
+    let wait_label = format!("{label}_{action}");
+    let ok = wait_for_page(
+        runtime,
+        view,
+        title,
+        &wait_label,
+        expected_path,
+        expected_title,
+    );
+    if let Ok(state) = view.navigation_state() {
+        eprintln!(
+            "[Ladybird] navigation-actions-smoke {label} {action} after ok={ok} state=({},{},{}) url={} title={}",
+            state.can_go_back,
+            state.can_go_forward,
+            state.can_refresh,
+            view.last_url(),
+            title
+        );
+    }
+    ok
+}
+
+fn wait_for_page(
+    runtime: &AbiRuntime,
+    view: &AbiView,
+    title: &mut String,
+    label: &str,
+    expected_path: &str,
+    expected_title: &str,
+) -> bool {
+    pump_for(runtime, label, Duration::from_secs(30), || {
+        drain_title(view, title, label)?;
+        if view.did_crash() {
+            return Ok(false);
+        }
+        let url = view.last_url();
+        let url_matches = url_path(&url) == expected_path;
+        let title_matches = if expected_title.is_empty() {
+            view.did_finish_load()
+        } else {
+            title.contains(expected_title)
+        };
+        Ok(url_matches && title_matches)
+    })
+}
+
+fn pump_for<F>(runtime: &AbiRuntime, label: &str, timeout: Duration, mut done: F) -> bool
+where
+    F: FnMut() -> Result<bool, String>,
+{
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        match done() {
+            Ok(true) => return true,
+            Ok(false) => {}
+            Err(error) => {
+                eprintln!("[Ladybird] navigation-actions-smoke {label} poll failed: {error}");
+                return false;
+            }
+        }
+        if let Err(error) = runtime.pump() {
+            eprintln!("[Ladybird] navigation-actions-smoke {label} pump failed: {error}");
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    eprintln!("[Ladybird] navigation-actions-smoke {label} timed out");
+    false
+}
+
+fn drain_title(view: &AbiView, title: &mut String, label: &str) -> Result<(), String> {
+    while let Some(next) = view.take_title_changed()? {
+        eprintln!("[Ladybird] navigation-actions-smoke {label} title={next}");
+        *title = next;
+    }
+    Ok(())
+}
+
+fn expect_nav(
+    label: &str,
+    view: &AbiView,
+    can_go_back: bool,
+    can_go_forward: bool,
+    can_refresh: bool,
+) -> bool {
+    match view.navigation_state() {
+        Ok(state) => {
+            let ok = state.can_go_back == can_go_back
+                && state.can_go_forward == can_go_forward
+                && state.can_refresh == can_refresh;
+            if !ok {
+                eprintln!(
+                    "[Ladybird] navigation-actions-smoke {label} nav mismatch expected=({can_go_back},{can_go_forward},{can_refresh}) actual=({},{},{})",
+                    state.can_go_back, state.can_go_forward, state.can_refresh
+                );
+            }
+            ok
+        }
+        Err(error) => {
+            eprintln!("[Ladybird] navigation-actions-smoke {label} nav query failed: {error}");
+            false
+        }
+    }
+}
+
+fn expect_page(
+    label: &str,
+    view: &AbiView,
+    title: &str,
+    expected_path: &str,
+    expected_title: &str,
+) -> bool {
+    let url = view.last_url();
+    let ok = url_path(&url) == expected_path && title.contains(expected_title);
+    if !ok {
+        eprintln!(
+            "[Ladybird] navigation-actions-smoke {label} page mismatch expected_path={expected_path} expected_title={expected_title} actual_url={url} actual_title={title}"
+        );
+    }
+    ok
+}
+
+fn reload_count(title: &str) -> Option<i32> {
+    title
+        .split("reload=")
+        .nth(1)
+        .and_then(|value| value.split_whitespace().next())
+        .and_then(|value| value.parse::<i32>().ok())
+}
+
+fn url_path(url: &str) -> &str {
+    let search_start = url.find("://").map(|index| index + 3).unwrap_or(0);
+    if let Some(start) = url[search_start..].find('/') {
+        let start = search_start + start;
+        &url[start..]
+    } else {
+        url
+    }
 }
 
 fn handle_smoke() -> bool {

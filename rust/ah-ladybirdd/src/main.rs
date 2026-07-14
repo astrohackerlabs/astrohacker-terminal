@@ -23,10 +23,15 @@ struct Args {
     render_surface_smoke: bool,
     real_frame_attachment_smoke: bool,
     renderer_crash_smoke: bool,
+    navigation_actions_smoke: bool,
     resource_root_smoke: bool,
 }
 
 fn main() {
+    if handle_identity_arg() {
+        return;
+    }
+
     let args = parse_args();
 
     if args.warmup {
@@ -91,6 +96,19 @@ fn main() {
         let version = ffi::runtime_version();
         let ok = ffi::renderer_crash_smoke();
         eprintln!("[Ladybird] renderer-crash-smoke runtime={runtime} version={version} ok={ok}");
+        if !ok {
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    if args.navigation_actions_smoke {
+        let runtime = ffi::runtime_name();
+        let version = ffi::runtime_version();
+        let ok = ffi::navigation_actions_smoke();
+        eprintln!(
+            "[Ladybird] navigation-actions-smoke runtime={runtime} version={version} ok={ok}"
+        );
         if !ok {
             std::process::exit(1);
         }
@@ -207,6 +225,7 @@ where
         render_surface_smoke: false,
         real_frame_attachment_smoke: false,
         renderer_crash_smoke: false,
+        navigation_actions_smoke: false,
         resource_root_smoke: false,
     };
 
@@ -236,6 +255,8 @@ where
             args.real_frame_attachment_smoke = true;
         } else if arg == "--termsurf-renderer-crash-smoke" {
             args.renderer_crash_smoke = true;
+        } else if arg == "--termsurf-navigation-actions-smoke" {
+            args.navigation_actions_smoke = true;
         } else if arg == "--termsurf-resource-root-smoke" {
             args.resource_root_smoke = true;
         } else if arg == "--hidden" || arg == "--no-sandbox" || arg == "--enable-logging" {
@@ -248,6 +269,30 @@ where
     }
 
     args
+}
+
+fn handle_identity_arg() -> bool {
+    for arg in std::env::args().skip(1) {
+        match arg.as_str() {
+            "--version" => {
+                println!(
+                    "Astrohacker Ladybird Engine {}",
+                    env!("ASTROHACKER_CLI_VERSION")
+                );
+                return true;
+            }
+            "--help" | "-h" => {
+                print!(
+                    "Astrohacker Ladybird Engine — Ladybird support helper for Astrohacker Terminal\n\n\
+Usage: ah-ladybirdd [OPTIONS]\n\n\
+Options:\n      --ipc-socket=<PATH>                         Connect to an Astrohacker Terminal IPC socket\n      --listen-socket=<PATH>                      Listen for browser IPC clients\n      --browser-name=<NAME>                       Browser identity to register\n      --user-data-dir=<PATH>                      Browser profile data directory\n      --render-surface-service=<NAME>             Connect to render side-channel service\n      --incognito                                 Use an incognito browser context\n      --termsurf-warmup                           Warm runtime dependencies and exit\n      --termsurf-abi-negative-smoke               Run ABI negative smoke and exit\n      --termsurf-engine-thread-smoke              Run engine thread smoke and exit\n      --termsurf-render-surface-smoke             Run render surface smoke and exit\n      --termsurf-real-frame-attachment-smoke      Run real frame attachment smoke and exit\n      --termsurf-renderer-crash-smoke             Run renderer crash smoke and exit\n      --termsurf-navigation-actions-smoke         Run navigation actions smoke and exit\n      --termsurf-resource-root-smoke              Print resource root and exit\n  -h, --help                                      Print help\n      --version                                   Print version\n"
+                );
+                return true;
+            }
+            _ => {}
+        }
+    }
+    false
 }
 
 fn profile_name(user_data_dir: Option<&str>) -> String {
@@ -287,6 +332,7 @@ mod tests {
             "--termsurf-engine-thread-smoke",
             "--termsurf-render-surface-smoke",
             "--termsurf-real-frame-attachment-smoke",
+            "--termsurf-navigation-actions-smoke",
             "--termsurf-resource-root-smoke",
             "--hidden",
             "--no-sandbox",
@@ -308,6 +354,7 @@ mod tests {
         assert!(args.engine_thread_smoke);
         assert!(args.render_surface_smoke);
         assert!(args.real_frame_attachment_smoke);
+        assert!(args.navigation_actions_smoke);
         assert!(args.resource_root_smoke);
     }
 }

@@ -8,6 +8,7 @@ name = "ah-webkitd"
 path = "src/main.rs"
 
 [dependencies]
+libloading = "0.8"
 prost = "0.14"
 
 [build-dependencies]

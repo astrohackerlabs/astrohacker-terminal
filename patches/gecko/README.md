@@ -11,14 +11,22 @@ safe to commit.
   (active monorepo; **not** frozen `mozilla/gecko-dev`)
 - **Upstream policy:** default branch **`main`** tip
 - **Current base:** `0ae9827c4d7bc8b28ccbfa58324ded73b68dccf6`
-- **Current branch:** `0ae9827c-issue-26071112000932-exp7` (Exp7 tip; see identity log)
-- **Archive:** `patches/gecko/patches/issue-26071112000932/` — seven patches: Exp4
-  **windowless** probe + Exp7 **visible window** CLI
-  (`--astrohacker-visible-window`)
-- Checkout type: partial clone (`blob:none`), shallow history preserved until
-  a build failure requires unshallow
+- **Current branch:** `ffe9a294-issue-26071212001982-exp1`
+- **Historical archive:** `patches/gecko/patches/issue-26071112000932/` — **eight** patches:
+  Exp4 **windowless** probe stack + Exp7 **visible window** CLI
+  (`--astrohacker-visible-window`) + Exp8 HOLD-mode follow-on (counted in
+  Issue 26071219393388 inventory; prior README said seven — corrected)
+- **Current product archive:**
+  `patches/gecko/patches/issue-26071212001982/` — Exp1 IOSurface export + Exp4
+  continuous control file + **Exp5 hosted input control**
+  (`0003-Exp5-hosted-input-control.patch`: HOLD-mode input control file →
+  `sendNativeMouseEvent` + content DOM delivery; fixture-owned page oracles).
+- Checkout type: **partial clone** (`blob:none`) with **full commit history**
+  (`git rev-parse --is-shallow-repository` → `false`). Not a depth-limited
+  shallow clone; blobs are on-demand until a build needs them.
 - Working tree: `forks/gecko`
-- **Full build:** **Pass** (Issue 26071112000932 Exp1) — non-artifact desktop Firefox
+- **Full build:** **Pass** (Issue 26071212001982 Exp1, reconfirming Issue 932
+  Exp1) — non-artifact desktop Firefox
   (`--enable-application=browser`), objdir `obj-astrohacker-ff`,
   `COMPILE_ENVIRONMENT=1`, Nightly.app runs via direct-bin launch
 - **mozconfig:** local untracked `forks/gecko/mozconfig` (never commit); see
@@ -31,6 +39,10 @@ safe to commit.
   runner `rust/gecko/libtermsurf_gecko/probes/windowless/run-windowless-probe.sh`
 - **Exp7 visible window:** on-screen chrome window (not terminal pane yet);
   runner `rust/gecko/libtermsurf_gecko/probes/visible/run-visible-window.sh`
+- **Issue 26071212001982 Exp1 surface seam:** direct P1 WebRender/native-layer
+  IOSurface tile export builds and passes the standalone cross-process pixel,
+  animation, Retina tiled-resize, acknowledged lifetime, and early-exit runner at
+  `rust/ah-geckod/libtermsurf_gecko/probes/surface-seam/run-surface-seam.sh`.
 - **Experiments:** [Exp1](../../issues/0932-create-gecko/exp-0001-gecko-fork-build-run.md),
   [Exp2](../../issues/0932-create-gecko/exp-0002-gecko-engine-scaffold.md),
   [Exp3](../../issues/0932-create-gecko/exp-0003-xpcom-embed-probe.md),
@@ -44,7 +56,7 @@ Issue 26071112000932 retargeted to `mozilla-firefox/firefox` `main`.
 ## Merge-upstream
 
 1. Discover tip: `git ls-remote --symref
-   https://github.com/mozilla-firefox/firefox.git HEAD` (expect `main`).
+https://github.com/mozilla-firefox/firefox.git HEAD` (expect `main`).
 2. Fetch tip; branch `{short8}-issue-NNNN` at tip commit.
 3. Apply `patches/gecko/patches/issue-NNNN/*.patch` in numeric order when an
    archive exists (`git am`).

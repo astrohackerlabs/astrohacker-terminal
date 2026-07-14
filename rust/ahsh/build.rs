@@ -1,4 +1,5 @@
 fn main() {
+    emit_astrohacker_cli_version();
     let features: Vec<&str> = vec![
         #[cfg(feature = "plugin")]
         "plugin",
@@ -16,8 +17,7 @@ fn main() {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let manifest_path = std::path::Path::new(&manifest_dir);
     let nu_workspace_path = manifest_path.join("../../forks/nushell/Cargo.toml");
-    let nu_protocol_path =
-        manifest_path.join("../../forks/nushell/crates/nu-protocol/Cargo.toml");
+    let nu_protocol_path = manifest_path.join("../../forks/nushell/crates/nu-protocol/Cargo.toml");
     let nu_version = std::fs::read_to_string(&nu_workspace_path)
         .ok()
         .and_then(|contents| find_toml_section_version(&contents, "workspace.package"))
@@ -30,6 +30,13 @@ fn main() {
     println!("cargo:rustc-env=NUSHELL_VERSION={nu_version}");
     println!("cargo:rerun-if-changed=../../forks/nushell/Cargo.toml");
     println!("cargo:rerun-if-changed=../../forks/nushell/crates/nu-protocol/Cargo.toml");
+}
+
+fn emit_astrohacker_cli_version() {
+    println!("cargo:rerun-if-env-changed=ASTROHACKER_VERSION");
+    let version = std::env::var("ASTROHACKER_VERSION")
+        .unwrap_or_else(|_| std::env::var("CARGO_PKG_VERSION").unwrap());
+    println!("cargo:rustc-env=ASTROHACKER_CLI_VERSION={version}");
 }
 
 fn find_toml_section_version(contents: &str, section_name: &str) -> Option<String> {

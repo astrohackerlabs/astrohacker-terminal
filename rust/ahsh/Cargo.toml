@@ -2,11 +2,11 @@
 name = "ahsh"
 version = "0.1.0"
 edition = "2024"
-description = "Astrohacker Shell: a poly-shell built on Nushell with Bash compatibility"
+description = "Astrohacker Shell: a poly-shell built on Nushell with bash/zsh alt modes"
 license = "MIT"
 repository = "https://github.com/astrohackerlabs/astrohacker"
 readme = "README.md"
-keywords = ["shell", "nushell", "bash", "terminal", "poly-shell"]
+keywords = ["shell", "nushell", "bash", "zsh", "terminal", "poly-shell"]
 categories = ["command-line-utilities"]
 
 [[bin]]
@@ -46,6 +46,8 @@ log = "0.4"
 miette = { version = "7.6", features = ["fancy-no-backtrace", "fancy"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
+base64 = "0.22"
+toml = "0.8"
 simplelog = "0.12"
 tempfile = "3"
 time = "0.3"

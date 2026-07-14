@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+/// Serializes tests that mutate process-global env or spawn login shells.
+#[cfg(test)]
+pub static TEST_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[derive(Clone)]
 pub struct ShellState {
     pub env: HashMap<String, String>,

@@ -133,6 +133,10 @@ fn startup_trace(event: &str) {
 // --- main ---
 
 fn main() {
+    if handle_identity_arg() {
+        return;
+    }
+
     let _ = STARTUP_TRACE_START.set(Instant::now());
     startup_trace("main_entry");
     dispatch::init_pdf_input_trace();
@@ -176,6 +180,7 @@ fn main() {
         ffi::ts_set_on_ca_context_id(Some(dispatch::on_ca_context_id), ptr::null_mut());
         ffi::ts_set_on_url_changed(Some(dispatch::on_url_changed), ptr::null_mut());
         ffi::ts_set_on_loading_state(Some(dispatch::on_loading_state), ptr::null_mut());
+        ffi::ts_set_on_navigation_state(Some(dispatch::on_navigation_state), ptr::null_mut());
         ffi::ts_set_on_title_changed(Some(dispatch::on_title_changed), ptr::null_mut());
         ffi::ts_set_on_cursor_changed(Some(dispatch::on_cursor_changed), ptr::null_mut());
         ffi::ts_set_on_target_url_changed(Some(dispatch::on_target_url_changed), ptr::null_mut());
@@ -194,4 +199,28 @@ fn main() {
     let ret = unsafe { ffi::ts_content_main(argv.len() as i32, argv.as_ptr()) };
     startup_trace("ts_content_main_exit");
     std::process::exit(ret);
+}
+
+fn handle_identity_arg() -> bool {
+    for arg in std::env::args().skip(1) {
+        match arg.as_str() {
+            "--version" => {
+                println!(
+                    "Astrohacker Chromium Engine {}",
+                    env!("ASTROHACKER_CLI_VERSION")
+                );
+                return true;
+            }
+            "--help" | "-h" => {
+                print!(
+                    "Astrohacker Chromium Engine — Chromium support helper for Astrohacker Terminal\n\n\
+Usage: ah-chromiumd [OPTIONS]\n\n\
+Options:\n      --ipc-socket=<PATH>       Connect to an Astrohacker Terminal IPC socket\n      --listen-socket=<PATH>    Listen for browser IPC clients\n      --user-data-dir=<PATH>    Browser profile data directory\n      --browser-name=<NAME>     Browser identity to register\n      --incognito               Use an incognito browser context\n      --termsurf-warmup         Warm runtime dependencies and exit\n  -h, --help                    Print help\n      --version                 Print version\n"
+                );
+                return true;
+            }
+            _ => {}
+        }
+    }
+    false
 }

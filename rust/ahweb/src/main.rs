@@ -7,7 +7,8 @@ use std::time::{Duration, Instant};
 use clap::{Parser, Subcommand};
 
 use crossterm::event::{
-    self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers,
+    self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers, MouseButton,
+    MouseEvent, MouseEventKind,
 };
 use crossterm::execute;
 use crossterm::terminal::{
@@ -53,6 +54,27 @@ enum Mode {
     Command,
     Dialog,
     Auth,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NavigationRoute {
+    Compositor,
+    DirectBrowser,
+    Unavailable,
+}
+
+fn navigation_route(
+    compositor_connected: bool,
+    pane_owned: bool,
+    browser_connected: bool,
+) -> NavigationRoute {
+    if compositor_connected && pane_owned {
+        NavigationRoute::Compositor
+    } else if browser_connected {
+        NavigationRoute::DirectBrowser
+    } else {
+        NavigationRoute::Unavailable
+    }
 }
 
 #[derive(Clone)]
@@ -172,6 +194,312 @@ impl LoadingStage {
 enum LoopEvent {
     Terminal(Event),
     Ipc(ipc::CompositorMessage),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NavigationAction {
+    Back,
+    Forward,
+    Refresh,
+}
+
+impl NavigationAction {
+    fn as_str(self) -> &'static str {
+        match self {
+            NavigationAction::Back => "back",
+            NavigationAction::Forward => "forward",
+            NavigationAction::Refresh => "refresh",
+        }
+    }
+
+    fn symbol(self, animation_frame: usize) -> &'static str {
+        match self {
+            NavigationAction::Back => "‹",
+            NavigationAction::Forward => "›",
+            NavigationAction::Refresh => REFRESH_FRAMES[animation_frame % REFRESH_FRAMES.len()],
+        }
+    }
+
+    fn enabled_by(self, capabilities: NavigationCapabilities) -> bool {
+        match self {
+            NavigationAction::Back => capabilities.can_go_back,
+            NavigationAction::Forward => capabilities.can_go_forward,
+            NavigationAction::Refresh => capabilities.can_refresh,
+        }
+    }
+}
+
+const REFRESH_FRAMES: &[&str] = &["⟳", "↻", "↺", "⟲"];
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct NavigationCapabilities {
+    can_go_back: bool,
+    can_go_forward: bool,
+    can_refresh: bool,
+}
+
+impl NavigationCapabilities {
+    fn new(can_go_back: bool, can_go_forward: bool, can_refresh: bool) -> Self {
+        Self {
+            can_go_back,
+            can_go_forward,
+            can_refresh,
+        }
+    }
+}
+
+fn apply_navigation_state_for_current_tab(
+    current_tab_id: i64,
+    tab_id: i64,
+    next: NavigationCapabilities,
+    current: &mut NavigationCapabilities,
+) -> bool {
+    if tab_id == current_tab_id && tab_id != 0 {
+        *current = next;
+        true
+    } else {
+        false
+    }
+}
+
+fn clear_navigation_toolbar_state(
+    capabilities: &mut NavigationCapabilities,
+    interaction: &mut ToolbarInteraction,
+    animation: &mut RefreshAnimation,
+) {
+    *capabilities = NavigationCapabilities::default();
+    *interaction = ToolbarInteraction::default();
+    animation.stop();
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct ToolbarInteraction {
+    hovered: Option<NavigationAction>,
+    pressed: Option<NavigationAction>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ToolbarButtonRect {
+    action: NavigationAction,
+    rect: Rect,
+}
+
+#[derive(Clone, Debug, Default)]
+struct ToolbarGeometry {
+    buttons: Vec<ToolbarButtonRect>,
+}
+
+impl ToolbarGeometry {
+    fn hit_test(&self, x: u16, y: u16) -> Option<NavigationAction> {
+        self.buttons
+            .iter()
+            .find(|button| rect_contains(button.rect, x, y))
+            .map(|button| button.action)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct RefreshAnimation {
+    started_at: Option<Instant>,
+}
+
+impl RefreshAnimation {
+    const FRAME_MS: u128 = 120;
+    const TIMEOUT: Duration = Duration::from_secs(4);
+
+    fn start(&mut self, now: Instant) {
+        self.started_at = Some(now);
+    }
+
+    fn stop(&mut self) {
+        self.started_at = None;
+    }
+
+    fn active(self, now: Instant) -> bool {
+        self.started_at
+            .map(|started| now.saturating_duration_since(started) < Self::TIMEOUT)
+            .unwrap_or(false)
+    }
+
+    fn frame(self, now: Instant) -> usize {
+        self.started_at
+            .map(|started| {
+                (now.saturating_duration_since(started).as_millis() / Self::FRAME_MS) as usize
+            })
+            .unwrap_or(0)
+    }
+
+    fn expire_if_needed(&mut self, now: Instant) {
+        if self
+            .started_at
+            .map(|started| now.saturating_duration_since(started) >= Self::TIMEOUT)
+            .unwrap_or(false)
+        {
+            self.stop();
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct UiGeometry {
+    viewport: Rect,
+    toolbar: ToolbarGeometry,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NavigationDispatchDecision {
+    Send(NavigationRoute),
+    BlockedDisabled,
+    BlockedUnavailable,
+}
+
+fn navigation_dispatch_decision(
+    action: NavigationAction,
+    capabilities: NavigationCapabilities,
+    route: NavigationRoute,
+) -> NavigationDispatchDecision {
+    if !action.enabled_by(capabilities) {
+        return NavigationDispatchDecision::BlockedDisabled;
+    }
+    match route {
+        NavigationRoute::Compositor | NavigationRoute::DirectBrowser => {
+            NavigationDispatchDecision::Send(route)
+        }
+        NavigationRoute::Unavailable => NavigationDispatchDecision::BlockedUnavailable,
+    }
+}
+
+fn keyboard_navigation_action(key: crossterm::event::KeyEvent) -> Option<NavigationAction> {
+    if !key.modifiers.contains(KeyModifiers::SUPER) {
+        return None;
+    }
+    match key.code {
+        KeyCode::Char('[') => Some(NavigationAction::Back),
+        KeyCode::Char(']') => Some(NavigationAction::Forward),
+        KeyCode::Char('r') | KeyCode::Char('R') => Some(NavigationAction::Refresh),
+        _ => None,
+    }
+}
+
+fn rect_contains(rect: Rect, x: u16, y: u16) -> bool {
+    x >= rect.x
+        && x < rect.x.saturating_add(rect.width)
+        && y >= rect.y
+        && y < rect.y.saturating_add(rect.height)
+}
+
+fn update_toolbar_mouse_interaction(
+    interaction: &mut ToolbarInteraction,
+    geometry: &ToolbarGeometry,
+    capabilities: NavigationCapabilities,
+    mouse: MouseEvent,
+) -> Option<NavigationAction> {
+    let hit = geometry
+        .hit_test(mouse.column, mouse.row)
+        .filter(|action| action.enabled_by(capabilities));
+    match mouse.kind {
+        MouseEventKind::Moved | MouseEventKind::Drag(MouseButton::Left) => {
+            interaction.hovered = hit;
+            if interaction.pressed.is_some() && interaction.pressed != hit {
+                interaction.pressed = None;
+            }
+            None
+        }
+        MouseEventKind::Down(MouseButton::Left) => {
+            interaction.hovered = hit;
+            interaction.pressed = hit;
+            None
+        }
+        MouseEventKind::Up(MouseButton::Left) => {
+            let pressed = interaction.pressed;
+            interaction.hovered = hit;
+            interaction.pressed = None;
+            match (pressed, hit) {
+                (Some(pressed), Some(released)) if pressed == released => Some(pressed),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+fn dispatch_navigation_action(
+    action: NavigationAction,
+    source: &str,
+    capabilities: NavigationCapabilities,
+    compositor: &Option<ipc::CompositorConnection>,
+    pane_id: &Option<String>,
+    browser_conn: &Option<ipc::BrowserConnection>,
+    state_trace: &mut Option<StateTrace>,
+) -> bool {
+    let route = navigation_route(
+        compositor.is_some(),
+        pane_id.is_some(),
+        browser_conn.is_some(),
+    );
+    let decision = navigation_dispatch_decision(action, capabilities, route);
+    let action_str = action.as_str();
+    match decision {
+        NavigationDispatchDecision::Send(NavigationRoute::Compositor) => {
+            if let (Some(conn), Some(pid)) = (compositor.as_ref(), pane_id.as_deref()) {
+                conn.send_navigation_action(pid, action_str);
+            }
+            if let Some(trace) = state_trace.as_mut() {
+                trace.write(
+                    "navigation_action",
+                    &[
+                        ("action", action_str.to_string()),
+                        ("source", source.to_string()),
+                        ("route", "compositor".to_string()),
+                    ],
+                );
+            }
+            true
+        }
+        NavigationDispatchDecision::Send(NavigationRoute::DirectBrowser) => {
+            if let Some(conn) = browser_conn.as_ref() {
+                conn.send_navigation_action(action_str);
+            }
+            if let Some(trace) = state_trace.as_mut() {
+                trace.write(
+                    "navigation_action",
+                    &[
+                        ("action", action_str.to_string()),
+                        ("source", source.to_string()),
+                        ("route", "direct-browser".to_string()),
+                    ],
+                );
+            }
+            true
+        }
+        NavigationDispatchDecision::Send(NavigationRoute::Unavailable) => unreachable!(),
+        NavigationDispatchDecision::BlockedDisabled => {
+            if let Some(trace) = state_trace.as_mut() {
+                trace.write(
+                    "navigation_action_blocked",
+                    &[
+                        ("action", action_str.to_string()),
+                        ("source", source.to_string()),
+                        ("reason", "disabled".to_string()),
+                    ],
+                );
+            }
+            false
+        }
+        NavigationDispatchDecision::BlockedUnavailable => {
+            if let Some(trace) = state_trace.as_mut() {
+                trace.write(
+                    "navigation_action_blocked",
+                    &[
+                        ("action", action_str.to_string()),
+                        ("source", source.to_string()),
+                        ("reason", "unavailable".to_string()),
+                    ],
+                );
+            }
+            false
+        }
+    }
 }
 
 // Command dispatch (Issues 659, 772).
@@ -355,7 +683,11 @@ impl ClipboardTrait for UrlClipboard {
 }
 
 #[derive(Parser)]
-#[command(name = "ahweb", about = "Astrohacker Web — open URLs in Terminal browser panes")]
+#[command(
+    name = "ahweb",
+    about = "Astrohacker Web — open URLs in Terminal browser panes",
+    version = env!("ASTROHACKER_CLI_VERSION")
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -399,6 +731,14 @@ enum Commands {
 }
 
 fn main() -> io::Result<()> {
+    if std::env::args()
+        .skip(1)
+        .any(|arg| arg == "--version" || arg == "-V")
+    {
+        println!("Astrohacker Web {}", env!("ASTROHACKER_CLI_VERSION"));
+        return Ok(());
+    }
+
     let cli = Cli::parse();
 
     let profile_arg = cli.profile; // Option<String> — None if no --profile given
@@ -561,18 +901,17 @@ fn main() -> io::Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout))?;
 
     // Crossterm reader thread — forwards relevant terminal events (Issue 26022812000668).
-    // Key, Resize, and Paste wake the main loop. Mouse and Focus are dropped
-    // to avoid redrawing on every pixel of mouse movement.
+    // Key, Resize, Paste, and Mouse wake the main loop. Focus is dropped.
     let browser_tx = tx.clone();
     let key_tx = tx;
     std::thread::spawn(move || loop {
         match event::read() {
-            Ok(ev @ (Event::Key(_) | Event::Resize(_, _) | Event::Paste(_))) => {
+            Ok(ev @ (Event::Key(_) | Event::Resize(_, _) | Event::Paste(_) | Event::Mouse(_))) => {
                 if key_tx.send(LoopEvent::Terminal(ev)).is_err() {
                     break;
                 }
             }
-            Ok(_) => {} // Mouse, FocusGained, FocusLost — drop silently.
+            Ok(_) => {} // FocusGained, FocusLost — drop silently.
             Err(_) => break,
         }
     });
@@ -638,15 +977,21 @@ fn main() -> io::Result<()> {
     cmd_state.set_clipboard(UrlClipboard::new());
     let mut cmd_handler = make_single_line_handler();
     let mut viewport_height_override: Option<u16> = None;
+    let mut navigation_capabilities = NavigationCapabilities::default();
+    let mut toolbar_interaction = ToolbarInteraction::default();
+    let mut toolbar_geometry = ToolbarGeometry::default();
+    let mut refresh_animation = RefreshAnimation::default();
 
     // Event loop.
     loop {
         let mut viewport_rect = Rect::default();
         let mut frame_area = Rect::default();
         let browser_label = browser_display_label(&browser);
+        let now = Instant::now();
+        refresh_animation.expire_if_needed(now);
         terminal.draw(|frame| {
             frame_area = frame.area();
-            viewport_rect = ui(
+            let geometry = ui(
                 frame,
                 &url,
                 &profile,
@@ -668,7 +1013,13 @@ fn main() -> io::Result<()> {
                 browser_ready,
                 browser_wait_start,
                 viewport_height_override,
+                navigation_capabilities,
+                toolbar_interaction,
+                refresh_animation,
+                now,
             );
+            viewport_rect = geometry.viewport;
+            toolbar_geometry = geometry.toolbar;
         })?;
         if let Some(trace) = state_trace.as_mut() {
             let latest_console = console_log.last();
@@ -711,8 +1062,17 @@ fn main() -> io::Result<()> {
                 inspected_tab_id,
                 current_tab_id,
             );
+            let refresh_animation_active = refresh_animation.active(Instant::now());
+            let refresh_animation_frame = if refresh_animation_active {
+                refresh_animation.frame(Instant::now())
+            } else {
+                0
+            };
+            let refresh_animation_symbol = NavigationAction::Refresh
+                .symbol(refresh_animation_frame)
+                .to_string();
             let render_trace = format!(
-                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                 url,
                 page_title,
                 target_url,
@@ -729,7 +1089,13 @@ fn main() -> io::Result<()> {
                 profile,
                 is_devtools,
                 current_tab_id,
-                inspected_tab_id
+                inspected_tab_id,
+                navigation_capabilities.can_go_back,
+                navigation_capabilities.can_go_forward,
+                navigation_capabilities.can_refresh,
+                refresh_animation_active,
+                refresh_animation_frame,
+                refresh_animation_symbol
             );
             if render_trace != last_render_trace {
                 trace.write(
@@ -752,6 +1118,27 @@ fn main() -> io::Result<()> {
                         ("is_devtools", is_devtools.to_string()),
                         ("current_tab_id", current_tab_id.to_string()),
                         ("inspected_tab_id", inspected_tab_id.to_string()),
+                        (
+                            "can_go_back",
+                            navigation_capabilities.can_go_back.to_string(),
+                        ),
+                        (
+                            "can_go_forward",
+                            navigation_capabilities.can_go_forward.to_string(),
+                        ),
+                        (
+                            "can_refresh",
+                            navigation_capabilities.can_refresh.to_string(),
+                        ),
+                        (
+                            "refresh_animation_active",
+                            refresh_animation_active.to_string(),
+                        ),
+                        (
+                            "refresh_animation_frame",
+                            refresh_animation_frame.to_string(),
+                        ),
+                        ("refresh_symbol", refresh_animation_symbol),
                     ],
                 );
                 last_render_trace = render_trace;
@@ -821,6 +1208,8 @@ fn main() -> io::Result<()> {
             .unwrap_or(false)
         {
             true
+        } else if refresh_animation.active(Instant::now()) {
+            true
         } else {
             false
         };
@@ -838,6 +1227,24 @@ fn main() -> io::Result<()> {
                 // Ctrl+C quits from any mode.
                 if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
                     break;
+                }
+
+                if !matches!(mode, Mode::Edit | Mode::Command) {
+                    if let Some(action) = keyboard_navigation_action(key) {
+                        let dispatched = dispatch_navigation_action(
+                            action,
+                            "keyboard",
+                            navigation_capabilities,
+                            &compositor,
+                            &pane_id,
+                            &browser_conn,
+                            &mut state_trace,
+                        );
+                        if dispatched && action == NavigationAction::Refresh {
+                            refresh_animation.start(Instant::now());
+                        }
+                        continue;
+                    }
                 }
 
                 if let Some(dialog) = pending_dialog.as_mut() {
@@ -1144,12 +1551,23 @@ fn main() -> io::Result<()> {
                                     url = resolved;
                                     editor_url = url.clone();
                                     mode = Mode::Browse;
-                                    if let Some(ref bc) = browser_conn {
-                                        bc.send_navigate(&url);
-                                    } else if let (Some(ref conn), Some(ref pid)) =
-                                        (&compositor, &pane_id)
-                                    {
-                                        conn.send_navigate(pid, &url);
+                                    match navigation_route(
+                                        compositor.is_some(),
+                                        pane_id.is_some(),
+                                        browser_conn.is_some(),
+                                    ) {
+                                        NavigationRoute::Compositor => compositor
+                                            .as_ref()
+                                            .expect("connected compositor")
+                                            .send_navigate(
+                                                pane_id.as_deref().expect("owned pane"),
+                                                &url,
+                                            ),
+                                        NavigationRoute::DirectBrowser => browser_conn
+                                            .as_ref()
+                                            .expect("connected browser")
+                                            .send_navigate(&url),
+                                        NavigationRoute::Unavailable => {}
                                     }
                                     if let (Some(ref conn), Some(ref pid)) = (&compositor, &pane_id)
                                     {
@@ -1280,6 +1698,66 @@ fn main() -> io::Result<()> {
                     Mode::Dialog | Mode::Auth => {}
                 }
             }
+            Ok(LoopEvent::Terminal(Event::Mouse(mouse))) => {
+                let raw_hit = toolbar_geometry.hit_test(mouse.column, mouse.row);
+                if let Some(trace) = state_trace.as_mut() {
+                    trace.write(
+                        "toolbar_mouse",
+                        &[
+                            ("column", mouse.column.to_string()),
+                            ("row", mouse.row.to_string()),
+                            ("kind", format!("{:?}", mouse.kind)),
+                            (
+                                "hit",
+                                raw_hit
+                                    .map(|action| action.as_str().to_string())
+                                    .unwrap_or_else(|| "none".to_string()),
+                            ),
+                            (
+                                "enabled",
+                                raw_hit
+                                    .map(|action| action.enabled_by(navigation_capabilities))
+                                    .unwrap_or(false)
+                                    .to_string(),
+                            ),
+                        ],
+                    );
+                }
+                let disabled_release = matches!(mouse.kind, MouseEventKind::Up(MouseButton::Left))
+                    && raw_hit
+                        .map(|action| !action.enabled_by(navigation_capabilities))
+                        .unwrap_or(false);
+                if let Some(action) = update_toolbar_mouse_interaction(
+                    &mut toolbar_interaction,
+                    &toolbar_geometry,
+                    navigation_capabilities,
+                    mouse,
+                ) {
+                    let dispatched = dispatch_navigation_action(
+                        action,
+                        "mouse",
+                        navigation_capabilities,
+                        &compositor,
+                        &pane_id,
+                        &browser_conn,
+                        &mut state_trace,
+                    );
+                    if dispatched && action == NavigationAction::Refresh {
+                        refresh_animation.start(Instant::now());
+                    }
+                } else if disabled_release {
+                    if let (Some(action), Some(trace)) = (raw_hit, state_trace.as_mut()) {
+                        trace.write(
+                            "navigation_action_blocked",
+                            &[
+                                ("action", action.as_str().to_string()),
+                                ("source", "mouse".to_string()),
+                                ("reason", "disabled".to_string()),
+                            ],
+                        );
+                    }
+                }
+            }
             Ok(LoopEvent::Terminal(_)) => {
                 // Resize, mouse, focus, paste, etc. — just redraw.
             }
@@ -1341,6 +1819,7 @@ fn main() -> io::Result<()> {
                             }
                             "progress" => Ok(()),
                             "done" => {
+                                refresh_animation.stop();
                                 if renderer_crash_recovery_load_started {
                                     renderer_crash = None;
                                     renderer_crash_recovery_load_started = false;
@@ -1361,6 +1840,7 @@ fn main() -> io::Result<()> {
                                 write!(stdout, "\x1b]9;4;0\x1b\\")
                             }
                             "error" => {
+                                refresh_animation.stop();
                                 loading_bar_active = false;
                                 loading_bar_start = None;
                                 write!(stdout, "\x1b]9;4;2\x1b\\")
@@ -1368,6 +1848,34 @@ fn main() -> io::Result<()> {
                             _ => Ok(()),
                         };
                         let _ = stdout.flush();
+                    }
+                    ipc::CompositorMessage::NavigationState {
+                        tab_id,
+                        can_go_back,
+                        can_go_forward,
+                        can_refresh,
+                    } => {
+                        if apply_navigation_state_for_current_tab(
+                            current_tab_id,
+                            tab_id,
+                            NavigationCapabilities::new(can_go_back, can_go_forward, can_refresh),
+                            &mut navigation_capabilities,
+                        ) {
+                            if !can_refresh {
+                                refresh_animation.stop();
+                            }
+                        }
+                        if let Some(trace) = state_trace.as_mut() {
+                            trace.write(
+                                "navigation_state",
+                                &[
+                                    ("tab_id", tab_id.to_string()),
+                                    ("can_go_back", can_go_back.to_string()),
+                                    ("can_go_forward", can_go_forward.to_string()),
+                                    ("can_refresh", can_refresh.to_string()),
+                                ],
+                            );
+                        }
                     }
                     ipc::CompositorMessage::TitleChanged { title } => {
                         page_title = title;
@@ -1422,6 +1930,13 @@ fn main() -> io::Result<()> {
                         loading_bar_active = false;
                         loading_bar_start = None;
                         renderer_crash_recovery_load_started = false;
+                        if tab_id == current_tab_id {
+                            clear_navigation_toolbar_state(
+                                &mut navigation_capabilities,
+                                &mut toolbar_interaction,
+                                &mut refresh_animation,
+                            );
+                        }
                         if let Some(trace) = state_trace.as_mut() {
                             trace.write(
                                 "renderer_crashed",
@@ -1448,6 +1963,11 @@ fn main() -> io::Result<()> {
                         browser: resolved_browser,
                     } => {
                         current_tab_id = tab_id;
+                        clear_navigation_toolbar_state(
+                            &mut navigation_capabilities,
+                            &mut toolbar_interaction,
+                            &mut refresh_animation,
+                        );
                         if !resolved_browser.is_empty() {
                             browser = resolved_browser;
                         }
@@ -1471,6 +1991,38 @@ fn main() -> io::Result<()> {
                             }
                         }
                         loading_log.push((LoadingStage::LoadingPage, StageStatus::InProgress));
+                    }
+                    ipc::CompositorMessage::Disconnected { tab_id } => {
+                        if tab_id == 0 || tab_id == current_tab_id {
+                            loading_bar_active = false;
+                            loading_bar_start = None;
+                            clear_navigation_toolbar_state(
+                                &mut navigation_capabilities,
+                                &mut toolbar_interaction,
+                                &mut refresh_animation,
+                            );
+                        }
+                        if let Some(trace) = state_trace.as_mut() {
+                            trace.write(
+                                "connection_disconnected",
+                                &[
+                                    ("tab_id", tab_id.to_string()),
+                                    ("current_tab_id", current_tab_id.to_string()),
+                                    (
+                                        "can_go_back",
+                                        navigation_capabilities.can_go_back.to_string(),
+                                    ),
+                                    (
+                                        "can_go_forward",
+                                        navigation_capabilities.can_go_forward.to_string(),
+                                    ),
+                                    (
+                                        "can_refresh",
+                                        navigation_capabilities.can_refresh.to_string(),
+                                    ),
+                                ],
+                            );
+                        }
                     }
                     ipc::CompositorMessage::JavaScriptDialogRequest {
                         tab_id,
@@ -1710,6 +2262,7 @@ fn browser_display_label(browser: &str) -> &str {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct BrowserLayout {
+    toolbar_area: Rect,
     viewport_area: Rect,
     url_area: Rect,
     status_area: Rect,
@@ -1735,8 +2288,11 @@ fn browser_layout(area: Rect, viewport_height_override: Option<u16>) -> BrowserL
         .split(area)
     };
 
+    let top = Layout::horizontal([Constraint::Length(15), Constraint::Min(1)]).split(layout[0]);
+
     BrowserLayout {
-        url_area: layout[0],
+        toolbar_area: top[0],
+        url_area: top[1],
         status_area: layout[1],
         viewport_area: layout[2],
     }
@@ -1769,7 +2325,11 @@ fn ui(
     browser_ready: bool,
     browser_wait_start: Option<Instant>,
     viewport_height_override: Option<u16>,
-) -> Rect {
+    navigation_capabilities: NavigationCapabilities,
+    toolbar_interaction: ToolbarInteraction,
+    refresh_animation: RefreshAnimation,
+    now: Instant,
+) -> UiGeometry {
     // Paint full background.
     frame.render_widget(
         Block::default().style(Style::default().bg(BG)),
@@ -1778,6 +2338,7 @@ fn ui(
 
     let layout = browser_layout(frame.area(), viewport_height_override);
     let viewport_area = layout.viewport_area;
+    let toolbar_area = layout.toolbar_area;
     let url_area = layout.url_area;
     let status_area = layout.status_area;
 
@@ -1790,6 +2351,15 @@ fn ui(
         Mode::Dialog => (YELLOW, YELLOW),
         Mode::Auth => (YELLOW, YELLOW),
     };
+
+    let toolbar_geometry = render_navigation_toolbar(
+        frame,
+        toolbar_area,
+        navigation_capabilities,
+        toolbar_interaction,
+        refresh_animation,
+        now,
+    );
 
     // URL bar / Command bar (Issue 26022712000659).
     if *mode == Mode::Command {
@@ -2213,7 +2783,65 @@ fn ui(
         .style(Style::default().fg(FG).bg(BG));
     frame.render_widget(label_widget, status_layout[1]);
 
-    inner
+    UiGeometry {
+        viewport: inner,
+        toolbar: toolbar_geometry,
+    }
+}
+
+fn render_navigation_toolbar(
+    frame: &mut Frame,
+    toolbar_area: Rect,
+    capabilities: NavigationCapabilities,
+    interaction: ToolbarInteraction,
+    refresh_animation: RefreshAnimation,
+    now: Instant,
+) -> ToolbarGeometry {
+    let areas = Layout::horizontal([
+        Constraint::Length(5),
+        Constraint::Length(5),
+        Constraint::Length(5),
+    ])
+    .split(toolbar_area);
+    let actions = [
+        NavigationAction::Back,
+        NavigationAction::Forward,
+        NavigationAction::Refresh,
+    ];
+    let animation_frame = if refresh_animation.active(now) {
+        refresh_animation.frame(now)
+    } else {
+        0
+    };
+    let mut buttons = Vec::with_capacity(actions.len());
+
+    for (idx, action) in actions.into_iter().enumerate() {
+        let area = areas[idx];
+        let enabled = action.enabled_by(capabilities);
+        let hovered = enabled && interaction.hovered == Some(action);
+        let pressed = enabled && interaction.pressed == Some(action);
+        let (fg, bg, border) = if !enabled {
+            (DIM, BG, BORDER)
+        } else if pressed {
+            (BG, CYAN, CYAN)
+        } else if hovered {
+            (FG, SELECTION, CYAN)
+        } else {
+            (FG, BG, BORDER)
+        };
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(border).bg(bg))
+            .style(Style::default().fg(fg).bg(bg));
+        let button = Paragraph::new(action.symbol(animation_frame))
+            .style(Style::default().fg(fg).bg(bg))
+            .alignment(Alignment::Center)
+            .block(block);
+        frame.render_widget(button, area);
+        buttons.push(ToolbarButtonRect { action, rect: area });
+    }
+
+    ToolbarGeometry { buttons }
 }
 
 #[cfg(test)]
@@ -2226,6 +2854,7 @@ mod tests {
     struct RenderProbe {
         viewport: Rect,
         capture: String,
+        buffer: Buffer,
     }
 
     fn render_probe(
@@ -2242,7 +2871,7 @@ mod tests {
 
         terminal
             .draw(|frame| {
-                viewport = ui(
+                let geometry = ui(
                     frame,
                     "https://example.test",
                     "default",
@@ -2264,13 +2893,71 @@ mod tests {
                     true,
                     None,
                     override_rows,
+                    NavigationCapabilities::default(),
+                    ToolbarInteraction::default(),
+                    RefreshAnimation::default(),
+                    Instant::now(),
                 );
+                viewport = geometry.viewport;
             })
             .unwrap();
 
         RenderProbe {
             viewport,
             capture: numbered_buffer_capture(terminal.backend().buffer()),
+            buffer: terminal.backend().buffer().clone(),
+        }
+    }
+
+    fn render_toolbar_probe(
+        capabilities: NavigationCapabilities,
+        interaction: ToolbarInteraction,
+        refresh_animation: RefreshAnimation,
+        now: Instant,
+    ) -> RenderProbe {
+        let backend = TestBackend::new(80, 18);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let mut editor_state = EditorState::new(Lines::from("https://example.test"));
+        let mut cmd_state = EditorState::new(Lines::from("open https://example.test"));
+        let mut viewport = Rect::default();
+
+        terminal
+            .draw(|frame| {
+                let geometry = ui(
+                    frame,
+                    "https://example.test",
+                    "default",
+                    &Mode::Control,
+                    &mut editor_state,
+                    &mut cmd_state,
+                    "Viewport",
+                    false,
+                    -1,
+                    1,
+                    &None,
+                    "chromium",
+                    "",
+                    &None,
+                    &None,
+                    None,
+                    &[],
+                    &None,
+                    true,
+                    None,
+                    None,
+                    capabilities,
+                    interaction,
+                    refresh_animation,
+                    now,
+                );
+                viewport = geometry.viewport;
+            })
+            .unwrap();
+
+        RenderProbe {
+            viewport,
+            capture: numbered_buffer_capture(terminal.backend().buffer()),
+            buffer: terminal.backend().buffer().clone(),
         }
     }
 
@@ -2288,7 +2975,7 @@ mod tests {
 
         terminal
             .draw(|frame| {
-                viewport = ui(
+                let geometry = ui(
                     frame,
                     "https://example.test",
                     "default",
@@ -2310,13 +2997,19 @@ mod tests {
                     false,
                     Some(Instant::now()),
                     None,
+                    NavigationCapabilities::default(),
+                    ToolbarInteraction::default(),
+                    RefreshAnimation::default(),
+                    Instant::now(),
                 );
+                viewport = geometry.viewport;
             })
             .unwrap();
 
         RenderProbe {
             viewport,
             capture: numbered_buffer_capture(terminal.backend().buffer()),
+            buffer: terminal.backend().buffer().clone(),
         }
     }
 
@@ -2340,6 +3033,20 @@ mod tests {
                     .then(|| line[..2].parse::<u16>().unwrap())
             })
             .unwrap_or_else(|| panic!("missing {needle:?} in capture:\n{capture}"))
+    }
+
+    fn find_cell(buffer: &Buffer, symbol: &str) -> (u16, u16) {
+        for y in 0..buffer.area.height {
+            for x in 0..buffer.area.width {
+                if buffer[(x, y)].symbol() == symbol {
+                    return (x, y);
+                }
+            }
+        }
+        panic!(
+            "missing symbol {symbol:?} in buffer:\n{}",
+            numbered_buffer_capture(buffer)
+        );
     }
 
     fn assert_controls_before_viewport(capture: &str, chrome_marker: &str, status_marker: &str) {
@@ -2400,6 +3107,15 @@ mod tests {
         }
     }
 
+    fn test_mouse(kind: MouseEventKind, column: u16, row: u16) -> MouseEvent {
+        MouseEvent {
+            kind,
+            column,
+            row,
+            modifiers: KeyModifiers::empty(),
+        }
+    }
+
     #[test]
     fn command_aliases_follow_current_policy() {
         assert_devtools_command("dev", "right");
@@ -2435,6 +3151,294 @@ mod tests {
         assert_dark_command("dark n", DarkAction::Off);
         assert_dark_command("dark system", DarkAction::System);
         assert_dark_command("dark s", DarkAction::System);
+    }
+
+    #[test]
+    fn toolbar_renders_symbol_buttons_left_of_url() {
+        let rendered = render_toolbar_probe(
+            NavigationCapabilities::new(true, true, true),
+            ToolbarInteraction::default(),
+            RefreshAnimation::default(),
+            Instant::now(),
+        );
+        let controls_row = rendered
+            .capture
+            .lines()
+            .find(|line| line.contains('‹') && line.contains('›') && line.contains('⟳'))
+            .unwrap_or_else(|| panic!("missing toolbar symbols\n{}", rendered.capture));
+        let back_idx = controls_row.find('‹').unwrap();
+        let forward_idx = controls_row.find('›').unwrap();
+        let refresh_idx = controls_row.find('⟳').unwrap();
+        let url_idx = controls_row.find("https://example.test").unwrap();
+        assert!(back_idx < forward_idx);
+        assert!(forward_idx < refresh_idx);
+        assert!(refresh_idx < url_idx, "{controls_row}");
+    }
+
+    #[test]
+    fn toolbar_buffer_styles_disabled_hover_pressed_and_animation_frames() {
+        let now = Instant::now();
+
+        let disabled = render_toolbar_probe(
+            NavigationCapabilities::default(),
+            ToolbarInteraction {
+                hovered: Some(NavigationAction::Back),
+                pressed: Some(NavigationAction::Back),
+            },
+            RefreshAnimation::default(),
+            now,
+        );
+        let (back_x, back_y) = find_cell(&disabled.buffer, "‹");
+        let disabled_cell = &disabled.buffer[(back_x, back_y)];
+        assert_eq!(disabled_cell.fg, DIM);
+        assert_eq!(disabled_cell.bg, BG);
+
+        let hover = render_toolbar_probe(
+            NavigationCapabilities::new(true, false, true),
+            ToolbarInteraction {
+                hovered: Some(NavigationAction::Back),
+                pressed: None,
+            },
+            RefreshAnimation::default(),
+            now,
+        );
+        let (back_x, back_y) = find_cell(&hover.buffer, "‹");
+        let hover_cell = &hover.buffer[(back_x, back_y)];
+        assert_eq!(hover_cell.fg, FG);
+        assert_eq!(hover_cell.bg, SELECTION);
+
+        let pressed = render_toolbar_probe(
+            NavigationCapabilities::new(true, false, true),
+            ToolbarInteraction {
+                hovered: Some(NavigationAction::Back),
+                pressed: Some(NavigationAction::Back),
+            },
+            RefreshAnimation::default(),
+            now,
+        );
+        let (back_x, back_y) = find_cell(&pressed.buffer, "‹");
+        let pressed_cell = &pressed.buffer[(back_x, back_y)];
+        assert_eq!(pressed_cell.fg, BG);
+        assert_eq!(pressed_cell.bg, CYAN);
+
+        let mut animation = RefreshAnimation::default();
+        animation.start(now);
+        let frame0 = render_toolbar_probe(
+            NavigationCapabilities::new(false, false, true),
+            ToolbarInteraction::default(),
+            animation,
+            now,
+        );
+        let frame1 = render_toolbar_probe(
+            NavigationCapabilities::new(false, false, true),
+            ToolbarInteraction::default(),
+            animation,
+            now + Duration::from_millis(RefreshAnimation::FRAME_MS as u64),
+        );
+        assert!(
+            frame0.capture.contains(REFRESH_FRAMES[0]),
+            "{}",
+            frame0.capture
+        );
+        assert!(
+            frame1.capture.contains(REFRESH_FRAMES[1]),
+            "{}",
+            frame1.capture
+        );
+        assert_ne!(REFRESH_FRAMES[0], REFRESH_FRAMES[1]);
+    }
+
+    #[test]
+    fn toolbar_hit_testing_requires_enabled_buttons() {
+        let geometry = ToolbarGeometry {
+            buttons: vec![
+                ToolbarButtonRect {
+                    action: NavigationAction::Back,
+                    rect: Rect::new(0, 0, 5, 3),
+                },
+                ToolbarButtonRect {
+                    action: NavigationAction::Forward,
+                    rect: Rect::new(5, 0, 5, 3),
+                },
+            ],
+        };
+        let mut interaction = ToolbarInteraction::default();
+        let disabled = NavigationCapabilities::default();
+        let enabled = NavigationCapabilities::new(true, false, false);
+
+        assert_eq!(
+            update_toolbar_mouse_interaction(
+                &mut interaction,
+                &geometry,
+                disabled,
+                test_mouse(MouseEventKind::Moved, 2, 1),
+            ),
+            None
+        );
+        assert_eq!(interaction.hovered, None);
+
+        assert_eq!(
+            update_toolbar_mouse_interaction(
+                &mut interaction,
+                &geometry,
+                enabled,
+                test_mouse(MouseEventKind::Moved, 2, 1),
+            ),
+            None
+        );
+        assert_eq!(interaction.hovered, Some(NavigationAction::Back));
+    }
+
+    #[test]
+    fn toolbar_click_activates_only_on_same_enabled_release() {
+        let geometry = ToolbarGeometry {
+            buttons: vec![ToolbarButtonRect {
+                action: NavigationAction::Back,
+                rect: Rect::new(0, 0, 5, 3),
+            }],
+        };
+        let capabilities = NavigationCapabilities::new(true, false, false);
+        let mut interaction = ToolbarInteraction::default();
+
+        assert_eq!(
+            update_toolbar_mouse_interaction(
+                &mut interaction,
+                &geometry,
+                capabilities,
+                test_mouse(MouseEventKind::Down(MouseButton::Left), 2, 1),
+            ),
+            None
+        );
+        assert_eq!(interaction.pressed, Some(NavigationAction::Back));
+        assert_eq!(
+            update_toolbar_mouse_interaction(
+                &mut interaction,
+                &geometry,
+                capabilities,
+                test_mouse(MouseEventKind::Up(MouseButton::Left), 2, 1),
+            ),
+            Some(NavigationAction::Back)
+        );
+
+        assert_eq!(
+            update_toolbar_mouse_interaction(
+                &mut interaction,
+                &geometry,
+                capabilities,
+                test_mouse(MouseEventKind::Down(MouseButton::Left), 2, 1),
+            ),
+            None
+        );
+        assert_eq!(
+            update_toolbar_mouse_interaction(
+                &mut interaction,
+                &geometry,
+                capabilities,
+                test_mouse(MouseEventKind::Up(MouseButton::Left), 9, 1),
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn navigation_dispatch_decision_gates_disabled_actions_and_prefers_compositor() {
+        let disabled = NavigationCapabilities::default();
+        let enabled = NavigationCapabilities::new(true, false, true);
+
+        assert_eq!(
+            navigation_dispatch_decision(
+                NavigationAction::Back,
+                disabled,
+                NavigationRoute::Compositor,
+            ),
+            NavigationDispatchDecision::BlockedDisabled
+        );
+        assert_eq!(
+            navigation_dispatch_decision(
+                NavigationAction::Back,
+                enabled,
+                NavigationRoute::Unavailable,
+            ),
+            NavigationDispatchDecision::BlockedUnavailable
+        );
+        assert_eq!(
+            navigation_dispatch_decision(
+                NavigationAction::Refresh,
+                enabled,
+                NavigationRoute::Compositor,
+            ),
+            NavigationDispatchDecision::Send(NavigationRoute::Compositor)
+        );
+        assert_eq!(
+            navigation_dispatch_decision(
+                NavigationAction::Refresh,
+                enabled,
+                NavigationRoute::DirectBrowser,
+            ),
+            NavigationDispatchDecision::Send(NavigationRoute::DirectBrowser)
+        );
+    }
+
+    #[test]
+    fn navigation_state_applies_only_to_current_nonzero_tab() {
+        let mut capabilities = NavigationCapabilities::default();
+        assert!(!apply_navigation_state_for_current_tab(
+            7,
+            8,
+            NavigationCapabilities::new(true, true, true),
+            &mut capabilities,
+        ));
+        assert_eq!(capabilities, NavigationCapabilities::default());
+
+        assert!(!apply_navigation_state_for_current_tab(
+            7,
+            0,
+            NavigationCapabilities::new(true, true, true),
+            &mut capabilities,
+        ));
+        assert_eq!(capabilities, NavigationCapabilities::default());
+
+        assert!(apply_navigation_state_for_current_tab(
+            7,
+            7,
+            NavigationCapabilities::new(true, false, true),
+            &mut capabilities,
+        ));
+        assert_eq!(capabilities, NavigationCapabilities::new(true, false, true));
+    }
+
+    #[test]
+    fn renderer_crash_state_clears_toolbar_fail_closed() {
+        let mut capabilities = NavigationCapabilities::new(true, true, true);
+        let mut interaction = ToolbarInteraction {
+            hovered: Some(NavigationAction::Back),
+            pressed: Some(NavigationAction::Back),
+        };
+        let mut animation = RefreshAnimation::default();
+        animation.start(Instant::now());
+
+        clear_navigation_toolbar_state(&mut capabilities, &mut interaction, &mut animation);
+
+        assert_eq!(capabilities, NavigationCapabilities::default());
+        assert_eq!(interaction, ToolbarInteraction::default());
+        assert!(!animation.active(Instant::now()));
+    }
+
+    #[test]
+    fn refresh_animation_advances_and_expires_without_sleeping() {
+        let now = Instant::now();
+        let mut animation = RefreshAnimation::default();
+        assert!(!animation.active(now));
+
+        animation.start(now);
+        assert!(animation.active(now));
+        assert_eq!(animation.frame(now), 0);
+        assert_eq!(
+            animation.frame(now + Duration::from_millis(RefreshAnimation::FRAME_MS as u64)),
+            1
+        );
+        animation.expire_if_needed(now + RefreshAnimation::TIMEOUT + Duration::from_millis(1));
+        assert!(!animation.active(now + RefreshAnimation::TIMEOUT + Duration::from_millis(1)));
     }
 
     #[test]
@@ -2617,5 +3621,29 @@ mod tests {
     fn small_and_large_panes_keep_non_collapsed_viewport_below_controls() {
         assert_layout_invariants(Mode::Control, Rect::new(0, 0, 24, 7), None);
         assert_layout_invariants(Mode::Browse, Rect::new(0, 0, 120, 40), None);
+    }
+
+    #[test]
+    fn product_navigation_prefers_owned_compositor_route() {
+        assert_eq!(
+            navigation_route(true, true, true),
+            NavigationRoute::Compositor
+        );
+        assert_eq!(
+            navigation_route(true, true, false),
+            NavigationRoute::Compositor
+        );
+        assert_eq!(
+            navigation_route(true, false, true),
+            NavigationRoute::DirectBrowser
+        );
+        assert_eq!(
+            navigation_route(false, false, true),
+            NavigationRoute::DirectBrowser
+        );
+        assert_eq!(
+            navigation_route(true, false, false),
+            NavigationRoute::Unavailable
+        );
     }
 }

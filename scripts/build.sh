@@ -10,6 +10,7 @@ CHROMIUM_OUT="$CHROMIUM_SRC/out/Default"
 CHROMIUM_PROTOC="$CHROMIUM_OUT/protoc"
 WEBKIT_SRC="$COMPANY_DIR/forks/webkit/src"
 WEBKIT_LIB_DIR="$RUST_DIR/ah-webkitd/libtermsurf_webkit"
+GECKO_LIB_DIR="$RUST_DIR/ah-geckod/libtermsurf_gecko"
 LADYBIRD_LIB_DIR="$RUST_DIR/ah-ladybirdd/libtermsurf_ladybird"
 GHOSTTY_DIR="$COMPANY_DIR/forks/ghostty"
 HELIX_DIR="$COMPANY_DIR/forks/helix"
@@ -22,8 +23,8 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: ahterm, ahsh, ahed, ahweb, ahapp, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
-  echo "Aliases: webtui→ahweb, gtui→ahapp, chromium→ah-chromiumd, webkit→ah-webkitd, ladybird→ah-ladybirdd"
+  echo "Components: ahterm, ahsh, ahed, ahweb, ahapp, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, gecko-lib, ah-geckod, ladybird-lib, ah-ladybirdd, all"
+  echo "Aliases: webtui→ahweb, gtui→ahapp, chromium→ah-chromiumd, webkit→ah-webkitd, gecko→ah-geckod, ladybird→ah-ladybirdd"
 }
 
 configuration() {
@@ -297,6 +298,35 @@ build_webkitd() {
   fi
 }
 
+build_gecko_lib() {
+  if $CLEAN; then
+    echo "==> Cleaning libtermsurf_gecko..."
+    rm -rf "$GECKO_LIB_DIR/build"
+  fi
+  echo "==> Building libtermsurf_gecko..."
+  "$GECKO_LIB_DIR/build.sh"
+  echo "  libtermsurf_gecko: $GECKO_LIB_DIR/build/libtermsurf_gecko.dylib"
+}
+
+build_geckod() {
+  build_gecko_lib
+
+  cd "$RUST_DIR"
+  if $CLEAN; then
+    echo "==> Cleaning Gecko..."
+    cargo clean -p ah-geckod
+  fi
+  if $RELEASE; then
+    echo "==> Building Gecko (release)..."
+    cargo build --release -p ah-geckod
+    echo "  Gecko: $RUST_DIR/target/release/ah-geckod"
+  else
+    echo "==> Building Gecko (debug)..."
+    cargo build -p ah-geckod
+    echo "  Gecko: $RUST_DIR/target/debug/ah-geckod"
+  fi
+}
+
 build_ladybirdd() {
   build_ladybird_lib
 
@@ -379,6 +409,8 @@ case "$COMPONENT" in
   webkit-fork) build_webkit_fork ;;
   webkit-lib) build_webkit_lib ;;
   ah-webkitd|webkit)     build_webkitd ;;
+  gecko-lib) build_gecko_lib ;;
+  ah-geckod|gecko) build_geckod ;;
   ladybird-lib) build_ladybird_lib ;;
   ah-ladybirdd|ladybird)   build_ladybirdd ;;
   ahterm|aht) build_ahterm ;;

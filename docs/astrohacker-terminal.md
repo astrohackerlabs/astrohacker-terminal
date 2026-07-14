@@ -132,11 +132,11 @@ logging into Google in one profile doesn't affect the others.
 ### Install with Homebrew
 
 The Homebrew cask `astrohacker` is the one desktop Astrohacker download. On
-Apple silicon macOS it installs Astrohacker Terminal, Shell (`ahsh`), Editor
-(`ahe`), the `web` CLI, the `termsurf` GTUI CLI, `ah-chromiumd` with Chromium
-runtime resources, `ah-webkitd` with WebKit runtime resources, and the
-`ah-ladybirdd` Ladybird prototype. Wallet is planned for the same product later
-and is not available yet:
+Apple silicon macOS it installs Astrohacker Terminal (`ahterm`), Shell
+(`ahsh`), Editor (`ahed`), `ahweb`, `ahapp`, and engine helpers `ah-chromiumd`,
+`ah-webkitd`, and `ah-ladybirdd` into **`/Applications`** and Homebrew `opt` /
+`bin`. Wallet is planned for the same product later and is not available yet.
+Gecko / `ah-geckod` is not released.
 
 ```bash
 brew tap astrohackerlabs/astrohacker
@@ -145,6 +145,8 @@ brew install --cask astrohacker
 ```
 
 To upgrade: `brew update && brew upgrade --cask astrohacker`
+
+Full operator release procedure: [`docs/homebrew.md`](./homebrew.md).
 
 ### Build from Source
 
@@ -286,4 +288,11 @@ the full development guide.
 
 ## License
 
-[MIT](./LICENSE). See [TRADEMARKS.md](./TRADEMARKS.md) for trademark policy.
+Product code is MIT, Copyright (c) 2026 Astrohacker Inc. Third-party notices
+ship in NOTICE. Trademarks are reserved separately.
+
+| Layout | Paths |
+| --- | --- |
+| Monorepo sources | `docs/astrohacker-terminal-license`, `docs/astrohacker-terminal-notice`, `docs/astrohacker-terminal-trademarks.md` |
+| Public source repo / release tarball | `LICENSE`, `NOTICE`, `TRADEMARKS.md` |
+| Homebrew-installed app | `Astrohacker Terminal.app/Contents/Resources/legal/` |

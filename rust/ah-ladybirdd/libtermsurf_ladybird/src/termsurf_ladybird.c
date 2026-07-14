@@ -15,6 +15,7 @@ struct TsLadybirdView {
   bool destroyed;
   bool did_finish_load;
   bool did_crash;
+  bool has_committed_document;
   int width;
   int height;
   bool dark;
@@ -162,6 +163,7 @@ TsLadybirdView *ts_ladybird_view_create(TsLadybirdRuntime *runtime, int width,
   stub_view.destroyed = false;
   stub_view.did_finish_load = false;
   stub_view.did_crash = false;
+  stub_view.has_committed_document = false;
   stub_view.width = width;
   stub_view.height = height;
   stub_view.dark = false;
@@ -248,6 +250,7 @@ bool ts_ladybird_view_load_url(TsLadybirdView *view, const char *url) {
     view->did_finish_load = false;
   } else {
     view->did_finish_load = true;
+    view->has_committed_document = true;
   }
   view->did_crash = false;
   return true;
@@ -372,6 +375,64 @@ bool ts_ladybird_view_key_event(TsLadybirdView *view, const char *type,
   }
 
   view->key_events++;
+  return true;
+}
+
+bool ts_ladybird_view_run_javascript_for_testing(TsLadybirdView *view,
+                                                 const char *script) {
+  if (!view || view->destroyed) {
+    set_error(view ? view->runtime : NULL, "stub view is invalid");
+    return false;
+  }
+  if (!script) {
+    set_error(view->runtime, "stub script is null");
+    return false;
+  }
+  return true;
+}
+
+bool ts_ladybird_view_navigation_action(TsLadybirdView *view,
+                                        const char *action) {
+  if (!view || view->destroyed) {
+    set_error(view ? view->runtime : NULL, "stub view is invalid");
+    return false;
+  }
+  if (!action) {
+    set_error(view->runtime, "stub navigation action is null");
+    return false;
+  }
+  if (strcmp(action, "refresh") == 0) {
+    if (!view->has_committed_document && !view->did_crash) {
+      set_error(view->runtime, "stub refresh is unavailable");
+      return false;
+    }
+    view->did_crash = false;
+    view->did_finish_load = true;
+    view->has_committed_document = true;
+    return true;
+  }
+  if (strcmp(action, "back") == 0 || strcmp(action, "forward") == 0) {
+    set_error(view->runtime, "stub history traversal is unavailable");
+    return false;
+  }
+  set_error(view->runtime, "stub navigation action is unsupported");
+  return false;
+}
+
+bool ts_ladybird_view_navigation_state(
+    const TsLadybirdView *view, TsLadybirdNavigationState *out_state) {
+  if (!out_state) {
+    set_error(view ? view->runtime : NULL, "stub navigation state output is null");
+    return false;
+  }
+  memset(out_state, 0, sizeof(*out_state));
+  if (!view || view->destroyed) {
+    set_error(view ? view->runtime : NULL, "stub view is invalid");
+    return false;
+  }
+  out_state->can_go_back = false;
+  out_state->can_go_forward = false;
+  out_state->can_refresh = view->has_committed_document || view->did_crash;
   return true;
 }
 
@@ -505,6 +566,7 @@ bool ts_ladybird_view_reply_javascript_dialog(TsLadybirdView *view,
   view->active_javascript_dialog_request_id = 0;
   view->active_javascript_dialog_type[0] = '\0';
   view->did_finish_load = true;
+  view->has_committed_document = true;
   return true;
 }
 

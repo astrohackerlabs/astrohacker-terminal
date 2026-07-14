@@ -152,14 +152,14 @@ const CLI_FLAGS: &[CliFlag] = &[
         Some('h'),
         "show this help message",
         CliCategory::General,
-        "nu --help",
+        "ahsh --help",
     ),
     CliFlag::switch(
         "version",
         Some('v'),
         "print the version",
         CliCategory::General,
-        "nu --version",
+        "ahsh --version",
     ),
     CliFlag::switch(
         "interactive",
@@ -538,10 +538,12 @@ pub(crate) fn parse_cli_args(args: Vec<OsString>) -> Result<ParsedCli, CliError>
                 std::process::exit(0);
             }
             Short('v') | Long("version") => {
-                let version = env!("CARGO_PKG_VERSION").to_string();
+                let version = env!("ASTROHACKER_CLI_VERSION").to_string();
                 let nu_version = env!("NUSHELL_VERSION").to_string();
                 let _ = std::panic::catch_unwind(move || {
-                    stdout_write_all_and_flush(format!("{version} (nushell {nu_version})\n"))
+                    stdout_write_all_and_flush(format!(
+                        "Astrohacker Shell {version}\nNushell {nu_version}\n"
+                    ))
                 });
                 std::process::exit(0);
             }
@@ -1249,8 +1251,8 @@ fn prevalidate_short_groups_before_lexopt(args: &[OsString]) -> Result<(), CliEr
 // Generate help text with the legacy layout and default help colors.
 fn cli_help_text() -> String {
     let mut output = String::new();
-    output.push_str("The nushell language and shell.\n\n");
-    output.push_str("Usage:\n  nu [options] [script file] [script args]\n\n");
+    output.push_str("Astrohacker Shell — the Astrohacker command shell, powered by Nushell.\n\n");
+    output.push_str("Usage:\n  ahsh [options] [script file] [script args]\n\n");
     output.push_str("Options:\n");
 
     for category in [

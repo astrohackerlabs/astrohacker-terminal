@@ -188,10 +188,19 @@ pub(crate) fn run_repl(
     trace!("run_repl");
     let start_time = nu_utils::time::Instant::now();
 
-    // Create the dispatcher early — the persistent bash subprocess initializes
-    // via --login (sourcing .bash_profile/.bashrc). Capture the resulting env
-    // vars to inject into nushell's stack before config loading.
-    let mut dispatcher = ahsh::dispatcher::ShannonDispatcher::new();
+    // Product config: alt shell (default zsh). Invalid config fails startup.
+    let shell_cfg = match ahsh::config::load_shell_config(&ahsh::config::default_config_path()) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("ahsh: {e}");
+            std::process::exit(1);
+        }
+    };
+    let alt = shell_cfg.alt_shell;
+
+    // Create the dispatcher early — the configured alt subprocess initializes
+    // via login (+ zshrc for zsh). Capture env for Nu stack before config load.
+    let mut dispatcher = ahsh::dispatcher::ShannonDispatcher::new(alt);
     if parsed_nu_cli_args.no_config_file.is_none() {
         for (key, value) in dispatcher.env_vars() {
             stack.add_env_var(
@@ -220,41 +229,32 @@ pub(crate) fn run_repl(
         .get(engine_state);
     perf!("setup_config", start_time, use_color);
 
-    // Set default SHANNON_MODE
+    // Mode env: Nu default + configured alt for Shift+Tab toggle list in fork.
     stack.add_env_var(
         "SHANNON_MODE".to_string(),
         nu_protocol::Value::string("nu", nu_protocol::Span::unknown()),
     );
+    stack.add_env_var(
+        "SHANNON_ALT_MODE".to_string(),
+        nu_protocol::Value::string(alt.as_str(), nu_protocol::Span::unknown()),
+    );
 
-    // Set default prompt that shows the active mode
+    // Prompt shows [mode] including bash/zsh
+    let prompt_src = ahsh::banner::default_prompt_script();
     nu_cli::eval_source(
         engine_state,
         &mut stack,
-        br#"$env.PROMPT_COMMAND = {||
-            let mode = ($env.SHANNON_MODE? | default "nu")
-            let color = match $mode {
-                "nu" => (ansi green)
-                "bash" => (ansi cyan)
-                _ => (ansi green)
-            }
-            let reset = (ansi reset)
-            let dir = if ($env.PWD | str starts-with $env.HOME) {
-                $env.PWD | str replace $env.HOME "~"
-            } else {
-                $env.PWD
-            }
-            $"($color)[($mode)](ansi reset) ($dir)"
-        }"#,
+        prompt_src.as_bytes(),
         "ahsh-prompt",
         nu_protocol::PipelineData::empty(),
         false,
     );
 
-    // Show Astrohacker Shell's banner instead of nushell's, respecting show_banner config
+    // Banner via production renderer (full/short include alt honesty lines).
     {
+        use ahsh::banner::{StartupBannerKind, render_startup_banner};
         use nu_protocol::BannerKind;
         let show_banner = engine_state.get_config().show_banner.clone();
-        // Always disable nushell's banner (we replace it with ours)
         nu_cli::eval_source(
             engine_state,
             &mut stack,
@@ -263,42 +263,22 @@ pub(crate) fn run_repl(
             nu_protocol::PipelineData::empty(),
             false,
         );
-        match show_banner {
-            BannerKind::None => {} // User disabled banner
-            BannerKind::Short => {
-                let green = "\x1b[32m";
-                let bold = "\x1b[1m";
-                let reset = "\x1b[0m";
-                let fg = "\x1b[37m";
-                eprintln!(
-                    "{green}{bold}Startup Time:{reset}{fg} {:?}{reset}",
-                    entire_start_time.elapsed()
-                );
-                eprintln!();
-            }
-            BannerKind::Full => {
-                let version = env!("CARGO_PKG_VERSION");
-                let nu_version = env!("NUSHELL_VERSION");
-                let green = "\x1b[32m";
-                let bold = "\x1b[1m";
-                let reset = "\x1b[0m";
-                let fg = "\x1b[37m";
-                eprintln!(
-                    "{fg}Welcome to {green}{bold}Astrohacker Shell{reset}{fg}, based on the {green}Nu{reset}{fg} language, where all data is structured!{reset}"
-                );
-                eprintln!(
-                    "{fg}Version: {green}{version}{fg} (nushell {green}{nu_version}{fg}){reset}"
-                );
-                eprintln!(
-                    "{green}{bold}Startup Time:{reset}{fg} {:?}{reset}",
-                    entire_start_time.elapsed()
-                );
-                eprintln!();
-            }
+        let kind = match show_banner {
+            BannerKind::None => StartupBannerKind::None,
+            BannerKind::Short => StartupBannerKind::Short,
+            BannerKind::Full => StartupBannerKind::Full,
+        };
+        if let Some(text) = render_startup_banner(
+            kind,
+            alt,
+            env!("CARGO_PKG_VERSION"),
+            env!("NUSHELL_VERSION"),
+            entire_start_time.elapsed(),
+        ) {
+            eprint!("{text}");
         }
     }
 
-    // Wrap the dispatcher for the REPL (created earlier for env.sh loading)
     let dispatcher: std::sync::Arc<std::sync::Mutex<Box<dyn nu_cli::ModeDispatcher>>> =
         std::sync::Arc::new(std::sync::Mutex::new(Box::new(dispatcher)));
 

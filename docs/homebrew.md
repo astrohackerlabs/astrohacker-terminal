@@ -1,13 +1,42 @@
 # Homebrew
 
+**Canonical user install and operator release documentation** for Astrohacker
+on Apple silicon macOS. Shell / direct install (`install.sh`) is **retired** as
+a product channel; see the historical note in
+[`docs/shell-release.md`](./shell-release.md).
+
 Full environment variable taxonomy: [`docs/environment.md`](./environment.md).
 
 Astrohacker ships to macOS through the `astrohackerlabs/astrohacker` Homebrew
-tap. There is **one desktop download**: the cask `astrohacker`. It targets
-Apple silicon macOS and installs Astrohacker Terminal, Shell, Editor, and
-related helpers as one Astrohacker bundle.
+tap. There is **one desktop download**: the cask `astrohacker`. It installs
+Astrohacker Terminal, Shell, Editor, and related helpers as one Astrohacker
+bundle. The app lands in **`/Applications/Astrohacker Terminal.app`**.
 
 ## Public command surface
+
+Released PATH names (machine-readable for gates):
+
+<!-- released-wrappers -->
+ahterm
+ahweb
+ahapp
+ahsh
+ahed
+ah-chromiumd
+ah-webkitd
+ah-ladybirdd
+<!-- /released-wrappers -->
+
+Released payload roots (machine-readable for legal/notice gates; top-level
+paths in the release tarball besides bare CLI binaries):
+
+<!-- released-payload-roots -->
+ahed-runtime
+gtui
+ah-chromiumd
+ah-webkitd
+ah-ladybirdd
+<!-- /released-payload-roots -->
 
 | Command | Role |
 | --- | --- |
@@ -24,6 +53,8 @@ There is **no** `ah` / `astrohacker` meta CLI dispatcher today.
 Engine helpers (implementation; on PATH for packaging/debug):
 
 - `ah-chromiumd`, `ah-webkitd`, `ah-ladybirdd`
+
+**Not released:** `ah-geckod` / gecko.
 
 Engine **selectors** for `ahweb` remain family names: `chromium`, `webkit`,
 `ladybird` (future `gecko`).
@@ -60,6 +91,12 @@ Distribution uses ad-hoc codesign in the cask postflight (quarantine clear +
 `codesign --sign -`) until Developer ID notarization is in place.
 `brew trust` trusts the tap source; it does not notarize the app with Apple.
 
+Legal files are injected into the app under `Contents/Resources/legal/` during
+`scripts/release.sh` packaging (after the app is copied into the stage tree).
+That changes sealed app contents relative to any earlier signature; the
+**cask postflight ad-hoc re-sign is the intentional installed contract** for
+those Resources until Developer ID notarization lands.
+
 Normal install/reinstall/uninstall of Astrohacker-owned opt artifacts must not
 require `sudo` (helpers are Homebrew `artifact`s).
 
@@ -67,6 +104,9 @@ require `sudo` (helpers are Homebrew `artifact`s).
 
 - `Astrohacker Terminal.app` → `/Applications/Astrohacker Terminal.app`
   (executable `Contents/MacOS/ahterm`)
+- **Legal (authoritative for installed users):**
+  `/Applications/Astrohacker Terminal.app/Contents/Resources/legal/`
+  (`LICENSE`, `NOTICE`, `TRADEMARKS.md`, `third_party/...`)
 - PATH: `ahterm`, `ahweb`, `ahapp`, `ahsh`, `ahed`, engine helpers
 - Editor runtime →
   `/opt/homebrew/opt/astrohacker-terminal-editor/runtime/`
@@ -84,11 +124,18 @@ Asset name: `astrohacker-<version>-aarch64-apple-darwin.tar.gz`
 
 Top-level contents:
 
-- `Astrohacker Terminal.app/` (with `Contents/MacOS/ahterm`)
+- `Astrohacker Terminal.app/` (with `Contents/MacOS/ahterm` and
+  `Contents/Resources/legal/`)
+- `LICENSE`, `NOTICE`, `TRADEMARKS.md` (tarball root mirror of product legal)
+- `legal/third_party/` (Chromium credits/LICENSE, Ladybird LICENSE + vcpkg
+  copyrights, Helix/Nushell/Reedline LICENSE copies)
 - `ahweb`, `ahapp`, `ahsh`, `ahed`
 - `ahed-runtime/runtime/`
 - `gtui/`
 - `ah-chromiumd/`, `ah-webkitd/`, `ah-ladybirdd/`
+
+Gate before publish: `scripts/check-release-legal-notices.sh` (NOTICE
+legal-manifest vs released wrappers + payload roots).
 
 ## Release / publish (agents and humans)
 
@@ -160,6 +207,29 @@ Publish mode requires **clean** public and tap worktrees. It only rewrites cask
      scripts/build.sh ahed --release --clean
    ```
 
+   Version contract:
+
+   - `TERMSURF_VERSION=<version>` is the `ahterm` app/helper version input.
+     `ahterm` is the only shipped wrapper that uses the terminal helper/action
+     convention: `ahterm +version` and `ahterm +help`.
+   - `ASTROHACKER_VERSION=<version>` is the release version input for Rust
+     product/helper binaries and `ahed`.
+   - Every shipped non-`ahterm` wrapper must support `--version` and `--help`.
+     The first `--version` line must use the same `<version>`:
+
+     | Wrapper | Expected first line |
+     | --- | --- |
+     | `ahweb --version` | `Astrohacker Web <version>` |
+     | `ahapp --version` | `Astrohacker App <version>` |
+     | `ahsh --version` | `Astrohacker Shell <version>` |
+     | `ahed --version` | `Astrohacker Editor <version>` |
+     | `ah-chromiumd --version` | `Astrohacker Chromium Engine <version>` |
+     | `ah-webkitd --version` | `Astrohacker WebKit Engine <version>` |
+     | `ah-ladybirdd --version` | `Astrohacker Ladybird Engine <version>` |
+
+     Runtime/component versions, such as Nushell or browser ABI versions, may be
+     shown only as secondary detail after the product release line.
+
 4. **Package-only** (dry-run SHA is not authoritative):
 
    ```sh
@@ -204,10 +274,22 @@ Publish mode requires **clean** public and tap worktrees. It only rewrites cask
    brew trust astrohackerlabs/astrohacker
    brew reinstall --cask astrohacker
    ahterm +version
-   ahsh --version
-   ahed --version
-   ahed --health rust
+   ahterm +help | head
+   ahweb --version
    ahweb --help | head
+   ahapp --version
+   ahapp --help | head
+   ahsh --version
+   ahsh --help | head
+   ahed --version
+   ahed --help | head
+   ahed --health rust
+   /opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd --version
+   /opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd --help | head
+   /opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd --version
+   /opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd --help | head
+   /opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd --version
+   /opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd --help | head
    ```
 
    Check opt helper paths and

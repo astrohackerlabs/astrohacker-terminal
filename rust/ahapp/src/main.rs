@@ -23,6 +23,10 @@ enum AppEvent {
 }
 
 fn main() -> io::Result<()> {
+    if handle_identity_arg() {
+        return Ok(());
+    }
+
     let pane_id = std::env::var("TERMSURF_PANE_ID").map_err(|_| {
         io::Error::new(
             io::ErrorKind::NotFound,
@@ -127,6 +131,27 @@ fn main() -> io::Result<()> {
         send_close_app_frontend(&mut stream, pane_id, reply.frontend_id)?;
     }
     Ok(())
+}
+
+fn handle_identity_arg() -> bool {
+    for arg in std::env::args().skip(1) {
+        match arg.as_str() {
+            "--version" => {
+                println!("Astrohacker App {}", env!("ASTROHACKER_CLI_VERSION"));
+                return true;
+            }
+            "--help" | "-h" => {
+                print!(
+                    "Astrohacker App — run Terminal GUI apps in Astrohacker Terminal\n\n\
+Usage: ahapp [OPTIONS]\n\n\
+Options:\n  -h, --help     Print help\n      --version  Print version\n"
+                );
+                return true;
+            }
+            _ => {}
+        }
+    }
+    false
 }
 
 fn wait_for_browser_ready(

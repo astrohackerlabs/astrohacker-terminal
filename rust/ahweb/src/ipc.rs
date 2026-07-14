@@ -32,6 +32,12 @@ pub enum CompositorMessage {
         state: String,
         _progress: u8,
     },
+    NavigationState {
+        tab_id: i64,
+        can_go_back: bool,
+        can_go_forward: bool,
+        can_refresh: bool,
+    },
     TitleChanged {
         title: String,
     },
@@ -74,6 +80,9 @@ pub enum CompositorMessage {
         termination_status_code: i32,
         url: String,
         can_reload: bool,
+    },
+    Disconnected {
+        tab_id: i64,
     },
 }
 
@@ -276,6 +285,15 @@ impl CompositorConnection {
         }));
     }
 
+    /// Tell the compositor to perform a semantic browser navigation action.
+    pub fn send_navigation_action(&self, pane_id: &str, action: &str) {
+        self.send(Msg::NavigationAction(proto::NavigationAction {
+            tab_id: 0,
+            pane_id: pane_id.into(),
+            action: action.into(),
+        }));
+    }
+
     /// Send a color scheme override (Issue 26022812000680).
     pub fn send_set_color_scheme(&self, pane_id: &str, scheme: &str) {
         let dark = scheme == "dark";
@@ -370,9 +388,19 @@ fn reader_loop(
 
     loop {
         let n = match stream.read(&mut tmp) {
-            Ok(0) => return, // EOF
+            Ok(0) => {
+                let _ = event_tx.send(super::LoopEvent::Ipc(CompositorMessage::Disconnected {
+                    tab_id,
+                }));
+                return;
+            }
             Ok(n) => n,
-            Err(_) => return,
+            Err(_) => {
+                let _ = event_tx.send(super::LoopEvent::Ipc(CompositorMessage::Disconnected {
+                    tab_id,
+                }));
+                return;
+            }
         };
         buf.extend_from_slice(&tmp[..n]);
 
@@ -426,6 +454,15 @@ impl BrowserConnection {
             tab_id: self.tab_id,
             pane_id: String::new(),
             url: url.into(),
+        }));
+    }
+
+    /// Send a semantic browser navigation action directly to the engine.
+    pub fn send_navigation_action(&self, action: &str) {
+        self.send(Msg::NavigationAction(proto::NavigationAction {
+            tab_id: self.tab_id,
+            pane_id: String::new(),
+            action: action.into(),
         }));
     }
 
@@ -514,6 +551,17 @@ fn dispatch_message(
             let _ = event_tx.send(super::LoopEvent::Ipc(CompositorMessage::LoadingState {
                 state: m.state.clone(),
                 _progress: m.progress as u8,
+            }));
+        }
+        Some(Msg::NavigationState(m)) => {
+            if m.tab_id == 0 || (tab_id != 0 && m.tab_id != tab_id) {
+                return;
+            }
+            let _ = event_tx.send(super::LoopEvent::Ipc(CompositorMessage::NavigationState {
+                tab_id: m.tab_id,
+                can_go_back: m.can_go_back,
+                can_go_forward: m.can_go_forward,
+                can_refresh: m.can_refresh,
             }));
         }
         Some(Msg::TitleChanged(m)) => {

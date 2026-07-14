@@ -2,6 +2,7 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    emit_astrohacker_cli_version();
     println!("cargo:rerun-if-changed=../proto/termsurf.proto");
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
@@ -32,4 +33,11 @@ fn main() {
     prost_build::Config::new()
         .compile_protos(&["../proto/termsurf.proto"], &["../proto/"])
         .unwrap();
+}
+
+fn emit_astrohacker_cli_version() {
+    println!("cargo:rerun-if-env-changed=ASTROHACKER_VERSION");
+    let version =
+        env::var("ASTROHACKER_VERSION").unwrap_or_else(|_| env::var("CARGO_PKG_VERSION").unwrap());
+    println!("cargo:rustc-env=ASTROHACKER_CLI_VERSION={version}");
 }

@@ -18,6 +18,7 @@ typedef void (*ts_tab_ready_cb)(ts_web_contents_t wc, int tab_id, void *user_dat
 typedef void (*ts_ca_context_id_cb)(ts_web_contents_t wc, uint32_t context_id, int width, int height, void *user_data);
 typedef void (*ts_url_changed_cb)(ts_web_contents_t wc, const char *url, void *user_data);
 typedef void (*ts_loading_state_cb)(ts_web_contents_t wc, const char *url, int loading, void *user_data);
+typedef void (*ts_navigation_state_cb)(ts_web_contents_t wc, bool can_go_back, bool can_go_forward, bool can_refresh, void *user_data);
 typedef void (*ts_title_changed_cb)(ts_web_contents_t wc, const char *title, void *user_data);
 typedef void (*ts_cursor_changed_cb)(ts_web_contents_t wc, int cursor, void *user_data);
 typedef void (*ts_target_url_changed_cb)(ts_web_contents_t wc, const char *url, void *user_data);
@@ -93,30 +94,34 @@ ts_web_contents_t ts_create_devtools_web_contents(
 void ts_destroy_web_contents(ts_web_contents_t wc);
 
 void ts_load_url(ts_web_contents_t wc, const char *url);
+bool ts_navigation_action(ts_web_contents_t wc, const char *action);
 
-void ts_forward_mouse_event(
+bool ts_forward_mouse_event(
     ts_web_contents_t wc,
     int type,
     int button,
-    int x,
-    int y,
+    double x,
+    double y,
     int click_count,
     int modifiers);
-void ts_forward_mouse_move(ts_web_contents_t wc, int x, int y, int modifiers);
+bool ts_forward_mouse_move(ts_web_contents_t wc, double x, double y, int modifiers);
 /* phase/momentum_phase use AppKit/Blink bitmasks:
    0=none, 1=began, 2=stationary, 4=changed, 8=ended,
    16=cancelled, 32=mayBegin. */
-void ts_forward_scroll_event(
+bool ts_forward_scroll_event(
     ts_web_contents_t wc,
-    int x,
-    int y,
-    float delta_x,
-    float delta_y,
+    double x,
+    double y,
+    double delta_x,
+    double delta_y,
     int phase,
     int momentum_phase,
     bool precise,
     int modifiers);
-void ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const char *utf8, int modifiers);
+bool ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const char *utf8, int modifiers);
+bool ts_forward_text_input(ts_web_contents_t wc, const char *type, const char *text,
+                           int64_t selected_start, int64_t selected_length,
+                           int64_t replacement_start, int64_t replacement_length);
 
 void ts_set_focus(ts_web_contents_t wc, bool focused);
 /* Logical pane focus (accessory host; not document.hasFocus / key-window). */
@@ -149,6 +154,7 @@ void ts_set_on_tab_ready(ts_tab_ready_cb cb, void *user_data);
 void ts_set_on_ca_context_id(ts_ca_context_id_cb cb, void *user_data);
 void ts_set_on_url_changed(ts_url_changed_cb cb, void *user_data);
 void ts_set_on_loading_state(ts_loading_state_cb cb, void *user_data);
+void ts_set_on_navigation_state(ts_navigation_state_cb cb, void *user_data);
 void ts_set_on_title_changed(ts_title_changed_cb cb, void *user_data);
 void ts_set_on_cursor_changed(ts_cursor_changed_cb cb, void *user_data);
 void ts_set_on_target_url_changed(ts_target_url_changed_cb cb, void *user_data);

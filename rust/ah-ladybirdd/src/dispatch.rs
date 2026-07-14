@@ -22,10 +22,12 @@ pub fn handle_message(msg: &TermSurfMessage) {
         Msg::Resize(m) => resize(m),
         Msg::CloseTab(m) => close_tab(m.tab_id),
         Msg::Navigate(m) => navigate(m),
+        Msg::NavigationAction(m) => navigation_action(m),
         Msg::MouseEvent(m) => mouse_event(m),
         Msg::MouseMove(m) => mouse_move(m),
         Msg::ScrollEvent(m) => scroll_event(m),
         Msg::KeyEvent(m) => key_event(m),
+        Msg::TextInput(m) => text_input(m),
         Msg::FocusChanged(m) => focus_changed(m),
         Msg::SetColorScheme(m) => set_color_scheme(m),
         Msg::SetGuiActive(m) => set_gui_active(m),
@@ -62,6 +64,7 @@ pub fn handle_message(msg: &TermSurfMessage) {
         | Msg::RenderSurface(_)
         | Msg::UrlChanged(_)
         | Msg::LoadingState(_)
+        | Msg::NavigationState(_)
         | Msg::TitleChanged(_)
         | Msg::CursorChanged(_)
         | Msg::TargetUrlChanged(_)
@@ -73,6 +76,15 @@ pub fn handle_message(msg: &TermSurfMessage) {
             eprintln!("[Ladybird] ignored inbound send-side message");
         }
     }
+}
+
+fn text_input(m: &termsurf::TextInput) {
+    eprintln!(
+        "[Ladybird] unsupported TextInput tab_id={} type={} utf8_bytes={} mode=unsupported: native text composition is not wired",
+        m.tab_id,
+        m.r#type,
+        m.text.len()
+    );
 }
 
 fn create_tab(m: &termsurf::CreateTab) {
@@ -390,6 +402,37 @@ fn navigate(m: &termsurf::Navigate) {
             m.tab_id, m.url
         ),
     }
+}
+
+fn navigation_action(m: &termsurf::NavigationAction) {
+    if m.tab_id <= 0 || !m.pane_id.is_empty() || !valid_navigation_action(&m.action) {
+        eprintln!(
+            "[Ladybird] NavigationAction rejected tab_id={} pane_id={} action={} mode=invalid-contract",
+            m.tab_id, m.pane_id, m.action
+        );
+        return;
+    }
+    let Some(engine) = engine::global() else {
+        eprintln!(
+            "[Ladybird] NavigationAction failed tab_id={} action={}: engine service is not initialized",
+            m.tab_id, m.action
+        );
+        return;
+    };
+    match engine.navigation_action(m.tab_id, m.action.clone()) {
+        Ok(tab) => eprintln!(
+            "[Ladybird] engine-backed NavigationAction tab_id={} action={}",
+            tab.id, m.action
+        ),
+        Err(error) => eprintln!(
+            "[Ladybird] NavigationAction failed tab_id={} action={}: {error}",
+            m.tab_id, m.action
+        ),
+    }
+}
+
+fn valid_navigation_action(action: &str) -> bool {
+    matches!(action, "back" | "forward" | "refresh")
 }
 
 fn send_query_tabs_reply() {
