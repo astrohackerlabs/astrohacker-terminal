@@ -7,17 +7,21 @@ archives and branch notes that are safe to commit.
 ## Current State
 
 - **Current upstream base:** `f1a2d7ccc011b8da238839e6e66172d50f283e4f`
-- **Current branch:** `webkit-f1a2d7cc-issue-26071112000924`
-- **Current HEAD:** `60899f4934ec2f66e175cecd44398d834c745b0c`
-- **Archive:** `patches/webkit/patches/issue-26071112000924/` (2 patches; TREE_MATCH)
+- **Current branch:** `webkit-f1a2d7cc-issue-26071420489654-restoration`
+- **Current HEAD:** `7b7ebf8e3d973c378a11d961c710fd17aeb63069`
+- **Current tree:** `1597177f69e292eaff2d284fbac1e7b75fa7e67d`
+- **Archive:** `patches/webkit/patches/issue-26071420489654/` (2 patches)
+- **Archive aggregate SHA-256:**
+  `18b87541ff683a295b05d8be7919b847e213e804ce037b0f21f28a524960835d`
+- **Verification:** **archive replay Pass; not built**
 - Shallow checkout: `true`
 - Working tree: `forks/webkit/src`
-- **Residual:** wrapper `smoke-test` focus observation fails; tracked by
-  [Issue 26071112000926](../../issues/0926-webkit-focus-residual/README.md). Daemon
-  warmup is green.
 
-Historical issue-26062712000857 archive remains under `patches/webkit/patches/issue-26062712000857/`
-for the pre-924 baseline (`d144dd78…`).
+All prior archives remain under `patches/webkit/patches/` as historical
+records. In particular, Issue `26071112000924` is the tag-stored `0.1.17`
+archive and Issue `26062712000857` is the pre-924 baseline (`d144dd78…`).
+Later post-`0.1.17` archives remain present but are not part of this restoration
+claim.
 
 ## Merge-upstream
 
@@ -32,19 +36,20 @@ for the pre-924 baseline (`d144dd78…`).
 
 ```bash
 cd forks/webkit/src
-git fetch --depth 1 origin f1a2d7ccc011b8da238839e6e66172d50f283e4f
-git switch -C webkit-f1a2d7cc-issue-26071112000924 f1a2d7ccc011b8da238839e6e66172d50f283e4f
-git am ../../../patches/webkit/patches/issue-26071112000924/*.patch
+git worktree add -b webkit-f1a2d7cc-issue-26071420489654-restoration \
+  /tmp/astrohacker-webkit-restoration \
+  f1a2d7ccc011b8da238839e6e66172d50f283e4f
+git -C /tmp/astrohacker-webkit-restoration am \
+  "$PWD/../../../patches/webkit/patches/issue-26071420489654/"*.patch
 ```
 
 ## Generating Patches
 
 ```bash
-rm -rf patches/webkit/patches/issue-26071112000924
-mkdir -p patches/webkit/patches/issue-26071112000924
+mkdir -p patches/webkit/patches/issue-26071420489654
 git -C forks/webkit/src format-patch \
   f1a2d7ccc011b8da238839e6e66172d50f283e4f..HEAD \
-  -o "$PWD/patches/webkit/patches/issue-26071112000924"
+  -o "$PWD/patches/webkit/patches/issue-26071420489654"
 ```
 
 ## Verification

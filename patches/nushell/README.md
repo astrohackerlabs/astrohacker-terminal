@@ -5,26 +5,29 @@ working tree is local-only under `forks/nushell`; this directory tracks the
 patch archive needed to reconstruct Astrohacker Shell's Nushell changes without
 importing Nushell history into the company repo.
 
-## Current State (Issue 26071419276553)
+## Current State (Issue 26071420489654)
 
 - Upstream repository: `https://github.com/nushell/nushell`
-- Upstream base policy: **latest commit on upstream `main`** (pinned at apply time)
 - Upstream base commit: `0df4ca222cc713e79b6b1684ad8ccaec584ce4ac`
-- Workspace version: `0.114.1`
-- Product branch: `issue-26071419276553-nushell` (or local equivalent)
-- Product HEAD (after apply): `5e14c7ec243c5b37ea668e8a88c3c51024dfd4cd`
+- Restored workspace version: `0.114.1` (verified in the `0.1.17` tree)
+- Product branch: `issue-26071420489654-nushell-restoration`
+- Product HEAD: `2dc50e0ee0997e58a1b758942ae95f97be462417`
+- Product tree: `bcb597ffc4d0e2ccc304923bd281240356d01c13`
 - Local fork working tree: `forks/nushell`
-- Issue archive: `patches/nushell/patches/issue-26071419276553/`
+- Issue archive: `patches/nushell/patches/issue-26071420489654/`
 - Patch:
-  `patches/nushell/patches/issue-26071419276553/0001-astrohacker-shell-nushell.patch`
-- Reedline: path-dep `../reedline` at tip `0.49.0` (single crate identity for
-  `rust/ahsh`)
-- Monorepo consumer: `rust/ahsh` pins all `nu-*` / `shannon-nu-*` at `0.114.1`
-  and reedline at `0.49.0` path `forks/reedline`
-- Prior archives:
-  - Issue 26071215508194: `patches/nushell/patches/issue-26071215508194/`
-  - Issue 26071112000924: `patches/nushell/patches/issue-26071112000924/`
-  - Issue 26070612000903: `patches/nushell/patches/issue-26070612000903/`
+  `patches/nushell/patches/issue-26071420489654/0001-astrohacker-Shannon-shell-product-patch-on-nushell-t.patch`
+- Patch SHA-256:
+  `dd677832038ae82e8c813333ff1f6873afe0821210480e092bca9534160c7462`
+- Archive aggregate SHA-256:
+  `c84aadd45d36c6c9fa2a9ee76a5996d5ee63da9c5c58f03bcbb33ddd423caff1`
+- Reedline: historical path dependency `../reedline` at `0.49.0`; its exact
+  `0.1.17` tip restoration is tracked separately.
+- Verification: **archive replay Pass; not built**
+
+Every prior/later archive under `patches/nushell/patches/` remains a historical
+record. Issue `26071112000924` is the tag-stored `0.1.17` input; later archives
+are present but are not part of this restoration claim.
 
 ## Patch Contents
 
@@ -34,10 +37,7 @@ Bounded Shannon/Astrohacker deltas on tip:
 - path pin of `reedline` to sibling `forks/reedline`
 - `ModeDispatcher` support
 - Bash syntax highlighting (`bash_highlight.rs` + tree-sitter deps)
-- REPL mode-switch glue: binary toggle `nu` ↔ `$env.SHANNON_ALT_MODE`
-  (`bash`|`zsh`, default `zsh` if unset)
-- Highlighter treats `bash` and `zsh` modes with bash highlighter
-- crate-root re-exports of `NuHighlight` / `Print` from `commands`
+- REPL mode-dispatch hooks and Bash highlighter selection for `nu` / `bash`
 - related lockfile updates for the path reedline
 
 ## Apply (clean base)
@@ -45,18 +45,19 @@ Bounded Shannon/Astrohacker deltas on tip:
 ```sh
 BASE=0df4ca222cc713e79b6b1684ad8ccaec584ce4ac
 # Reedline tip must exist at forks/reedline (path dep)
-git -C forks/nushell fetch origin "$BASE"
-git -C forks/nushell checkout -B issue-26071419276553-nushell "$BASE"
-git -C forks/nushell am \
-  "$PWD/patches/nushell/patches/issue-26071419276553/0001-astrohacker-shell-nushell.patch"
+git -C forks/nushell worktree add -b \
+  issue-26071420489654-nushell-restoration \
+  /tmp/astrohacker-nushell-restoration "$BASE"
+git -C /tmp/astrohacker-nushell-restoration am \
+  "$PWD/patches/nushell/patches/issue-26071420489654/0001-astrohacker-Shannon-shell-product-patch-on-nushell-t.patch"
 ```
 
 ## Generate
 
 ```sh
 BASE=0df4ca222cc713e79b6b1684ad8ccaec584ce4ac
-git -C forks/nushell format-patch --stdout "$BASE"..HEAD \
-  > patches/nushell/patches/issue-26071419276553/0001-astrohacker-shell-nushell.patch
+git -C forks/nushell format-patch "$BASE"..HEAD \
+  -o patches/nushell/patches/issue-26071420489654/
 ```
 
 ## Build / verify

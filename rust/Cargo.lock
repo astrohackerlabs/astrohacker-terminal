@@ -48,7 +48,6 @@ dependencies = [
 name = "ah-webkitd"
 version = "0.1.0"
 dependencies = [
- "libloading",
  "prost",
  "prost-build",
 ]

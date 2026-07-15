@@ -5,23 +5,32 @@ working tree is local-only under `forks/helix`; this directory tracks the
 documentation and patch archives needed to reconstruct Astrohacker Editor's
 Helix changes without importing Helix history into the company repo.
 
-## Current State (Issue 26071112000924)
+## Current State (Issue 26071420489654)
 
 - Upstream repository: `https://github.com/helix-editor/helix`
-- Upstream base policy: **latest commit on upstream `master`** (tip accepted)
 - Upstream base commit: `14d6bc0febed9c692048271a8ae2362ac969c6e0`
-- Product branch: `issue-26071112000924-astrohacker-editor`
-- Product HEAD: `d2bed21b4f6d8744c06c4b452701be759b4b4492`
+- Product branch: `issue-26071420489654-astrohacker-editor-restoration`
+- Product HEAD: `4b4301fb1531567f23858d3a322425b17e1f13be`
+- Product tree: `6ebaacaf8ca5cec9e056436c16a4e385c4db1261`
+- Current live safety-fence branch: `issue-0924-astrohacker-editor`
+- Historical Issue 924 branch metadata:
+  `issue-26071112000924-astrohacker-editor`
 - Local fork working tree: `forks/helix`
-- Issue archive: `patches/helix/patches/issue-26071112000924/`
+- Issue archive: `patches/helix/patches/issue-26071420489654/`
 - Current patch:
-  `patches/helix/patches/issue-26071112000924/0001-astrohacker-editor.patch`
+  `patches/helix/patches/issue-26071420489654/0001-astrohacker-Editor-helix-product-patch-on-tip-issue-.patch`
+- Patch SHA-256:
+  `765644a0781a3fe18aedb3af3af2e8cf5679ad443ab1ea18285dede524140dab`
+- Archive aggregate SHA-256:
+  `0098f654abc5c34fbf57b796849f4bbbae574d51eb23d6984b6323ae5cee62f2`
+- Verification: **archive replay Pass; not built**
 - Executable product name: **`ahed`**
-- Boundedness (tip accepted): **56 files** changed,
-  `+2564 / -534` vs base; product delta remains editor identity, completions,
-  themes, Vim profile, and related paths — not broad upstream rewrite
 - Prior archive (Issue 26070612000904): base `4ed0899b0b0c3f7dadba550272cb300b871d8fa9`,
   `patches/helix/patches/issue-26070612000904/`
+
+Issue `26071112000924` remains the tag-stored `0.1.17` archive. Every earlier
+or later archive and its build/overlay evidence remains historical; none of
+those build or boundedness claims is inherited by this archive-only replay.
 
 ### Merge-upstream
 

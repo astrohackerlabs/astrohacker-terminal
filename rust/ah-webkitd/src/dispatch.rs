@@ -21,7 +21,6 @@ struct TabEntry {
 static PDF_INPUT_TRACE_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
 static RENDER_PROOF_TRACE_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
 static LAST_LOADING_STATES: Mutex<Vec<TermSurfMessage>> = Mutex::new(Vec::new());
-static LAST_NAVIGATION_STATES: Mutex<Vec<TermSurfMessage>> = Mutex::new(Vec::new());
 
 struct DeferredHttpAuthCancel {
     wc: usize,
@@ -153,10 +152,6 @@ pub fn replay_state_to_client(stream: &mut UnixStream) {
         }
         let _ = crate::ipc::write_message(stream, &msg);
     }
-    let states = LAST_NAVIGATION_STATES.lock().unwrap().clone();
-    for msg in states {
-        let _ = crate::ipc::write_message(stream, &msg);
-    }
 }
 
 /// Global tab registry. Only accessed from the UI thread (via ts_post_task
@@ -174,17 +169,7 @@ fn find_by_handle(wc: TsWebContents) -> Option<&'static mut TabEntry> {
 }
 
 fn find_by_tab_id(tab_id: i64) -> Option<&'static mut TabEntry> {
-    tabs().iter_mut().find(|t| tab_id_matches(tab_id, t.tab_id))
-}
-
-fn tab_id_matches(requested: i64, owned: i64) -> bool {
-    requested > 0 && owned > 0 && requested == owned
-}
-
-fn navigation_action_contract(m: &proto::termsurf::NavigationAction) -> bool {
-    m.tab_id > 0
-        && m.pane_id.is_empty()
-        && matches!(m.action.as_str(), "back" | "forward" | "refresh")
+    tabs().iter_mut().find(|t| t.tab_id == tab_id)
 }
 
 fn pdf_title_from_url(url: &str) -> Option<String> {
@@ -238,81 +223,30 @@ fn hex_value(byte: u8) -> Option<u8> {
 
 // --- String-to-int mappings ---
 
-const POINTER_MODIFIER_MASK: u64 = 1 | 2 | 4 | 8 | 64 | 128 | 256;
-const SCROLL_MODIFIER_MASK: u64 = 1 | 2 | 4 | 8;
-const SCROLL_PHASE_MASK: u64 = 1 | 2 | 4 | 8 | 16 | 32;
-
-fn mouse_type(s: &str) -> Option<i32> {
+fn mouse_type(s: &str) -> i32 {
     match s {
-        "down" => Some(0),
-        "up" => Some(1),
-        _ => None,
+        "down" => 0,
+        "up" => 1,
+        _ => 0,
     }
 }
 
-fn mouse_button(s: &str) -> Option<i32> {
+fn mouse_button(s: &str) -> i32 {
     match s {
-        "left" => Some(0),
-        "right" => Some(1),
-        "middle" => Some(2),
-        _ => None,
+        "left" => 0,
+        "right" => 1,
+        "middle" => 2,
+        _ => 0,
     }
 }
 
-fn mouse_event_contract(m: &proto::termsurf::MouseEvent) -> bool {
-    m.tab_id > 0
-        && mouse_type(&m.r#type).is_some()
-        && mouse_button(&m.button).is_some()
-        && m.click_count > 0
-        && m.click_count <= i32::MAX as i64
-        && m.x.is_finite()
-        && m.y.is_finite()
-        && m.modifiers & !POINTER_MODIFIER_MASK == 0
-}
-
-fn mouse_move_contract(m: &proto::termsurf::MouseMove) -> bool {
-    m.tab_id > 0 && m.x.is_finite() && m.y.is_finite() && m.modifiers & !POINTER_MODIFIER_MASK == 0
-}
-
-fn scroll_event_contract(m: &proto::termsurf::ScrollEvent) -> bool {
-    m.tab_id > 0
-        && m.x.is_finite()
-        && m.y.is_finite()
-        && m.delta_x.is_finite()
-        && m.delta_y.is_finite()
-        && m.phase & !SCROLL_PHASE_MASK == 0
-        && m.momentum_phase & !SCROLL_PHASE_MASK == 0
-        && m.modifiers & !SCROLL_MODIFIER_MASK == 0
-        && (m.delta_x != 0.0 || m.delta_y != 0.0 || m.phase != 0 || m.momentum_phase != 0)
-}
-
-fn key_type(s: &str) -> Option<i32> {
+fn key_type(s: &str) -> i32 {
     match s {
-        "down" => Some(0),
-        "up" => Some(1),
-        "repeat" => Some(2),
-        _ => None,
+        "down" => 0,
+        "up" => 1,
+        "repeat" => 2,
+        _ => 0,
     }
-}
-
-fn key_event_contract(m: &proto::termsurf::KeyEvent) -> bool {
-    m.tab_id > 0
-        && key_type(&m.r#type).is_some()
-        && m.windows_key_code > 0
-        && m.windows_key_code <= i32::MAX as i64
-        && m.utf8.is_empty()
-        && m.modifiers & !0x0f == 0
-}
-
-fn text_input_type(s: &str) -> bool {
-    matches!(
-        s,
-        "commit" | "ime_start" | "ime_update" | "ime_commit" | "ime_cancel"
-    )
-}
-
-fn wire_range(start: i64, length: i64) -> bool {
-    (start == -1 && length == -1) || (start >= 0 && length >= 0)
 }
 
 // --- Message dispatch ---
@@ -459,36 +393,7 @@ pub fn handle_message(msg: &TermSurfMessage) {
                 unsafe { ffi::ts_load_url(t.handle, url.as_ptr()) };
             }
         }
-        Msg::NavigationAction(m) => {
-            if !navigation_action_contract(m) {
-                trace_pdf_input(format!(
-                    "navigation-action tab={} pane={} action={} result=invalid-contract",
-                    m.tab_id, m.pane_id, m.action
-                ));
-                return;
-            }
-            if let Some(t) = find_by_tab_id(m.tab_id) {
-                let action = CString::new(m.action.as_str()).unwrap();
-                let accepted = unsafe { ffi::ts_navigation_action(t.handle, action.as_ptr()) };
-                trace_pdf_input(format!(
-                    "navigation-action tab={} pane={} action={} accepted={}",
-                    m.tab_id, t.pane_id, m.action, accepted
-                ));
-            } else {
-                trace_pdf_input(format!(
-                    "navigation-action tab={} action={} result=no-tab",
-                    m.tab_id, m.action
-                ));
-            }
-        }
         Msg::MouseEvent(m) => {
-            if !mouse_event_contract(&m) {
-                trace_pdf_input(format!(
-                    "mouse-event tab={} result=invalid-contract type={} button={} coords=({:?}, {:?}) click_count={} modifiers={}",
-                    m.tab_id, m.r#type, m.button, m.x, m.y, m.click_count, m.modifiers
-                ));
-                return;
-            }
             if let Some(t) = find_by_tab_id(m.tab_id) {
                 trace_pdf_input(format!(
                     "mouse-event tab={} pane={} ffi=ts_forward_mouse_event type={} button={} coords=({:.2}, {:.2}) click_count={} modifiers={}",
@@ -501,22 +406,16 @@ pub fn handle_message(msg: &TermSurfMessage) {
                     m.click_count,
                     m.modifiers
                 ));
-                let forwarded = unsafe {
+                unsafe {
                     ffi::ts_forward_mouse_event(
                         t.handle,
-                        mouse_type(&m.r#type).expect("validated mouse type"),
-                        mouse_button(&m.button).expect("validated mouse button"),
-                        m.x,
-                        m.y,
+                        mouse_type(&m.r#type),
+                        mouse_button(&m.button),
+                        m.x as i32,
+                        m.y as i32,
                         m.click_count as i32,
                         m.modifiers as i32,
-                    )
-                };
-                if !forwarded {
-                    trace_pdf_input(format!(
-                        "mouse-event tab={} pane={} result=native-rejected",
-                        m.tab_id, t.pane_id
-                    ));
+                    );
                 }
             } else {
                 trace_pdf_input(format!(
@@ -532,25 +431,18 @@ pub fn handle_message(msg: &TermSurfMessage) {
             }
         }
         Msg::MouseMove(m) => {
-            if !mouse_move_contract(&m) {
-                trace_pdf_input(format!(
-                    "mouse-move tab={} result=invalid-contract coords=({:?}, {:?}) modifiers={}",
-                    m.tab_id, m.x, m.y, m.modifiers
-                ));
-                return;
-            }
             if let Some(t) = find_by_tab_id(m.tab_id) {
                 trace_pdf_input(format!(
                     "mouse-move tab={} pane={} ffi=ts_forward_mouse_move coords=({:.2}, {:.2}) modifiers={}",
                     m.tab_id, t.pane_id, m.x, m.y, m.modifiers
                 ));
-                let forwarded =
-                    unsafe { ffi::ts_forward_mouse_move(t.handle, m.x, m.y, m.modifiers as i32) };
-                if !forwarded {
-                    trace_pdf_input(format!(
-                        "mouse-move tab={} pane={} result=native-rejected",
-                        m.tab_id, t.pane_id
-                    ));
+                unsafe {
+                    ffi::ts_forward_mouse_move(
+                        t.handle,
+                        m.x as i32,
+                        m.y as i32,
+                        m.modifiers as i32,
+                    );
                 }
             } else {
                 trace_pdf_input(format!(
@@ -560,13 +452,6 @@ pub fn handle_message(msg: &TermSurfMessage) {
             }
         }
         Msg::ScrollEvent(m) => {
-            if !scroll_event_contract(&m) {
-                trace_pdf_input(format!(
-                    "scroll-event tab={} result=invalid-contract coords=({:?}, {:?}) delta=({:?}, {:?}) phase={} momentum_phase={} precise={} modifiers={}",
-                    m.tab_id, m.x, m.y, m.delta_x, m.delta_y, m.phase, m.momentum_phase, m.precise, m.modifiers
-                ));
-                return;
-            }
             if let Some(t) = find_by_tab_id(m.tab_id) {
                 trace_pdf_input(format!(
                     "scroll-event tab={} pane={} ffi=ts_forward_scroll_event coords=({:.2}, {:.2}) delta=({:.2}, {:.2}) phase={} momentum_phase={} precise={} modifiers={}",
@@ -581,24 +466,18 @@ pub fn handle_message(msg: &TermSurfMessage) {
                     m.precise,
                     m.modifiers
                 ));
-                let forwarded = unsafe {
+                unsafe {
                     ffi::ts_forward_scroll_event(
                         t.handle,
-                        m.x,
-                        m.y,
-                        m.delta_x,
-                        m.delta_y,
+                        m.x as i32,
+                        m.y as i32,
+                        m.delta_x as f32,
+                        m.delta_y as f32,
                         m.phase as i32,
                         m.momentum_phase as i32,
                         m.precise,
                         m.modifiers as i32,
-                    )
-                };
-                if !forwarded {
-                    trace_pdf_input(format!(
-                        "scroll-event tab={} pane={} result=native-rejected",
-                        m.tab_id, t.pane_id
-                    ));
+                    );
                 }
             } else {
                 trace_pdf_input(format!(
@@ -608,19 +487,7 @@ pub fn handle_message(msg: &TermSurfMessage) {
             }
         }
         Msg::KeyEvent(m) => {
-            if !key_event_contract(m) {
-                trace_pdf_input(format!(
-                    "key-event tab={} result=invalid-contract type={} windows_key_code={} utf8_len={} modifiers={}",
-                    m.tab_id,
-                    m.r#type,
-                    m.windows_key_code,
-                    m.utf8.len(),
-                    m.modifiers
-                ));
-                return;
-            }
             if let Some(t) = find_by_tab_id(m.tab_id) {
-                let key_type = key_type(&m.r#type).expect("validated key type");
                 trace_pdf_input(format!(
                     "key-event tab={} pane={} ffi=ts_forward_key_event type={} windows_key_code={} utf8_len={} modifiers={}",
                     m.tab_id,
@@ -631,20 +498,14 @@ pub fn handle_message(msg: &TermSurfMessage) {
                     m.modifiers
                 ));
                 let utf8 = CString::new(m.utf8.as_str()).unwrap();
-                let forwarded = unsafe {
+                unsafe {
                     ffi::ts_forward_key_event(
                         t.handle,
-                        key_type,
+                        key_type(&m.r#type),
                         m.windows_key_code as i32,
                         utf8.as_ptr(),
                         m.modifiers as i32,
-                    )
-                };
-                if !forwarded {
-                    trace_pdf_input(format!(
-                        "key-event tab={} pane={} result=native-rejected type={} windows_key_code={} modifiers={}",
-                        m.tab_id, t.pane_id, m.r#type, m.windows_key_code, m.modifiers
-                    ));
+                    );
                 }
             } else {
                 trace_pdf_input(format!(
@@ -654,58 +515,6 @@ pub fn handle_message(msg: &TermSurfMessage) {
                     m.windows_key_code,
                     m.utf8.len(),
                     m.modifiers
-                ));
-            }
-        }
-        Msg::TextInput(m) => {
-            if let Some(t) = find_by_tab_id(m.tab_id) {
-                if !text_input_type(&m.r#type)
-                    || !wire_range(m.selected_start, m.selected_length)
-                    || !wire_range(m.replacement_start, m.replacement_length)
-                {
-                    trace_pdf_input(format!(
-                        "text-input tab={} pane={} result=invalid-contract type={}",
-                        m.tab_id, t.pane_id, m.r#type
-                    ));
-                    return;
-                }
-                let input_type = match CString::new(m.r#type.as_str()) {
-                    Ok(value) => value,
-                    Err(_) => return,
-                };
-                let text = match CString::new(m.text.as_str()) {
-                    Ok(value) => value,
-                    Err(_) => return,
-                };
-                let ok = unsafe {
-                    ffi::ts_forward_text_input(
-                        t.handle,
-                        input_type.as_ptr(),
-                        text.as_ptr(),
-                        m.selected_start,
-                        m.selected_length,
-                        m.replacement_start,
-                        m.replacement_length,
-                    )
-                };
-                trace_pdf_input(format!(
-                    "text-input tab={} pane={} type={} utf8_len={} selected={}:{} replacement={}:{} ok={}",
-                    m.tab_id,
-                    t.pane_id,
-                    m.r#type,
-                    m.text.len(),
-                    m.selected_start,
-                    m.selected_length,
-                    m.replacement_start,
-                    m.replacement_length,
-                    ok
-                ));
-            } else {
-                trace_pdf_input(format!(
-                    "text-input tab={} result=no-tab type={} utf8_len={}",
-                    m.tab_id,
-                    m.r#type,
-                    m.text.len()
                 ));
             }
         }
@@ -863,90 +672,6 @@ pub fn handle_message(msg: &TermSurfMessage) {
     }
 }
 
-#[cfg(test)]
-mod text_input_contract_tests {
-    use super::{
-        key_event_contract, key_type, mouse_button, mouse_event_contract, mouse_move_contract,
-        mouse_type, navigation_action_contract, scroll_event_contract, tab_id_matches,
-        text_input_type, wire_range,
-    };
-    use crate::proto::termsurf;
-
-    include!("../../pointer_contract_tests.rs");
-    include!("../../key_contract_tests.rs");
-
-    #[test]
-    fn pointer_mappings_and_tab_ownership_are_exact() {
-        assert_eq!(mouse_type("down"), Some(0));
-        assert_eq!(mouse_type("up"), Some(1));
-        for invalid in ["", "press", "click", "Down"] {
-            assert_eq!(mouse_type(invalid), None);
-        }
-        assert_eq!(mouse_button("left"), Some(0));
-        assert_eq!(mouse_button("right"), Some(1));
-        assert_eq!(mouse_button("middle"), Some(2));
-        for invalid in ["", "primary", "unknown", "Left"] {
-            assert_eq!(mouse_button(invalid), None);
-        }
-        assert!(tab_id_matches(41, 41));
-        assert!(tab_id_matches(73, 73));
-        for (requested, owned) in [(0, 0), (0, 41), (-1, -1), (41, 73), (99, 41)] {
-            assert!(!tab_id_matches(requested, owned));
-        }
-    }
-
-    #[test]
-    fn key_types_are_exhaustive() {
-        assert_eq!(key_type("down"), Some(0));
-        assert_eq!(key_type("up"), Some(1));
-        assert_eq!(key_type("repeat"), Some(2));
-        assert_eq!(key_type("insert"), None);
-        assert_eq!(key_type("compositionupdate"), None);
-    }
-
-    #[test]
-    fn text_types_and_ranges_are_exhaustive() {
-        for kind in [
-            "commit",
-            "ime_start",
-            "ime_update",
-            "ime_commit",
-            "ime_cancel",
-        ] {
-            assert!(text_input_type(kind));
-        }
-        assert!(!text_input_type("compositionupdate"));
-        assert!(wire_range(-1, -1));
-        assert!(wire_range(0, 0));
-        assert!(wire_range(7, 3));
-        assert!(!wire_range(-1, 0));
-        assert!(!wire_range(0, -1));
-    }
-
-    #[test]
-    fn navigation_actions_require_engine_identity_and_closed_values() {
-        for action in ["back", "forward", "refresh"] {
-            assert!(navigation_action_contract(&termsurf::NavigationAction {
-                tab_id: 7,
-                pane_id: String::new(),
-                action: action.into(),
-            }));
-        }
-        for action in ["", "reload", "Back"] {
-            assert!(!navigation_action_contract(&termsurf::NavigationAction {
-                tab_id: 7,
-                pane_id: String::new(),
-                action: action.into(),
-            }));
-        }
-        assert!(!navigation_action_contract(&termsurf::NavigationAction {
-            tab_id: 0,
-            pane_id: String::new(),
-            action: "back".into(),
-        }));
-    }
-}
-
 // --- Callbacks (called on UI thread) ---
 
 pub unsafe extern "C" fn on_tab_ready(wc: TsWebContents, tab_id: i32, _user_data: *mut c_void) {
@@ -1050,31 +775,6 @@ pub unsafe extern "C" fn on_loading_state(
         })),
     };
     remember_loading_state(&msg);
-    crate::ipc::send(&msg);
-}
-
-pub unsafe extern "C" fn on_navigation_state(
-    wc: TsWebContents,
-    can_go_back: bool,
-    can_go_forward: bool,
-    can_refresh: bool,
-    _user_data: *mut c_void,
-) {
-    let Some(t) = find_by_handle(wc) else { return };
-    let msg = TermSurfMessage {
-        msg: Some(Msg::NavigationState(proto::termsurf::NavigationState {
-            tab_id: t.tab_id,
-            can_go_back,
-            can_go_forward,
-            can_refresh,
-        })),
-    };
-    let mut states = LAST_NAVIGATION_STATES.lock().unwrap();
-    states.retain(|existing| {
-        !matches!(existing.msg, Some(Msg::NavigationState(ref state)) if state.tab_id == t.tab_id)
-    });
-    states.push(msg.clone());
-    drop(states);
     crate::ipc::send(&msg);
 }
 

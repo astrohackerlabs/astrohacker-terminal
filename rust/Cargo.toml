@@ -4,7 +4,6 @@ members = [
     "ah-chromiumd",
     "ah-webkitd",
     "ah-ladybirdd",
-    "ah-geckod",
     "ahapp",
 ]
 exclude = [

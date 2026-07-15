@@ -1405,6 +1405,11 @@ mod tests {
     #[test]
     fn cli_help_includes_testbin_list() {
         let help = cli_help_text();
+        assert!(help.starts_with(
+            "Astrohacker Shell — the Astrohacker command shell, powered by Nushell.\n"
+        ));
+        assert!(help.contains("Usage:\n  ahsh [options] [script file] [script args]"));
+        assert!(help.contains("ahsh --version"));
         // the description for the testbin flag should be present
         assert!(help.contains("--testbin"));
 

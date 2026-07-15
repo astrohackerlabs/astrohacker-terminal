@@ -99,30 +99,6 @@ log() {
   printf '%s\n' "$*" | tee -a "$HARNESS_LOG"
 }
 
-# Search only records written after a captured line boundary without a
-# `tail | grep` pipeline. With `set -o pipefail`, grep may exit after its first
-# match and turn tail's SIGPIPE into status 141, producing false negatives (or
-# false-pass absence checks) once geometry logs are large.
-has_ere_after() {
-  local file="$1"
-  local start_line="$2"
-  local pattern="$3"
-  awk -v start="$start_line" -v pattern="$pattern" '
-    NR > start && $0 ~ pattern { found = 1 }
-    END { exit(found ? 0 : 1) }
-  ' "$file"
-}
-
-has_fixed_after() {
-  local file="$1"
-  local start_line="$2"
-  local needle="$3"
-  awk -v start="$start_line" -v needle="$needle" '
-    NR > start && index($0, needle) { found = 1 }
-    END { exit(found ? 0 : 1) }
-  ' "$file"
-}
-
 fail() {
   log "FAIL: $*"
   exit 1
@@ -219,7 +195,7 @@ require_log_after() {
   local start_line="$1"
   local pattern="$2"
   local label="$3"
-  if has_ere_after "$APP_LOG" "$start_line" "$pattern"; then
+  if tail -n +"$((start_line + 1))" "$APP_LOG" | grep -E "$pattern" >/dev/null 2>&1; then
     log "PASS: $label"
   else
     fail "missing $label"
@@ -230,7 +206,7 @@ require_no_log_after() {
   local start_line="$1"
   local pattern="$2"
   local label="$3"
-  if has_ere_after "$APP_LOG" "$start_line" "$pattern"; then
+  if tail -n +"$((start_line + 1))" "$APP_LOG" | grep -E "$pattern" >/dev/null 2>&1; then
     fail "$label"
   else
     log "PASS: $label"
@@ -285,7 +261,7 @@ wait_for_log_after() {
   local label="$3"
   local attempts="${4:-30}"
   for _ in $(seq 1 "$attempts"); do
-    if has_ere_after "$APP_LOG" "$start_line" "$pattern"; then
+    if tail -n +"$((start_line + 1))" "$APP_LOG" | grep -E "$pattern" >/dev/null 2>&1; then
       log "PASS: $label"
       return 0
     fi
@@ -299,7 +275,7 @@ try_wait_log_after() {
   local pattern="$2"
   local attempts="${3:-10}"
   for _ in $(seq 1 "$attempts"); do
-    if has_ere_after "$APP_LOG" "$start_line" "$pattern"; then
+    if tail -n +"$((start_line + 1))" "$APP_LOG" | grep -E "$pattern" >/dev/null 2>&1; then
       return 0
     fi
     delay 1
@@ -316,9 +292,7 @@ wait_for_log_after_ordered() {
   local match=""
   local relative_line=""
   for _ in $(seq 1 "$attempts"); do
-    match="$(awk -v start="$start_line" -v pattern="$pattern" '
-      NR > start && $0 ~ pattern { print (NR - start) ":" $0; exit }
-    ' "$APP_LOG")"
+    match="$(tail -n +"$((start_line + 1))" "$APP_LOG" | grep -n -E "$pattern" | head -n 1 || true)"
     if [ -n "$match" ]; then
       relative_line="${match%%:*}"
       LOG_MATCH_LINE=$((start_line + relative_line))
@@ -385,7 +359,7 @@ wait_for_state_trace_after() {
   local label="$3"
   local attempts="${4:-30}"
   for _ in $(seq 1 "$attempts"); do
-    if has_ere_after "$WEBTUI_STATE_TRACE" "$start_line" "$pattern"; then
+    if tail -n +"$((start_line + 1))" "$WEBTUI_STATE_TRACE" | grep -E "$pattern" >/dev/null 2>&1; then
       log "PASS: observed $label"
       return 0
     fi
@@ -398,7 +372,7 @@ require_no_state_trace_after() {
   local start_line="$1"
   local pattern="$2"
   local label="$3"
-  if has_ere_after "$WEBTUI_STATE_TRACE" "$start_line" "$pattern"; then
+  if tail -n +"$((start_line + 1))" "$WEBTUI_STATE_TRACE" | grep -E "$pattern" >/dev/null 2>&1; then
     fail "$label"
   else
     log "PASS: $label"
@@ -507,7 +481,7 @@ require_trace_after() {
   local start_line="$1"
   local needle="$2"
   local label="$3"
-  if has_fixed_after "$CHROMIUM_TRACE" "$start_line" "$needle"; then
+  if tail -n +"$((start_line + 1))" "$CHROMIUM_TRACE" | grep -F "$needle" >/dev/null 2>&1; then
     log "PASS: $label"
   else
     fail "missing $label"
@@ -537,7 +511,7 @@ require_no_trace_after() {
   local start_line="$1"
   local needle="$2"
   local label="$3"
-  if has_fixed_after "$CHROMIUM_TRACE" "$start_line" "$needle"; then
+  if tail -n +"$((start_line + 1))" "$CHROMIUM_TRACE" | grep -F "$needle" >/dev/null 2>&1; then
     fail "$label"
   fi
   log "PASS: $label"
@@ -550,10 +524,9 @@ wait_for_trace_line_after() {
   local attempts="${4:-30}"
   local line
   for _ in $(seq 1 "$attempts"); do
-    line="$(awk -v start="$start_line" -v pattern="$pattern" '
-      NR > start && $0 ~ pattern { line = $0 }
-      END { if (line != "") print line }
-    ' "$CHROMIUM_TRACE")"
+    line="$(tail -n +"$((start_line + 1))" "$CHROMIUM_TRACE" |
+      grep -E "$pattern" |
+      tail -1 || true)"
     if [ -n "$line" ]; then
       printf '%s\n' "$line"
       return 0
@@ -566,10 +539,9 @@ wait_for_trace_line_after() {
 optional_trace_line_after() {
   local start_line="$1"
   local pattern="$2"
-  awk -v start="$start_line" -v pattern="$pattern" '
-    NR > start && $0 ~ pattern { line = $0 }
-    END { if (line != "") print line }
-  ' "$CHROMIUM_TRACE"
+  tail -n +"$((start_line + 1))" "$CHROMIUM_TRACE" |
+    grep -E "$pattern" |
+    tail -1 || true
 }
 
 extract_app_tab_id() {
@@ -1471,16 +1443,6 @@ wait_for_line_after() {
   fail "timed out waiting for $label"
 }
 
-latest_appkit_event_for_pane() {
-  local event="$1"
-  local pane_id="$2"
-  awk -v event="$event" -v pane_id="$pane_id" '
-    index($0, "TermSurf geometry layer=appkit event=" event " ") &&
-      index($0, "pane_id:" pane_id " ") { line = $0 }
-    END { if (line != "") print line }
-  ' "$APP_LOG"
-}
-
 wait_for_different_zig_event_after() {
   local start_line="$1"
   local event="$2"
@@ -1825,46 +1787,12 @@ click_browser_frame_center() {
   click_global_point "$click_x" "$click_y" "$label"
 }
 
-pane_is_browsing() {
-  local pane_id="$1"
-  awk -v pane_id="$pane_id" '
-    index($0, "ModeChanged: pane_id=" pane_id " ") {
-      browsing = index($0, "browsing=true") != 0
-      seen = 1
-    }
-    END { exit(seen && browsing ? 0 : 1) }
-  ' "$APP_LOG"
-}
-
-try_wait_pane_browsing() {
-  local pane_id="$1"
-  local browser_tab_id="$2"
-  local attempts="${3:-20}"
-  for _ in $(seq 1 "$attempts"); do
-    if pane_is_browsing "$pane_id" &&
-      grep -E "FocusChanged: pane_id=${pane_id} tab_id=${browser_tab_id} focused=true" "$APP_LOG" >/dev/null 2>&1; then
-      return 0
-    fi
-    delay 0.25
-  done
-  return 1
-}
-
 enter_browser_browse() {
   local label="$1"
   local pane_id="$2"
   local browser_tab_id="$3"
-  local allow_deferred="${4:-}"
   local mode_start_line
   local mode_trace_start_line
-  # Overlay clicks enter Browse asynchronously. Give that normal product path
-  # a chance to settle before sending Enter, which would otherwise be routed
-  # into an already-focused page rather than changing the TUI mode.
-  if try_wait_pane_browsing "$pane_id" "$browser_tab_id"; then
-    log "PASS: $label webtui was already in browse mode"
-    require_log "FocusChanged: pane_id=${pane_id} tab_id=${browser_tab_id} focused=true" "$label focus=true was routed to its engine tab"
-    return 0
-  fi
   mode_start_line="$(log_line_count)"
   mode_trace_start_line="$(trace_line_count)"
   log "${label}_mode_key=enter=Mode::Browse"
@@ -1872,15 +1800,9 @@ enter_browser_browse() {
   if try_wait_log_after "$mode_start_line" "ModeChanged: pane_id=${pane_id} browsing=true" 10; then
     log "PASS: $label webtui entered browse mode"
     require_trace_after "$mode_trace_start_line" "focus-changed tab=${browser_tab_id} pane=${pane_id} ffi=ts_set_focus focused=true" "Chromium observed $label focus=true after browse mode"
-  elif pane_is_browsing "$pane_id" &&
-    grep -E "FocusChanged: pane_id=${pane_id} tab_id=${browser_tab_id} focused=true" "$APP_LOG" >/dev/null 2>&1; then
-    log "PASS: $label webtui entered browse mode before the captured log boundary"
-  elif grep -E "KeyEvent: pane_id=${pane_id} tab_id=${browser_tab_id} type=down .*windows_key_code=13" "$APP_LOG" >/dev/null 2>&1; then
-    log "PASS: $label Enter was forwarded by the already-browsing pane"
-  elif grep -E "TermSurf geometry layer=appkit event=key_down_forwarded .*pane_id:${pane_id} .*note=key_code=36" "$APP_LOG" >/dev/null 2>&1; then
-    log "PASS: $label AppKit synchronously forwarded Enter from the browsing pane"
-  elif [ "$allow_deferred" = "defer-input-oracle" ]; then
-    log "INFO: $label mode diagnostic deferred to the following Chromium key-routing oracle"
+  elif tail -n +"$((mode_start_line + 1))" "$APP_LOG" | grep -E "KeyEvent: pane_id=${pane_id} tab_id=${browser_tab_id} type=down .*windows_key_code=13" >/dev/null 2>&1 &&
+    has_trace "focus-changed tab=${browser_tab_id} pane=${pane_id} ffi=ts_set_focus focused=true"; then
+    log "PASS: $label webtui was already in browse mode"
   else
     fail "timed out waiting for $label webtui entered browse mode"
   fi
@@ -6171,7 +6093,12 @@ if [ "$SCENARIO" = "open-browser-in-new-window" ]; then
   require_text "$B_HIT_LINE" "overlay_frame=${B_FRAME}" "browser B hit-test uses browser B frame"
   require_text "$B_HIT_LINE" "web_point={" "browser B hit-test includes webview-relative point"
 
-  enter_browser_browse "browser_b" "$B_PANE_ID" "$B_BROWSER_TAB_ID" defer-input-oracle
+  B_MODE_START_LINE="$(log_line_count)"
+  B_MODE_TRACE_START_LINE="$(trace_line_count)"
+  log "browser_b_mode_key=enter=Mode::Browse"
+  swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
+  wait_for_log_after "$B_MODE_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=true" "browser B webtui entered browse mode"
+  require_trace_after "$B_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser B focus=true after browse mode"
 
   B_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP15_BROWSER_B_WINDOW\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6179,7 +6106,12 @@ if [ "$SCENARIO" = "open-browser-in-new-window" ]; then
   require_trace_after "$B_KEY_START_LINE" "key-event tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID}" "browser B keyboard marker reached browser B"
   require_no_trace_after "$B_KEY_START_LINE" "key-event tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID}" "browser B keyboard marker did not reach browser A"
 
-  leave_browser_browse "browser_b" "$B_PANE_ID" "$B_BROWSER_TAB_ID"
+  B_CONTROL_START_LINE="$(log_line_count)"
+  B_CONTROL_TRACE_START_LINE="$(trace_line_count)"
+  log "browser_b_control_key=escape=Mode::Control"
+  swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
+  wait_for_log_after "$B_CONTROL_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=false" "browser B webtui returned to control mode"
+  require_trace_after "$B_CONTROL_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed browser B focus=false after control mode"
 
   A_RESTORE_START_LINE="$(log_line_count)"
   A_RESTORE_TRACE_START_LINE="$(trace_line_count)"
@@ -6823,7 +6755,12 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   require_text "$B_HIT_LINE" "overlay_frame=${B_FRAME}" "browser B hit-test uses browser B frame"
   require_text "$B_HIT_LINE" "web_point={" "browser B hit-test includes webview-relative point"
 
-  enter_browser_browse "browser_b" "$B_PANE_ID" "$B_BROWSER_TAB_ID" defer-input-oracle
+  B_MODE_START_LINE="$(log_line_count)"
+  B_MODE_TRACE_START_LINE="$(trace_line_count)"
+  log "browser_b_mode_key=enter=Mode::Browse"
+  swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
+  wait_for_log_after "$B_MODE_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=true" "browser B webtui entered browse mode"
+  require_trace_after "$B_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser B focus=true after browse mode"
 
   B_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP13_BROWSER_B\n' >"$BROWSER_FOCUS_COMMAND"
@@ -6831,7 +6768,12 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   require_trace_after "$B_KEY_START_LINE" "key-event tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID}" "browser B keyboard marker reached browser B"
   require_no_trace_after "$B_KEY_START_LINE" "key-event tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID}" "browser B keyboard marker did not reach browser A"
 
-  leave_browser_browse "browser_b" "$B_PANE_ID" "$B_BROWSER_TAB_ID"
+  B_CONTROL_START_LINE="$(log_line_count)"
+  B_CONTROL_TRACE_START_LINE="$(trace_line_count)"
+  log "browser_b_control_key=escape=Mode::Control"
+  swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
+  wait_for_log_after "$B_CONTROL_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=false" "browser B webtui returned to control mode"
+  require_trace_after "$B_CONTROL_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed browser B focus=false after control mode"
 
   if [ "$SCENARIO" = "close-browser-tab" ] || [ "$SCENARIO" = "same-profile-server-lifecycle" ]; then
     CLOSE_TAB_START_LINE="$(log_line_count)"
@@ -7084,13 +7026,8 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 35 control >>"$HARNESS_LOG" 2>&1
   delay 1
   wait_for_log_after "$SWITCH_A_START_LINE" "Pane focus changed: pane_id=${A_PANE_ID} focused=true" "browser A pane focused again"
-  A_RESTORE_PRESENT_LINE="$(wait_for_line_after "$SWITCH_A_START_LINE" "TermSurf geometry layer=appkit event=presented .*selected_tab_id:${A_SELECTED_TAB_ID} .*pane_id:${A_PANE_ID} .*visible=true" "browser A AppKit presentation after tab restore")"
-  A_CONTEXT_ID="$(extract_context_id "$A_RESTORE_PRESENT_LINE")"
-  [ -n "$A_CONTEXT_ID" ] || fail "could not extract browser A restored context id"
-  require_text "$A_RESTORE_PRESENT_LINE" "overlay_frame=${A_TABBED_FRAME}" "browser A kept tab-bar-adjusted AppKit frame after tab restore"
-  A_RESTORE_PIXELS_LINE="$(wait_for_line_after "$SWITCH_A_START_LINE" "TermSurf geometry layer=appkit event=presented_pixels .*pane_id:${A_PANE_ID} .*context_id=${A_CONTEXT_ID}" "browser A AppKit pixels after tab restore")"
-  require_text "$A_RESTORE_PIXELS_LINE" "appkit_pixel=${A_TABBED_PIXEL}" "browser A kept tab-bar-adjusted AppKit pixels after tab restore"
-  log "browser_a_restored_context_id=$A_CONTEXT_ID"
+  require_no_different_appkit_frame_after "$SWITCH_A_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_TABBED_FRAME" "browser A kept tab-bar-adjusted AppKit frame after tab restore"
+  require_no_different_appkit_pixels_after "$SWITCH_A_START_LINE" "$A_PANE_ID" "$A_CONTEXT_ID" "$A_TABBED_PIXEL" "browser A kept tab-bar-adjusted AppKit pixels after tab restore"
 
   TAB1_WIN_LINE="$(window_bounds_for "$A_SELECTED_TAB_ID")" || fail "failed to resolve tab 1 window bounds for window id=$A_SELECTED_TAB_ID"
   IFS=$'\t' read -r _TAB1_WID TAB1_WX TAB1_WY TAB1_WW TAB1_WH <<<"$TAB1_WIN_LINE"
@@ -7103,7 +7040,12 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   require_text "$A_RESTORE_HIT_LINE" "overlay_frame=${A_TABBED_FRAME}" "browser A restored hit-test uses browser A frame"
   require_text "$A_RESTORE_HIT_LINE" "web_point={" "browser A restored hit-test includes webview-relative point"
 
-  enter_browser_browse "browser_a" "$A_PANE_ID" "$A_BROWSER_TAB_ID" defer-input-oracle
+  A_MODE_START_LINE="$(log_line_count)"
+  A_MODE_TRACE_START_LINE="$(trace_line_count)"
+  log "browser_a_mode_key=enter=Mode::Browse"
+  swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
+  wait_for_log_after "$A_MODE_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=true" "browser A webtui entered browse mode"
+  require_trace_after "$A_MODE_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser A focus=true after browse mode"
 
   A_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP13_BROWSER_A\n' >"$BROWSER_FOCUS_COMMAND"
@@ -7113,7 +7055,12 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   screencapture -x -o -l"$A_SELECTED_TAB_ID" "$SCREENSHOT_TAB_BROWSER_A_RESTORED"
   log "browser_a_restored_screenshot_exit=$?"
 
-  leave_browser_browse "browser_a" "$A_PANE_ID" "$A_BROWSER_TAB_ID"
+  A_CONTROL_START_LINE="$(log_line_count)"
+  A_CONTROL_TRACE_START_LINE="$(trace_line_count)"
+  log "browser_a_control_key=escape=Mode::Control"
+  swift "$ROOT/scripts/ghostty-app/inject.swift" key 53 >>"$HARNESS_LOG" 2>&1
+  wait_for_log_after "$A_CONTROL_START_LINE" "ModeChanged: pane_id=${A_PANE_ID} browsing=false" "browser A webtui returned to control mode"
+  require_trace_after "$A_CONTROL_TRACE_START_LINE" "focus-changed tab=${A_BROWSER_TAB_ID} pane=${A_PANE_ID} ffi=ts_set_focus focused=false" "Chromium observed browser A focus=false after control mode"
 
   SWITCH_B_START_LINE="$(log_line_count)"
   SWITCH_B_TRACE_START_LINE="$(trace_line_count)"
@@ -7121,28 +7068,8 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   swift "$ROOT/scripts/ghostty-app/inject.swift" key 45 control >>"$HARNESS_LOG" 2>&1
   delay 1
   wait_for_log_after "$SWITCH_B_START_LINE" "Pane focus changed: pane_id=${B_PANE_ID} focused=true" "browser B pane focused again"
-  # A native-tab switch may reveal the already-presented NSView without a new
-  # engine presentation. Capture B's latest concrete AppKit identity; the hit
-  # test and engine-key oracle below prove that this is the revealed pane.
-  B_RESTORE_PRESENT_LINE="$(awk -v pane_id="$B_PANE_ID" '
-    index($0, "TermSurf geometry layer=appkit event=presented ") &&
-      index($0, "pane_id:" pane_id " ") { line = $0 }
-    END { if (line != "") print line }
-  ' "$APP_LOG")"
-  [ -n "$B_RESTORE_PRESENT_LINE" ] || fail "missing browser B AppKit presentation identity after tab restore"
-  B_CONTEXT_ID="$(extract_context_id "$B_RESTORE_PRESENT_LINE")"
-  [ -n "$B_CONTEXT_ID" ] || fail "could not extract browser B restored context id"
-  require_text "$B_RESTORE_PRESENT_LINE" "selected_tab_id:${TAB2_SELECTED_TAB_ID}" "browser B AppKit identity belongs to tab 2"
-  require_text "$B_RESTORE_PRESENT_LINE" "overlay_frame=${B_FRAME}" "browser B kept AppKit frame after tab restore"
-  B_RESTORE_PIXELS_LINE="$(awk -v pane_id="$B_PANE_ID" -v context_id="$B_CONTEXT_ID" '
-    index($0, "TermSurf geometry layer=appkit event=presented_pixels ") &&
-      index($0, "pane_id:" pane_id " ") &&
-      index($0, "context_id=" context_id " ") { line = $0 }
-    END { if (line != "") print line }
-  ' "$APP_LOG")"
-  [ -n "$B_RESTORE_PIXELS_LINE" ] || fail "missing browser B AppKit pixel identity after tab restore"
-  require_text "$B_RESTORE_PIXELS_LINE" "appkit_pixel=${B_PIXEL}" "browser B kept AppKit pixels after tab restore"
-  log "browser_b_restored_context_id=$B_CONTEXT_ID"
+  require_no_different_appkit_frame_after "$SWITCH_B_START_LINE" "$B_PANE_ID" "$B_CONTEXT_ID" "$B_FRAME" "browser B kept AppKit frame after tab restore"
+  require_no_different_appkit_pixels_after "$SWITCH_B_START_LINE" "$B_PANE_ID" "$B_CONTEXT_ID" "$B_PIXEL" "browser B kept AppKit pixels after tab restore"
 
   TAB2_WIN_LINE="$(window_bounds_for "$TAB2_SELECTED_TAB_ID")" || fail "failed to resolve restored tab 2 window bounds for window id=$TAB2_SELECTED_TAB_ID"
   IFS=$'\t' read -r _TAB2_WID TAB2_WX TAB2_WY TAB2_WW TAB2_WH <<<"$TAB2_WIN_LINE"
@@ -7155,7 +7082,12 @@ if [ "$SCENARIO" = "open-browser-in-new-tab" ] || [ "$SCENARIO" = "close-browser
   require_text "$B_RESTORE_HIT_LINE" "overlay_frame=${B_FRAME}" "browser B restored hit-test uses browser B frame"
   require_text "$B_RESTORE_HIT_LINE" "web_point={" "browser B restored hit-test includes webview-relative point"
 
-  enter_browser_browse "browser_b_restored" "$B_PANE_ID" "$B_BROWSER_TAB_ID" defer-input-oracle
+  B_RESTORE_MODE_START_LINE="$(log_line_count)"
+  B_RESTORE_MODE_TRACE_START_LINE="$(trace_line_count)"
+  log "browser_b_restored_mode_key=enter=Mode::Browse"
+  swift "$ROOT/scripts/ghostty-app/inject.swift" key 36 >>"$HARNESS_LOG" 2>&1
+  wait_for_log_after "$B_RESTORE_MODE_START_LINE" "ModeChanged: pane_id=${B_PANE_ID} browsing=true" "browser B restored webtui entered browse mode"
+  require_trace_after "$B_RESTORE_MODE_TRACE_START_LINE" "focus-changed tab=${B_BROWSER_TAB_ID} pane=${B_PANE_ID} ffi=ts_set_focus focused=true" "Chromium observed browser B restored focus=true after browse mode"
 
   B_RESTORE_KEY_START_LINE="$(trace_line_count)"
   printf 'ISSUE809_EXP13_BROWSER_B_RESTORED\n' >"$BROWSER_FOCUS_COMMAND"
@@ -8733,18 +8665,6 @@ if [ "$SCENARIO" = "two-browser-split-routing" ]; then
   B_PIXEL_HEIGHT="${B_PIXEL#*x}"
   require_trace_after "$BROWSER_B_TRACE_START_LINE" "resize tab_id=${B_BROWSER_TAB_ID} pane_id=${B_PANE_ID} pixel_width=${B_PIXEL_WIDTH} pixel_height=${B_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium resized browser B to split AppKit pixel size"
 
-  A_SPLIT_CURRENT_PRESENT_LINE="$(latest_appkit_event_for_pane presented "$A_PANE_ID")"
-  [ -n "$A_SPLIT_CURRENT_PRESENT_LINE" ] || fail "missing current browser A split AppKit identity"
-  A_CONTEXT_ID="$(extract_context_id "$A_SPLIT_CURRENT_PRESENT_LINE")"
-  require_text "$A_SPLIT_CURRENT_PRESENT_LINE" "overlay_frame=${A_SPLIT_FRAME}" "browser A current identity kept split frame"
-  log "browser_a_split_current_context_id=$A_CONTEXT_ID"
-
-  B_CURRENT_PRESENT_LINE="$(latest_appkit_event_for_pane presented "$B_PANE_ID")"
-  [ -n "$B_CURRENT_PRESENT_LINE" ] || fail "missing current browser B split AppKit identity"
-  B_CONTEXT_ID="$(extract_context_id "$B_CURRENT_PRESENT_LINE")"
-  require_text "$B_CURRENT_PRESENT_LINE" "overlay_frame=${B_FRAME}" "browser B current identity kept split frame"
-  log "browser_b_split_current_context_id=$B_CONTEXT_ID"
-
   A_SPLIT_ROOT_WIDTH="$(pair_width "$A_SPLIT_ROOT_SIZE")"
   A_GLOBAL_FRAME_X="$(awk -v root="$A_SPLIT_ROOT_X" -v frame="$A_SPLIT_FRAME_X" 'BEGIN { print root + frame }')"
   B_GLOBAL_FRAME_X="$(awk -v surface_x="$A_SPLIT_ROOT_WIDTH" -v frame="$B_FRAME_X" 'BEGIN { print surface_x + frame }')"
@@ -8825,12 +8745,6 @@ if [ "$SCENARIO" = "two-browser-split-routing" ]; then
   log "browser_a_after_close_overlay_frame=$A_AFTER_CLOSE_FRAME"
   log "browser_a_after_close_appkit_pixel=$A_AFTER_CLOSE_PIXEL"
   require_trace_after "$B_CLOSE_TRACE_START_LINE" "resize tab_id=${A_BROWSER_TAB_ID} pane_id=${A_PANE_ID} pixel_width=${A_AFTER_CLOSE_PIXEL_WIDTH} pixel_height=${A_AFTER_CLOSE_PIXEL_HEIGHT} screen_x=0 screen_y=0 screen_width=0 screen_height=0 screen_scale=0 ffi=ts_set_view_size" "Chromium resized browser A after browser B close"
-
-  A_AFTER_CLOSE_CURRENT_PRESENT_LINE="$(latest_appkit_event_for_pane presented "$A_PANE_ID")"
-  [ -n "$A_AFTER_CLOSE_CURRENT_PRESENT_LINE" ] || fail "missing current browser A AppKit identity after browser B close"
-  A_CONTEXT_ID="$(extract_context_id "$A_AFTER_CLOSE_CURRENT_PRESENT_LINE")"
-  require_text "$A_AFTER_CLOSE_CURRENT_PRESENT_LINE" "overlay_frame=${A_AFTER_CLOSE_FRAME}" "browser A current identity kept expanded frame after browser B close"
-  log "browser_a_after_close_current_context_id=$A_CONTEXT_ID"
 
   screencapture -x -o -l"$A_WINDOW_ID" "$SCREENSHOT_CLOSE"
   log "two_browser_split_close_screenshot_exit=$?"

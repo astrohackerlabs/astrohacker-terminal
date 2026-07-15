@@ -17,7 +17,8 @@ fn main() {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     let manifest_path = std::path::Path::new(&manifest_dir);
     let nu_workspace_path = manifest_path.join("../../forks/nushell/Cargo.toml");
-    let nu_protocol_path = manifest_path.join("../../forks/nushell/crates/nu-protocol/Cargo.toml");
+    let nu_protocol_path =
+        manifest_path.join("../../forks/nushell/crates/nu-protocol/Cargo.toml");
     let nu_version = std::fs::read_to_string(&nu_workspace_path)
         .ok()
         .and_then(|contents| find_toml_section_version(&contents, "workspace.package"))

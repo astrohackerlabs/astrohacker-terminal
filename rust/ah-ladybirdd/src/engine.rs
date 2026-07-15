@@ -6,8 +6,7 @@ use std::time::{Duration, Instant};
 
 use crate::ffi::{
     AbiRuntime, AbiView, ConsoleMessage as AbiConsoleMessage,
-    JavaScriptDialogRequest as AbiJavaScriptDialogRequest,
-    NavigationStateRecord as AbiNavigationState, RendererCrash as AbiRendererCrash,
+    JavaScriptDialogRequest as AbiJavaScriptDialogRequest, RendererCrash as AbiRendererCrash,
 };
 use crate::proto::{termsurf, Msg, TermSurfMessage};
 
@@ -83,11 +82,6 @@ enum Command {
     Navigate {
         tab_id: i64,
         url: String,
-        reply: mpsc::Sender<Result<TabSnapshot, String>>,
-    },
-    NavigationAction {
-        tab_id: i64,
-        action: String,
         reply: mpsc::Sender<Result<TabSnapshot, String>>,
     },
     Resize {
@@ -262,18 +256,6 @@ impl EngineService {
             .send(Command::Navigate { tab_id, url, reply })
             .map_err(|error| format!("engine navigate send failed: {error}"))?;
         recv_reply(rx, "navigate")
-    }
-
-    pub fn navigation_action(&self, tab_id: i64, action: String) -> Result<TabSnapshot, String> {
-        let (reply, rx) = mpsc::channel();
-        self.tx
-            .send(Command::NavigationAction {
-                tab_id,
-                action,
-                reply,
-            })
-            .map_err(|error| format!("engine navigation-action send failed: {error}"))?;
-        recv_reply(rx, "navigation-action")
     }
 
     pub fn resize_tab(&self, tab_id: i64, width: i32, height: i32) -> Result<TabSnapshot, String> {
@@ -1266,17 +1248,6 @@ fn process_command(
             let result = navigate_tab(tabs, tab_id, url);
             let _ = reply.send(result);
         }
-        Command::NavigationAction {
-            tab_id,
-            action,
-            reply,
-        } => {
-            let result = navigation_action(tabs, tab_id, action);
-            if result.is_ok() {
-                *pump_until = Some(Instant::now() + Duration::from_millis(3000));
-            }
-            let _ = reply.send(result);
-        }
         Command::Resize {
             tab_id,
             width,
@@ -1479,14 +1450,6 @@ fn create_tab(
         snapshot.id, snapshot.pane_id, snapshot.url, snapshot.dark, snapshot.gui_active
     );
     publish_tab_ready(&snapshot);
-    publish_navigation_state(
-        snapshot.id,
-        &AbiNavigationState {
-            can_go_back: false,
-            can_go_forward: false,
-            can_refresh: false,
-        },
-    );
     publish_loading_state(snapshot.id, "loading", 0);
     publish_url_changed(snapshot.id, &snapshot.url);
     let _ = events.send(Event::ViewCreated { tab_id });
@@ -1528,33 +1491,6 @@ fn navigate_tab(
     publish_loading_state(snapshot.id, "loading", 0);
     publish_url_changed(snapshot.id, &snapshot.url);
     Ok(snapshot)
-}
-
-fn navigation_action(
-    tabs: &mut HashMap<i64, OwnedTab>,
-    tab_id: i64,
-    action: String,
-) -> Result<TabSnapshot, String> {
-    let tab = tabs
-        .get_mut(&tab_id)
-        .ok_or_else(|| format!("missing tab_id={tab_id}"))?;
-    tab.view.navigation_action(&action)?;
-    if action == "refresh" {
-        tab.in_flight = true;
-        tab.finished = false;
-        tab.crashed = false;
-        tab.render_surface_sent = false;
-        tab.render_surface_attempts = 0;
-        publish_loading_state(tab.id, "loading", 0);
-    }
-    eprintln!(
-        "[Ladybird] engine NavigationAction applied tab_id={} action={}",
-        tab.id, action
-    );
-    if let Ok(state) = tab.view.navigation_state() {
-        publish_navigation_state(tab.id, &state);
-    }
-    Ok(snapshot_from_tab(tab))
 }
 
 fn resize_tab(
@@ -1957,20 +1893,15 @@ fn publish_renderer_crashes(tabs: &mut HashMap<i64, OwnedTab>) {
             tab.finished = false;
             tab.crashed = true;
             publish_renderer_crashed(tab.id, &crash);
-            publish_navigation_state(
-                tab.id,
-                &AbiNavigationState {
-                    can_go_back: false,
-                    can_go_forward: false,
-                    can_refresh: crash.can_reload,
-                },
-            );
         }
     }
 }
 
 fn publish_finished_loads(tabs: &mut HashMap<i64, OwnedTab>, events: &mpsc::Sender<Event>) {
     for (tab_id, tab) in tabs.iter_mut() {
+        if !tab.in_flight {
+            continue;
+        }
         if tab.view.did_crash() {
             tab.in_flight = false;
             tab.crashed = true;
@@ -1979,28 +1910,16 @@ fn publish_finished_loads(tabs: &mut HashMap<i64, OwnedTab>, events: &mpsc::Send
             });
             continue;
         }
-        let finished_url = tab.view.last_url();
-        let browser_initiated_finish = !tab.in_flight
-            && tab.view.did_finish_load()
-            && !finished_url.is_empty()
-            && finished_url != tab.last_url;
-        if tab.in_flight || browser_initiated_finish {
-            if !tab.view.did_finish_load() {
-                continue;
-            }
+        if tab.view.did_finish_load() {
             tab.in_flight = false;
             tab.finished = true;
-            tab.last_url = finished_url;
+            tab.last_url = tab.view.last_url();
             eprintln!(
                 "[Ladybird] engine load finished tab_id={} url={}",
                 tab.id, tab.last_url
             );
             let _ = export_and_publish_render_surface(tab);
             publish_loading_state(tab.id, "done", 100);
-            publish_url_changed(tab.id, &tab.last_url);
-            if let Ok(state) = tab.view.navigation_state() {
-                publish_navigation_state(tab.id, &state);
-            }
             let _ = events.send(Event::LoadFinished {
                 tab_id: *tab_id,
                 url: tab.last_url.clone(),
@@ -2043,26 +1962,6 @@ fn publish_renderer_crashed(tab_id: i64, crash: &AbiRendererCrash) {
     eprintln!(
         "[Ladybird] engine RendererCrashed sent_to={sent} tab_id={tab_id} status={} code={} url={} can_reload={} mode=crash-callback",
         crash.termination_status, crash.termination_status_code, crash.url, crash.can_reload
-    );
-}
-
-fn navigation_state_message(tab_id: i64, state: &AbiNavigationState) -> TermSurfMessage {
-    TermSurfMessage {
-        msg: Some(Msg::NavigationState(termsurf::NavigationState {
-            tab_id,
-            can_go_back: state.can_go_back,
-            can_go_forward: state.can_go_forward,
-            can_refresh: state.can_refresh,
-        })),
-    }
-}
-
-fn publish_navigation_state(tab_id: i64, state: &AbiNavigationState) {
-    let msg = navigation_state_message(tab_id, state);
-    let sent = crate::ipc::send(&msg);
-    eprintln!(
-        "[Ladybird] engine NavigationState sent_to={sent} tab_id={tab_id} back={} forward={} refresh={}",
-        state.can_go_back, state.can_go_forward, state.can_refresh
     );
 }
 
@@ -2331,24 +2230,5 @@ mod tests {
         assert_eq!(crash.termination_status_code, 0);
         assert_eq!(crash.url, "data:text/html,<title>Crash</title>");
         assert!(crash.can_reload);
-    }
-
-    #[test]
-    fn builds_navigation_state_message() {
-        let msg = navigation_state_message(
-            55,
-            &AbiNavigationState {
-                can_go_back: true,
-                can_go_forward: false,
-                can_refresh: true,
-            },
-        );
-        let Some(Msg::NavigationState(state)) = msg.msg else {
-            panic!("expected NavigationState message");
-        };
-        assert_eq!(state.tab_id, 55);
-        assert!(state.can_go_back);
-        assert!(!state.can_go_forward);
-        assert!(state.can_refresh);
     }
 }

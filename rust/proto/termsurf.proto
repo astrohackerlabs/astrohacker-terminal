@@ -4,28 +4,27 @@ package termsurf;
 // Wrapper — every message on the wire is one of these.
 message TermSurfMessage {
   oneof msg {
-    // Tab lifecycle (GUI → engine)
+    // Tab lifecycle (GUI → Chromium)
     CreateTab create_tab = 1;
     CreateDevtoolsTab create_devtools_tab = 2;
     Resize resize = 3;
     CloseTab close_tab = 4;
 
-    // Navigation (GUI → engine, TUI → GUI)
+    // Navigation (GUI → Chromium, TUI → GUI)
     Navigate navigate = 5;
-    NavigationAction navigation_action = 45;
 
-    // Input (GUI → engine)
+    // Input (GUI → Chromium)
     MouseEvent mouse_event = 6;
     MouseMove mouse_move = 7;
     ScrollEvent scroll_event = 8;
     KeyEvent key_event = 9;
 
-    // State (GUI → engine)
+    // State (GUI → Chromium)
     FocusChanged focus_changed = 10;
     SetColorScheme set_color_scheme = 11;
     SetGuiActive set_gui_active = 33;
 
-    // Engine → GUI
+    // Chromium → GUI
     ServerRegister server_register = 12;
     TabReady tab_ready = 13;
     CaContext ca_context = 14;
@@ -77,12 +76,6 @@ message TermSurfMessage {
 
     // Generic render surface metadata (engine → GUI)
     RenderSurface render_surface = 43;
-
-    // Committed and composing text (GUI → engine)
-    TextInput text_input = 44;
-
-    // Navigation capability state (engine → GUI → TUI)
-    NavigationState navigation_state = 46;
   }
 }
 
@@ -122,17 +115,9 @@ message CloseTab {
 // --- Navigation ---
 
 message Navigate {
-  int64 tab_id = 1;      // nonzero when GUI → engine
+  int64 tab_id = 1;      // nonzero when GUI → Chromium
   string pane_id = 2;    // nonempty when TUI → GUI
   string url = 3;
-}
-
-// Semantic history/reload action. TUI → GUI uses pane_id with tab_id == 0;
-// GUI → engine uses tab_id with an empty pane_id. Unknown actions fail closed.
-message NavigationAction {
-  int64 tab_id = 1;
-  string pane_id = 2;
-  string action = 3;     // "back", "forward", or "refresh"
 }
 
 // --- Input ---
@@ -172,19 +157,6 @@ message KeyEvent {
   int64 windows_key_code = 3;
   string utf8 = 4;
   uint64 modifiers = 5;
-}
-
-// Text committed by the platform input system, or an in-progress IME
-// composition. Physical key state remains in KeyEvent. Range values are UTF-16
-// offsets, matching Cocoa/browser text APIs; -1/-1 represents NSNotFound.
-message TextInput {
-  int64 tab_id = 1;
-  string type = 2;       // "commit", "ime_start", "ime_update", "ime_commit", "ime_cancel"
-  string text = 3;
-  int64 selected_start = 4;
-  int64 selected_length = 5;
-  int64 replacement_start = 6;
-  int64 replacement_length = 7;
 }
 
 // --- State ---
@@ -244,16 +216,6 @@ message LoadingState {
   int64 tab_id = 1;
   string state = 2;      // "loading", "progress", "done", "error"
   uint64 progress = 3;   // 0-100
-}
-
-// Authoritative native state for one engine tab. No state is valid for tab_id
-// 0. A disconnected owner clears cached state because the engine cannot emit a
-// final update.
-message NavigationState {
-  int64 tab_id = 1;
-  bool can_go_back = 2;
-  bool can_go_forward = 3;
-  bool can_refresh = 4;
 }
 
 message TitleChanged {

@@ -90,8 +90,6 @@ struct CallbackState {
     void *on_url_changed_data = nullptr;
     ts_loading_state_cb on_loading_state = nullptr;
     void *on_loading_state_data = nullptr;
-    ts_navigation_state_cb on_navigation_state = nullptr;
-    void *on_navigation_state_data = nullptr;
     ts_title_changed_cb on_title_changed = nullptr;
     void *on_title_changed_data = nullptr;
     ts_cursor_changed_cb on_cursor_changed = nullptr;
@@ -119,21 +117,6 @@ static NSString *const TermSurfCursorTypeKey = @"cursorType";
 static struct WebContents *g_dispatching_mouse_contents = nullptr;
 static IMP g_original_pressed_mouse_buttons = nullptr;
 static IMP g_original_button_number = nullptr;
-struct ForwardedScrollState {
-    CGFloat delta_x;
-    CGFloat delta_y;
-    NSEventPhase phase;
-    NSEventPhase momentum_phase;
-    bool precise;
-};
-static ForwardedScrollState *g_forwarded_scroll_state = nullptr;
-static IMP g_original_delta_x = nullptr;
-static IMP g_original_delta_y = nullptr;
-static IMP g_original_scrolling_delta_x = nullptr;
-static IMP g_original_scrolling_delta_y = nullptr;
-static IMP g_original_has_precise_scrolling_deltas = nullptr;
-static IMP g_original_phase = nullptr;
-static IMP g_original_momentum_phase = nullptr;
 static std::atomic<bool> g_native_ui_probe_started{false};
 static std::atomic<bool> g_synthetic_print_probe_started{false};
 
@@ -227,18 +210,9 @@ struct BrowserContext {
 };
 
 struct WebContents;
-@class TSPendingEditingKey;
 static bool currentUrlLooksPdf(WebContents *contents);
 
 @interface TSNavigationDelegate : NSObject <WKNavigationDelegatePrivate>
-@property(nonatomic) WebContents *owner;
-@end
-
-@interface TSTitleObserver : NSObject
-@property(nonatomic) WebContents *owner;
-@end
-
-@interface TSNavigationStateObserver : NSObject
 @property(nonatomic) WebContents *owner;
 @end
 
@@ -269,8 +243,6 @@ struct WebContents {
     WKWebView *web_view;
     _WKInspector *inspector;
     TSNavigationDelegate *navigation_delegate;
-    TSTitleObserver *title_observer;
-    TSNavigationStateObserver *navigation_state_observer;
     TSUIDelegate *ui_delegate;
     TSConsoleMessageHandler *console_message_handler;
     NSMutableDictionary<NSNumber *, TSPendingJavaScriptDialog *> *pending_javascript_dialogs;
@@ -281,8 +253,6 @@ struct WebContents {
     uint64_t cursor_probe_generation;
     bool suppress_cursor_notifications;
     bool renderer_crash_reported;
-    bool has_committed_document;
-    bool renderer_crashed;
     CAContext *remote_context;
     CALayer *snapshot_layer;
     bool snapshot_refresh_pending;
@@ -294,15 +264,12 @@ struct WebContents {
     int height;
     bool gui_active;
     bool focused;
-    bool navigation_escape_owned = false;
-    uint64_t editing_key_generation;
-    TSPendingEditingKey *pending_editing_key;
-    bool composition_active;
-    bool composition_cancel_pending;
-    uint64_t composition_cancel_generation;
     bool dark;
     NSInteger mouse_event_number = 0;
     NSInteger mouse_click_count = 0;
+    NSTimeInterval mouse_click_time = 0;
+    NSPoint mouse_click_position = NSZeroPoint;
+    int mouse_click_button = 0;
     int mouse_last_button = 0;
     NSUInteger mouse_buttons_down = 0;
     NSPoint pdf_selected_text_drag_start = NSZeroPoint;
@@ -332,41 +299,8 @@ struct WebContents {
     NSString *pdf_editable_document_reason;
 };
 
-typedef NS_ENUM(NSInteger, TSEditingAction) {
-    TSEditingActionNone = 0,
-    TSEditingActionSelectAll,
-    TSEditingActionCopy,
-    TSEditingActionCut,
-    TSEditingActionPaste,
-    TSEditingActionUndo,
-    TSEditingActionRedo,
-};
-
-@interface TSPendingEditingKey : NSObject
-@property(nonatomic, strong) NSEvent *event;
-@property(nonatomic, assign) WebContents *contents;
-@property(nonatomic, strong) WKWebView *webView;
-@property(nonatomic) uint64_t generation;
-@property(nonatomic) int tabID;
-@property(nonatomic) TSEditingAction action;
-@property(nonatomic) BOOL canceled;
-@end
-
-@implementation TSPendingEditingKey
-@end
-
-@interface WKWebView (TermSurfEditingActions)
-- (void)copy:(id)sender;
-- (void)cut:(id)sender;
-- (void)paste:(id)sender;
-@end
-
-@interface NSUndoManager (TermSurfEndOfEvent)
-- (void)_processEndOfEventNotification:(NSNotification *)notification;
-@end
-
 static void scheduleSnapshotLayerRefresh(WebContents *contents, NSString *reason);
-static void tracePdfViewGeometry(WebContents *contents, NSString *label, double x, double y, NSPoint windowPoint);
+static void tracePdfViewGeometry(WebContents *contents, NSString *label, int x, int y, NSPoint windowPoint);
 static NSString *routeTraceStringSample(NSString *value);
 static NSString *describeScrollViews(NSView *view);
 static NSView *findDescendantViewWithClassName(NSView *view, NSString *className);
@@ -423,7 +357,7 @@ static bool webkitScrollSettleRefreshEnabled()
 static NSString *webkitScrollDispatchMode()
 {
     NSString *value = NSProcessInfo.processInfo.environment[@"ASTROHACKER_WEBKIT_SCROLL_DISPATCH_MODE"];
-    return value.length ? value : @"webview-direct";
+    return value.length ? value : @"window-send-event";
 }
 
 static void appendWebKitScrollTrace(NSString *line)
@@ -4411,7 +4345,7 @@ static NSString *describePointInViewChain(NSView *view, NSPoint windowPoint)
     return [items componentsJoinedByString:@">"];
 }
 
-static void tracePdfViewGeometry(WebContents *contents, NSString *label, double x, double y, NSPoint windowPoint)
+static void tracePdfViewGeometry(WebContents *contents, NSString *label, int x, int y, NSPoint windowPoint)
 {
     if (!pdfViewGeometryTraceEnabled() || !contents || !contents->web_view)
         return;
@@ -4425,7 +4359,7 @@ static void tracePdfViewGeometry(WebContents *contents, NSString *label, double 
     id targetFromWebView = [NSApp targetForAction:copySelector to:nil from:contents->web_view];
     NSResponder *firstResponder = window.firstResponder;
     appendPdfViewGeometryTrace([NSString stringWithFormat:
-        @"webkit-pdf-view-geometry-state tab=%d label=%@ url=%@ input=%.3f,%.3f window_point=%@ web_point=%@ hit=%@ window=%@ window_frame=%@ key_window=%d main_window=%d app_key_window=%@ app_main_window=%@ backing_scale=%.3f web_view=%@ web_frame=%@ web_bounds=%@ first_responder=%@ responder_chain=%@ target_nil=%@ target_webview=%@ clipboard={%@}",
+        @"webkit-pdf-view-geometry-state tab=%d label=%@ url=%@ input=%d,%d window_point=%@ web_point=%@ hit=%@ window=%@ window_frame=%@ key_window=%d main_window=%d app_key_window=%@ app_main_window=%@ backing_scale=%.3f web_view=%@ web_frame=%@ web_bounds=%@ first_responder=%@ responder_chain=%@ target_nil=%@ target_webview=%@ clipboard={%@}",
         contents->tab_id,
         label,
         contents->web_view.URL.absoluteString ?: @"",
@@ -4736,208 +4670,6 @@ static bool isRegisteredContents(WebContents *contents)
     return std::find(g_web_contents.begin(), g_web_contents.end(), contents) != g_web_contents.end();
 }
 
-static NSMutableDictionary<NSValue *, TSPendingEditingKey *> *g_pending_editing_keys;
-static IMP g_original_application_send_event;
-static std::atomic<int> g_editing_responder_execution_count{0};
-
-static NSValue *editingEventIdentity(NSEvent *event)
-{
-    return [NSValue valueWithPointer:(__bridge const void *)event];
-}
-
-static NSString *editingActionName(TSEditingAction action)
-{
-    switch (action) {
-    case TSEditingActionSelectAll: return @"select-all";
-    case TSEditingActionCopy: return @"copy";
-    case TSEditingActionCut: return @"cut";
-    case TSEditingActionPaste: return @"paste";
-    case TSEditingActionUndo: return @"undo";
-    case TSEditingActionRedo: return @"redo";
-    case TSEditingActionNone: return @"none";
-    }
-    return @"unknown";
-}
-
-static TSEditingAction editingActionForPhysicalKey(int keycode, int modifiers)
-{
-    if (modifiers == 9 && keycode == 0x5A)
-        return TSEditingActionRedo;
-    if (modifiers != 8)
-        return TSEditingActionNone;
-    switch (keycode) {
-    case 0x41: return TSEditingActionSelectAll;
-    case 0x43: return TSEditingActionCopy;
-    case 0x58: return TSEditingActionCut;
-    case 0x56: return TSEditingActionPaste;
-    case 0x5A: return TSEditingActionUndo;
-    default: return TSEditingActionNone;
-    }
-}
-
-static TSEditingAction editingActionForPhysicalEvent(
-    int type, int keycode, const char *utf8, int modifiers, bool isPdf)
-{
-    if (isPdf || !utf8 || utf8[0] != '\0' || (type != 0 && type != 2))
-        return TSEditingActionNone;
-    return editingActionForPhysicalKey(keycode, modifiers);
-}
-
-static void traceEditingResponder(TSPendingEditingKey *pending, NSString *phase, bool executed, NSString *reason)
-{
-    fprintf(stderr,
-        "[libtermsurf_webkit] webkit_editing_responder_%s tab=%d generation=%llu action=%s event=%p contents=%p view=%p executed=%d reason=%s\n",
-        phase.UTF8String ?: "unknown",
-        pending.tabID,
-        (unsigned long long)pending.generation,
-        editingActionName(pending.action).UTF8String ?: "unknown",
-        (__bridge void *)pending.event,
-        pending.contents,
-        (__bridge void *)pending.webView,
-        executed ? 1 : 0,
-        reason.UTF8String ?: "unknown");
-}
-
-static void removeEditingPending(TSPendingEditingKey *pending)
-{
-    if (!pending)
-        return;
-    [g_pending_editing_keys removeObjectForKey:editingEventIdentity(pending.event)];
-    WebContents *contents = pending.contents;
-    if (isRegisteredContents(contents) && contents->pending_editing_key == pending)
-        contents->pending_editing_key = nil;
-}
-
-static void cancelEditingPending(WebContents *contents, NSString *reason)
-{
-    if (!contents || !contents->pending_editing_key)
-        return;
-    TSPendingEditingKey *pending = contents->pending_editing_key;
-    pending.canceled = YES;
-    traceEditingResponder(pending, @"canceled", false, reason);
-    removeEditingPending(pending);
-}
-
-static bool executeEditingAction(TSPendingEditingKey *pending)
-{
-    WKWebView *view = pending.webView;
-    NSUndoManager *manager = view.undoManager;
-
-    // NSApplication normally closes groups-by-event after sendEvent: returns.
-    // This responder consumes WebKit's resend before that dispatch, so close
-    // the preceding event's group before starting the next native action.
-    if (manager.groupingLevel > 0)
-        [manager _processEndOfEventNotification:nil];
-
-    switch (pending.action) {
-    case TSEditingActionSelectAll:
-        [view selectAll:nil];
-        return true;
-    case TSEditingActionCopy:
-        [view copy:nil];
-        return true;
-    case TSEditingActionCut:
-        [view cut:nil];
-        return true;
-    case TSEditingActionPaste:
-        [view paste:nil];
-        return true;
-    case TSEditingActionUndo: {
-        if (!manager.canUndo)
-            return false;
-        [manager undo];
-        return true;
-    }
-    case TSEditingActionRedo: {
-        if (!manager.canRedo)
-            return false;
-        [manager redo];
-        return true;
-    }
-    case TSEditingActionNone:
-        return false;
-    }
-    return false;
-}
-
-static bool consumeEditingResponderResend(NSEvent *event)
-{
-    TSPendingEditingKey *pending = g_pending_editing_keys[editingEventIdentity(event)];
-    if (!pending || pending.event != event)
-        return false;
-
-    WebContents *contents = pending.contents;
-    bool registered = isRegisteredContents(contents);
-    bool valid = !pending.canceled
-        && registered
-        && contents->pending_editing_key == pending
-        && contents->editing_key_generation == pending.generation
-        && contents->focused
-        && contents->web_view == pending.webView
-        && contents->window.firstResponder == pending.webView;
-    removeEditingPending(pending);
-    bool executed = valid && executeEditingAction(pending);
-    if (executed)
-        g_editing_responder_execution_count.fetch_add(1);
-    traceEditingResponder(pending, @"resend", executed,
-        valid ? (executed ? @"native-action" : @"native-action-disabled") : @"stale-ownership");
-    return true;
-}
-
-static void termSurfApplicationSendEvent(id self, SEL selector, NSEvent *event)
-{
-    if (consumeEditingResponderResend(event))
-        return;
-    using SendEvent = void (*)(id, SEL, NSEvent *);
-    reinterpret_cast<SendEvent>(g_original_application_send_event)(self, selector, event);
-}
-
-static bool installEditingResponderResendHook()
-{
-    static bool installed = false;
-    if (installed)
-        return true;
-    Method method = class_getInstanceMethod(NSApplication.class, @selector(sendEvent:));
-    if (!method)
-        return false;
-    g_pending_editing_keys = [NSMutableDictionary dictionary];
-    g_original_application_send_event = method_setImplementation(
-        method, reinterpret_cast<IMP>(termSurfApplicationSendEvent));
-    installed = g_original_application_send_event != nullptr;
-    return installed;
-}
-
-static TSPendingEditingKey *registerEditingPending(
-    WebContents *contents, NSEvent *event, TSEditingAction action)
-{
-    if (!contents || !event || action == TSEditingActionNone || !g_pending_editing_keys)
-        return nil;
-    cancelEditingPending(contents, @"superseded");
-    TSPendingEditingKey *pending = [[TSPendingEditingKey alloc] init];
-    pending.event = event;
-    pending.contents = contents;
-    pending.webView = contents->web_view;
-    pending.generation = ++contents->editing_key_generation;
-    pending.tabID = contents->tab_id;
-    pending.action = action;
-    contents->pending_editing_key = pending;
-    g_pending_editing_keys[editingEventIdentity(event)] = pending;
-    traceEditingResponder(pending, @"pending", false, @"awaiting-webcore");
-
-    __weak TSPendingEditingKey *weakPending = pending;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        TSPendingEditingKey *expiring = weakPending;
-        if (!expiring)
-            return;
-        TSPendingEditingKey *current = g_pending_editing_keys[editingEventIdentity(expiring.event)];
-        if (current != expiring)
-            return;
-        removeEditingPending(expiring);
-        traceEditingResponder(expiring, @"expired", false, @"handled-or-timeout");
-    });
-    return pending;
-}
-
 static WebContents *findContentsByTabId(int tab_id)
 {
     for (WebContents *contents : g_web_contents) {
@@ -5078,7 +4810,7 @@ static bool isPrintableTextInput(NSString *characters)
     return true;
 }
 
-static NSPoint eventLocationInWindow(WebContents *contents, double x, double y)
+static NSPoint eventLocationInWindow(WebContents *contents, int x, int y)
 {
     // Smoke and input use CSS/document top-left coordinates. AppKit views are
     // bottom-left unless flipped; convert so hit-testing matches elementFromPoint.
@@ -5089,7 +4821,7 @@ static NSPoint eventLocationInWindow(WebContents *contents, double x, double y)
     return [contents->web_view convertPoint:localPoint toView:nil];
 }
 
-static CGPoint eventLocationInGlobalScreen(WebContents *contents, double x, double y)
+static CGPoint eventLocationInGlobalScreen(WebContents *contents, int x, int y)
 {
     NSPoint windowPoint = eventLocationInWindow(contents, x, y);
     NSPoint screenPoint = [contents->window convertPointToScreen:windowPoint];
@@ -5097,7 +4829,7 @@ static CGPoint eventLocationInGlobalScreen(WebContents *contents, double x, doub
     return CGPointMake(screenPoint.x, screenHeight - screenPoint.y);
 }
 
-static NSPoint adjustedPdfSelectionLocation(WebContents *contents, double x, double y, bool dragging)
+static NSPoint adjustedPdfSelectionLocation(WebContents *contents, int x, int y, bool dragging)
 {
     NSPoint location = eventLocationInWindow(contents, x, y);
     NSString *mode = pdfSelectionEdgeProbeMode();
@@ -5211,7 +4943,7 @@ static void applyPdfSelectionStateTransition(WebContents *contents, int x, int y
         NSEvent *event = [NSEvent mouseEventWithType:NSEventTypeMouseMoved
             location:primeWindow
             modifierFlags:0
-            timestamp:NSProcessInfo.processInfo.systemUptime
+            timestamp:[[NSDate date] timeIntervalSince1970]
             windowNumber:contents->window.windowNumber
             context:[NSGraphicsContext currentContext]
             eventNumber:++contents->mouse_event_number
@@ -5337,35 +5069,6 @@ static NSEventType mouseEventType(int type, int button)
     return type == 1 ? NSEventTypeLeftMouseUp : NSEventTypeLeftMouseDown;
 }
 
-static constexpr int termSurfPointerModifierMask = 1 | 2 | 4 | 8 | 64 | 128 | 256;
-static constexpr int termSurfScrollModifierMask = 1 | 2 | 4 | 8;
-static constexpr int termSurfScrollPhaseMask = 1 | 2 | 4 | 8 | 16 | 32;
-
-static bool validMouseEventInput(int type, int button, double x, double y, int clickCount, int modifiers)
-{
-    return (type == 0 || type == 1)
-        && button >= 0 && button <= 2
-        && std::isfinite(x) && std::isfinite(y)
-        && clickCount > 0
-        && !(modifiers & ~termSurfPointerModifierMask);
-}
-
-static bool validMouseMoveInput(double x, double y, int modifiers)
-{
-    return std::isfinite(x) && std::isfinite(y)
-        && !(modifiers & ~termSurfPointerModifierMask);
-}
-
-static bool validScrollEventInput(double x, double y, double deltaX, double deltaY, int phase, int momentumPhase, int modifiers)
-{
-    return std::isfinite(x) && std::isfinite(y)
-        && std::isfinite(deltaX) && std::isfinite(deltaY)
-        && !(phase & ~termSurfScrollPhaseMask)
-        && !(momentumPhase & ~termSurfScrollPhaseMask)
-        && !(modifiers & ~termSurfScrollModifierMask)
-        && (deltaX != 0 || deltaY != 0 || phase != 0 || momentumPhase != 0);
-}
-
 static NSUInteger mouseButtonMask(int button)
 {
     if (button == 1)
@@ -5442,86 +5145,24 @@ static void restoreMouseEventSwizzles()
     g_dispatching_mouse_contents = nullptr;
 }
 
-static CGFloat forwardedScrollDeltaX(id self, SEL selector)
+static void updateClickCount(WebContents *contents, int button, NSPoint position)
 {
-    if (g_forwarded_scroll_state)
-        return -g_forwarded_scroll_state->delta_x;
-    auto original = reinterpret_cast<CGFloat (*)(id, SEL)>(g_original_delta_x);
-    return original ? original(self, selector) : 0;
-}
-
-static CGFloat forwardedScrollDeltaY(id self, SEL selector)
-{
-    if (g_forwarded_scroll_state)
-        return -g_forwarded_scroll_state->delta_y;
-    auto original = reinterpret_cast<CGFloat (*)(id, SEL)>(g_original_delta_y);
-    return original ? original(self, selector) : 0;
-}
-
-static BOOL forwardedScrollIsPrecise(id self, SEL selector)
-{
-    if (g_forwarded_scroll_state)
-        return g_forwarded_scroll_state->precise;
-    auto original = reinterpret_cast<BOOL (*)(id, SEL)>(g_original_has_precise_scrolling_deltas);
-    return original ? original(self, selector) : NO;
-}
-
-static NSEventPhase forwardedScrollPhase(id self, SEL selector)
-{
-    if (g_forwarded_scroll_state)
-        return g_forwarded_scroll_state->phase;
-    auto original = reinterpret_cast<NSEventPhase (*)(id, SEL)>(g_original_phase);
-    return original ? original(self, selector) : NSEventPhaseNone;
-}
-
-static NSEventPhase forwardedScrollMomentumPhase(id self, SEL selector)
-{
-    if (g_forwarded_scroll_state)
-        return g_forwarded_scroll_state->momentum_phase;
-    auto original = reinterpret_cast<NSEventPhase (*)(id, SEL)>(g_original_momentum_phase);
-    return original ? original(self, selector) : NSEventPhaseNone;
-}
-
-static void installScrollEventSwizzles(ForwardedScrollState *state)
-{
-    g_forwarded_scroll_state = state;
-    auto install = [](SEL selector, IMP replacement, IMP *original) {
-        Method method = class_getInstanceMethod([NSEvent class], selector);
-        if (!method)
-            return;
-        if (!*original)
-            *original = method_setImplementation(method, replacement);
-        else
-            method_setImplementation(method, replacement);
-    };
-    install(@selector(deltaX), reinterpret_cast<IMP>(forwardedScrollDeltaX), &g_original_delta_x);
-    install(@selector(deltaY), reinterpret_cast<IMP>(forwardedScrollDeltaY), &g_original_delta_y);
-    install(@selector(scrollingDeltaX), reinterpret_cast<IMP>(forwardedScrollDeltaX), &g_original_scrolling_delta_x);
-    install(@selector(scrollingDeltaY), reinterpret_cast<IMP>(forwardedScrollDeltaY), &g_original_scrolling_delta_y);
-    install(@selector(hasPreciseScrollingDeltas), reinterpret_cast<IMP>(forwardedScrollIsPrecise), &g_original_has_precise_scrolling_deltas);
-    install(@selector(phase), reinterpret_cast<IMP>(forwardedScrollPhase), &g_original_phase);
-    install(@selector(momentumPhase), reinterpret_cast<IMP>(forwardedScrollMomentumPhase), &g_original_momentum_phase);
-}
-
-static void restoreScrollEventSwizzles()
-{
-    auto restore = [](SEL selector, IMP original) {
-        Method method = class_getInstanceMethod([NSEvent class], selector);
-        if (method && original)
-            method_setImplementation(method, original);
-    };
-    restore(@selector(deltaX), g_original_delta_x);
-    restore(@selector(deltaY), g_original_delta_y);
-    restore(@selector(scrollingDeltaX), g_original_scrolling_delta_x);
-    restore(@selector(scrollingDeltaY), g_original_scrolling_delta_y);
-    restore(@selector(hasPreciseScrollingDeltas), g_original_has_precise_scrolling_deltas);
-    restore(@selector(phase), g_original_phase);
-    restore(@selector(momentumPhase), g_original_momentum_phase);
-    g_forwarded_scroll_state = nullptr;
+    NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
+    if (now - contents->mouse_click_time < 1.0
+        && NSEqualPoints(contents->mouse_click_position, position)
+        && contents->mouse_click_button == button) {
+        contents->mouse_click_count++;
+    } else {
+        contents->mouse_click_count = 1;
+    }
+    contents->mouse_click_time = now;
+    contents->mouse_click_position = position;
+    contents->mouse_click_button = button;
 }
 
 static void invokeMouseEventOnTarget(WebContents *contents, NSEvent *event, NSView *target)
 {
+    (void)contents;
     if (!target)
         return;
     switch (event.type) {
@@ -5562,10 +5203,7 @@ static void invokeMouseEventOnTarget(WebContents *contents, NSEvent *event, NSVi
         break;
     case NSEventTypeMouseMoved:
         [NSApp _setCurrentEvent:event];
-        if (target == contents->web_view)
-            [contents->web_view _simulateMouseMove:event];
-        else
-            [target mouseMoved:event];
+        [target mouseMoved:event];
         [NSApp _setCurrentEvent:nil];
         break;
     default:
@@ -5623,9 +5261,7 @@ static void deliverMouseEvent(WebContents *contents, NSEvent *event, NSString *p
     NSString *effectiveMode = mode ?: @"current";
     NSView *target = mouseDispatchTarget(contents, event, effectiveMode, hit);
 
-    bool needsButtonSwizzles = event.type != NSEventTypeMouseMoved;
-    if (needsButtonSwizzles)
-        installMouseEventSwizzles(contents);
+    installMouseEventSwizzles(contents);
     if ([effectiveMode isEqualToString:@"window-send-event"]) {
         [NSApp _setCurrentEvent:event];
         [contents->window sendEvent:event];
@@ -5635,8 +5271,7 @@ static void deliverMouseEvent(WebContents *contents, NSEvent *event, NSString *p
         invokeMouseEventOnTarget(contents, event, target);
         appendMouseDispatchTrace(contents, event, phase, effectiveMode, hit, target, target != nil);
     }
-    if (needsButtonSwizzles)
-        restoreMouseEventSwizzles();
+    restoreMouseEventSwizzles();
 }
 
 static void withCString(NSString *value, void (^block)(const char *))
@@ -5651,21 +5286,6 @@ static void fireLoading(WebContents *contents, NSString *url, int loading)
     withCString(url, ^(const char *c_url) {
         g_callbacks.on_loading_state(contents, c_url, loading, g_callbacks.on_loading_state_data);
     });
-}
-
-static void fireNavigationState(WebContents *contents)
-{
-    if (!contents || !g_callbacks.on_navigation_state)
-        return;
-    bool can_go_back = !contents->renderer_crashed && contents->web_view.canGoBack;
-    bool can_go_forward = !contents->renderer_crashed && contents->web_view.canGoForward;
-    bool can_refresh = contents->renderer_crashed || contents->has_committed_document;
-    g_callbacks.on_navigation_state(
-        contents,
-        can_go_back,
-        can_go_forward,
-        can_refresh,
-        g_callbacks.on_navigation_state_data);
 }
 
 static void fireUrl(WebContents *contents, NSString *url)
@@ -5685,43 +5305,6 @@ static void fireTitle(WebContents *contents, NSString *title)
         g_callbacks.on_title_changed(contents, c_title, g_callbacks.on_title_changed_data);
     });
 }
-
-@implementation TSTitleObserver
-- (void)observeValueForKeyPath:(NSString *)keyPath
-                      ofObject:(id)object
-                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
-                       context:(void *)context
-{
-    (void)change;
-    (void)context;
-    if (![keyPath isEqualToString:@"title"] || !self.owner || object != self.owner->web_view) {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-        return;
-    }
-    fireTitle(self.owner, self.owner->web_view.title);
-}
-@end
-
-
-@implementation TSNavigationStateObserver
-- (void)observeValueForKeyPath:(NSString *)keyPath
-                      ofObject:(id)object
-                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
-                       context:(void *)context
-{
-    (void)change;
-    (void)context;
-    if (!self.owner || object != self.owner->web_view
-        || !([keyPath isEqualToString:@"canGoBack"]
-            || [keyPath isEqualToString:@"canGoForward"]
-            || [keyPath isEqualToString:@"loading"]
-            || [keyPath isEqualToString:@"URL"])) {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-        return;
-    }
-    fireNavigationState(self.owner);
-}
-@end
 
 static bool closeToColor(NSUInteger red, NSUInteger green, NSUInteger blue, NSUInteger target_red, NSUInteger target_green, NSUInteger target_blue)
 {
@@ -6451,17 +6034,12 @@ static NSString *rendererCrashReason(NSInteger reason)
 
 static void fireRendererCrashed(WebContents *contents, NSString *reason)
 {
-    if (!contents)
+    if (!contents || !g_callbacks.on_renderer_crashed)
         return;
     if (contents->renderer_crash_reported)
         return;
 
     contents->renderer_crash_reported = true;
-    contents->renderer_crashed = true;
-    contents->has_committed_document = false;
-    fireNavigationState(contents);
-    if (!g_callbacks.on_renderer_crashed)
-        return;
     NSString *url = contents->web_view.URL.absoluteString ?: @"";
     bool visible = contents->window.visible;
     withCString(reason ?: @"unknown", ^(const char *c_reason) {
@@ -6667,10 +6245,7 @@ static void exportContext(WebContents *contents)
     (void)navigation;
     clearPdfSelectedTextCache(self.owner, @"navigation-commit");
     tracePdfNavigationDiagnostics(self.owner, @"navigation-commit", webView.URL.absoluteString);
-    self.owner->renderer_crashed = false;
-    self.owner->has_committed_document = true;
     fireUrl(self.owner, webView.URL.absoluteString);
-    fireNavigationState(self.owner);
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
@@ -6861,10 +6436,6 @@ int ts_content_main(int argc, const char *const *argv)
         delegate = [[TSApplicationDelegate alloc] init];
         application.delegate = delegate;
         [application setActivationPolicy:NSApplicationActivationPolicyAccessory];
-        if (!installEditingResponderResendHook()) {
-            fprintf(stderr, "[libtermsurf_webkit] failed to install WebKit editing responder hook\n");
-            return 1;
-        }
 
         dispatch_async(dispatch_get_main_queue(), ^{
             if (g_callbacks.on_initialized)
@@ -6938,8 +6509,6 @@ ts_web_contents_t ts_create_web_contents(ts_browser_context_t ctx, const char *u
     contents->cursor_probe_generation = 0;
     contents->suppress_cursor_notifications = false;
     contents->renderer_crash_reported = false;
-    contents->has_committed_document = false;
-    contents->renderer_crashed = false;
     contents->snapshot_layer = nil;
     contents->snapshot_refresh_pending = false;
     contents->snapshot_refresh_again = false;
@@ -6977,19 +6546,6 @@ ts_web_contents_t ts_create_web_contents(ts_browser_context_t ctx, const char *u
     contents->navigation_delegate = [[TSNavigationDelegate alloc] init];
     contents->navigation_delegate.owner = contents;
     contents->web_view.navigationDelegate = contents->navigation_delegate;
-    contents->title_observer = [[TSTitleObserver alloc] init];
-    contents->title_observer.owner = contents;
-    [contents->web_view addObserver:contents->title_observer
-                         forKeyPath:@"title"
-                            options:NSKeyValueObservingOptionNew
-                            context:nullptr];
-    contents->navigation_state_observer = [[TSNavigationStateObserver alloc] init];
-    contents->navigation_state_observer.owner = contents;
-    for (NSString *keyPath in @[@"canGoBack", @"canGoForward", @"loading", @"URL"])
-        [contents->web_view addObserver:contents->navigation_state_observer
-                            forKeyPath:keyPath
-                               options:NSKeyValueObservingOptionNew
-                               context:nullptr];
     contents->ui_delegate = [[TSUIDelegate alloc] init];
     contents->ui_delegate.owner = contents;
     contents->web_view.UIDelegate = contents->ui_delegate;
@@ -6997,14 +6553,12 @@ ts_web_contents_t ts_create_web_contents(ts_browser_context_t ctx, const char *u
 
     [contents->window.contentView addSubview:contents->web_view];
     [contents->window orderFront:nil];
-    contents->web_view._termSurfWindowActive = YES;
     registerContents(contents);
     scheduleNativeUiProbe(contents);
     scheduleSyntheticPrintProbe(contents);
 
     if (g_callbacks.on_tab_ready)
         g_callbacks.on_tab_ready(contents, contents->tab_id, g_callbacks.on_tab_ready_data);
-    fireNavigationState(contents);
 
     exportContext(contents);
     ts_load_url(contents, url);
@@ -7052,8 +6606,6 @@ ts_web_contents_t ts_create_devtools_web_contents(
     contents->cursor_probe_generation = 0;
     contents->suppress_cursor_notifications = false;
     contents->renderer_crash_reported = false;
-    contents->has_committed_document = true;
-    contents->renderer_crashed = false;
     contents->snapshot_layer = nil;
     contents->snapshot_refresh_pending = false;
     contents->snapshot_refresh_again = false;
@@ -7080,12 +6632,10 @@ ts_web_contents_t ts_create_devtools_web_contents(
 
     [contents->window.contentView addSubview:contents->web_view];
     [contents->window orderFront:nil];
-    contents->web_view._termSurfWindowActive = YES;
     registerContents(contents);
 
     if (g_callbacks.on_tab_ready)
         g_callbacks.on_tab_ready(contents, contents->tab_id, g_callbacks.on_tab_ready_data);
-    fireNavigationState(contents);
 
     exportContext(contents);
     return contents;
@@ -7097,20 +6647,13 @@ void ts_destroy_web_contents(ts_web_contents_t wc)
     if (!contents)
         return;
 
-    cancelEditingPending(contents, @"destroyed");
     unregisterContents(contents);
-    contents->web_view._termSurfWindowActive = NO;
     [contents->remote_context invalidate];
     if (contents->cursor_observer)
         [[NSNotificationCenter defaultCenter] removeObserver:contents->cursor_observer];
     if (contents->is_devtools) {
         [contents->inspector close];
     } else {
-        for (NSString *keyPath in @[@"canGoBack", @"canGoForward", @"loading", @"URL"])
-            [contents->web_view removeObserver:contents->navigation_state_observer forKeyPath:keyPath];
-        contents->navigation_state_observer.owner = nullptr;
-        [contents->web_view removeObserver:contents->title_observer forKeyPath:@"title"];
-        contents->title_observer.owner = nullptr;
         contents->web_view.navigationDelegate = nil;
         contents->web_view.UIDelegate = nil;
         [contents->web_view.configuration.userContentController removeScriptMessageHandlerForName:@"termsurfConsole"];
@@ -7141,31 +6684,6 @@ void ts_load_url(ts_web_contents_t wc, const char *url)
     }
 
     [contents->web_view loadRequest:[NSURLRequest requestWithURL:ns_url]];
-}
-
-bool ts_navigation_action(ts_web_contents_t wc, const char *action)
-{
-    WebContents *contents = static_cast<WebContents *>(wc);
-    if (!contents || !contents->web_view || !action)
-        return false;
-    NSString *value = stringFromCString(action);
-    if ([value isEqualToString:@"back"]) {
-        if (contents->renderer_crashed || !contents->web_view.canGoBack)
-            return false;
-        [contents->web_view goBack];
-    } else if ([value isEqualToString:@"forward"]) {
-        if (contents->renderer_crashed || !contents->web_view.canGoForward)
-            return false;
-        [contents->web_view goForward];
-    } else if ([value isEqualToString:@"refresh"]) {
-        if (!contents->renderer_crashed && !contents->has_committed_document)
-            return false;
-        [contents->web_view reload];
-    } else {
-        return false;
-    }
-    fireNavigationState(contents);
-    return true;
 }
 
 void ts_set_view_size(
@@ -7201,11 +6719,11 @@ void ts_set_view_size(
     scheduleSnapshotLayerRefresh(contents, @"resize");
 }
 
-bool ts_forward_mouse_event(ts_web_contents_t wc, int type, int button, double x, double y, int click_count, int modifiers)
+void ts_forward_mouse_event(ts_web_contents_t wc, int type, int button, int x, int y, int click_count, int modifiers)
 {
     WebContents *contents = static_cast<WebContents *>(wc);
-    if (!contents || !validMouseEventInput(type, button, x, y, click_count, modifiers))
-        return false;
+    if (!contents)
+        return;
 
     bool is_up = type == 1;
     bool was_dragging = (contents->mouse_buttons_down & mouseButtonMask(button)) != 0;
@@ -7225,7 +6743,7 @@ bool ts_forward_mouse_event(ts_web_contents_t wc, int type, int button, double x
         contents->pdf_selected_text_drag_exceeded_threshold = false;
         clearPdfSelectedTextCache(contents, @"mouse-down");
         applyPdfResponderProbe(contents, @"before-gesture");
-        contents->mouse_click_count = click_count;
+        updateClickCount(contents, button, location);
         contents->mouse_buttons_down |= mouseButtonMask(button);
     } else {
         contents->mouse_buttons_down &= ~mouseButtonMask(button);
@@ -7235,14 +6753,14 @@ bool ts_forward_mouse_event(ts_web_contents_t wc, int type, int button, double x
     NSEvent *event = [NSEvent mouseEventWithType:mouseEventType(type, button)
         location:location
         modifierFlags:cocoaModifiers(modifiers)
-        timestamp:NSProcessInfo.processInfo.systemUptime
+        timestamp:[[NSDate date] timeIntervalSince1970]
         windowNumber:contents->window.windowNumber
         context:[NSGraphicsContext currentContext]
         eventNumber:++contents->mouse_event_number
-        clickCount:click_count
+        clickCount:MAX(click_count, (int)contents->mouse_click_count)
         pressure:type == 0 ? 1.0 : 0.0];
     if (pdfCopyTraceEnabled()) {
-        appendPdfCopyTrace([NSString stringWithFormat:@"webkit-pdf-copy-mouse tab=%d type=%d button=%d x=%.3f y=%.3f click_count=%d modifiers=%d location=%@ original_location=%@ edge_mode=%@ edge_delta=%.2f remediation_geometry=%d", contents->tab_id, type, button, x, y, click_count, modifiers, NSStringFromPoint(location), NSStringFromPoint(original_location), pdfSelectionEdgeProbeMode() ?: @"none", pdfSelectionEdgeDeltaX(), geometryRemediationApplied ? 1 : 0]);
+        appendPdfCopyTrace([NSString stringWithFormat:@"webkit-pdf-copy-mouse tab=%d type=%d button=%d x=%d y=%d click_count=%d modifiers=%d location=%@ original_location=%@ edge_mode=%@ edge_delta=%.2f remediation_geometry=%d", contents->tab_id, type, button, x, y, click_count, modifiers, NSStringFromPoint(location), NSStringFromPoint(original_location), pdfSelectionEdgeProbeMode() ?: @"none", pdfSelectionEdgeDeltaX(), geometryRemediationApplied ? 1 : 0]);
     }
     tracePdfViewGeometry(contents, type == 1 ? @"mouse-up" : @"mouse-down", x, y, original_location);
     if (is_up && was_dragging && [pdfSelectionEdgeProbeMode() isEqualToString:@"extra-drag"]) {
@@ -7251,7 +6769,7 @@ bool ts_forward_mouse_event(ts_web_contents_t wc, int type, int button, double x
         NSEvent *extra_event = [NSEvent mouseEventWithType:NSEventTypeLeftMouseDragged
             location:extra_location
             modifierFlags:cocoaModifiers(modifiers)
-            timestamp:NSProcessInfo.processInfo.systemUptime
+            timestamp:[[NSDate date] timeIntervalSince1970]
             windowNumber:contents->window.windowNumber
             context:[NSGraphicsContext currentContext]
             eventNumber:++contents->mouse_event_number
@@ -7261,7 +6779,7 @@ bool ts_forward_mouse_event(ts_web_contents_t wc, int type, int button, double x
         [contents->web_view mouseDragged:extra_event];
         [NSApp _setCurrentEvent:nil];
         if (pdfCopyTraceEnabled()) {
-            appendPdfCopyTrace([NSString stringWithFormat:@"webkit-pdf-selection-edge tab=%d mode=extra-drag x=%.3f y=%.3f original_location=%@ adjusted_location=%@ delta=%.2f", contents->tab_id, x, y, NSStringFromPoint(original_location), NSStringFromPoint(extra_location), pdfSelectionEdgeDeltaX()]);
+            appendPdfCopyTrace([NSString stringWithFormat:@"webkit-pdf-selection-edge tab=%d mode=extra-drag x=%d y=%d original_location=%@ adjusted_location=%@ delta=%.2f", contents->tab_id, x, y, NSStringFromPoint(original_location), NSStringFromPoint(extra_location), pdfSelectionEdgeDeltaX()]);
         }
     }
     deliverMouseEvent(contents, event, type == 1 ? @"mouse-up" : @"mouse-down");
@@ -7282,14 +6800,13 @@ bool ts_forward_mouse_event(ts_web_contents_t wc, int type, int button, double x
             appendPdfSelectedTextCacheCopyTrace([NSString stringWithFormat:@"webkit-pdf-selected-text-cache tab=%d action=capture-skip reason=drag-threshold generation=%llu", contents->tab_id, (unsigned long long)contents->pdf_selected_text_generation]);
     }
     scheduleSnapshotLayerRefresh(contents, @"mouse-event");
-    return true;
 }
 
-bool ts_forward_mouse_move(ts_web_contents_t wc, double x, double y, int modifiers)
+void ts_forward_mouse_move(ts_web_contents_t wc, int x, int y, int modifiers)
 {
     WebContents *contents = static_cast<WebContents *>(wc);
-    if (!contents || !validMouseMoveInput(x, y, modifiers))
-        return false;
+    if (!contents)
+        return;
 
     bool is_drag = contents->mouse_buttons_down & mouseButtonMask(0);
     NSPoint original_location = eventLocationInWindow(contents, x, y);
@@ -7309,29 +6826,41 @@ bool ts_forward_mouse_move(ts_web_contents_t wc, double x, double y, int modifie
     NSEvent *event = [NSEvent mouseEventWithType:is_drag ? NSEventTypeLeftMouseDragged : NSEventTypeMouseMoved
         location:location
         modifierFlags:cocoaModifiers(modifiers)
-        timestamp:NSProcessInfo.processInfo.systemUptime
+        timestamp:[[NSDate date] timeIntervalSince1970]
         windowNumber:contents->window.windowNumber
         context:[NSGraphicsContext currentContext]
         eventNumber:++contents->mouse_event_number
         clickCount:is_drag ? contents->mouse_click_count : 0
         pressure:0.0];
-    if (is_drag) {
+    if (pdfMouseDispatchProbeMode() && is_drag) {
         contents->suppress_cursor_notifications = true;
-        deliverMouseEvent(contents, event, @"mouse-drag");
+        deliverMouseEvent(contents, event, is_drag ? @"mouse-drag" : @"mouse-move");
         contents->suppress_cursor_notifications = false;
     } else {
-        deliverMouseEvent(contents, event, @"mouse-move");
-        updateCursorFromDocumentPoint(contents, x, y);
-        updateTargetUrlFromDocumentPoint(contents, x, y);
+        if (is_drag) {
+            [NSApp _setCurrentEvent:event];
+            contents->suppress_cursor_notifications = true;
+            if ([pdfSelectionEdgeProbeMode() isEqualToString:@"target"]) {
+                NSView *target = [contents->web_view hitTest:event.locationInWindow] ?: contents->web_view;
+                [target mouseDragged:event];
+            } else {
+                [contents->web_view mouseDragged:event];
+            }
+            contents->suppress_cursor_notifications = false;
+            [NSApp _setCurrentEvent:nil];
+        } else {
+            deliverMouseEvent(contents, event, @"mouse-move");
+            updateCursorFromDocumentPoint(contents, x, y);
+            updateTargetUrlFromDocumentPoint(contents, x, y);
+        }
     }
     if (is_drag && pdfCopyTraceEnabled()) {
-        appendPdfCopyTrace([NSString stringWithFormat:@"webkit-pdf-copy-drag tab=%d x=%.3f y=%.3f modifiers=%d location=%@ original_location=%@ edge_mode=%@ edge_delta=%.2f remediation_geometry=%d", contents->tab_id, x, y, modifiers, NSStringFromPoint(event.locationInWindow), NSStringFromPoint(original_location), pdfSelectionEdgeProbeMode() ?: @"none", pdfSelectionEdgeDeltaX(), geometryRemediationApplied ? 1 : 0]);
+        appendPdfCopyTrace([NSString stringWithFormat:@"webkit-pdf-copy-drag tab=%d x=%d y=%d modifiers=%d location=%@ original_location=%@ edge_mode=%@ edge_delta=%.2f remediation_geometry=%d", contents->tab_id, x, y, modifiers, NSStringFromPoint(event.locationInWindow), NSStringFromPoint(original_location), pdfSelectionEdgeProbeMode() ?: @"none", pdfSelectionEdgeDeltaX(), geometryRemediationApplied ? 1 : 0]);
     }
     if (is_drag)
         tracePdfViewGeometry(contents, @"mouse-drag", x, y, original_location);
     if (is_drag)
         scheduleSnapshotLayerRefresh(contents, @"mouse-drag");
-    return true;
 }
 
 static int64_t coreGraphicsScrollPhaseForTermSurfPhase(int phase)
@@ -7360,30 +6889,24 @@ static int64_t coreGraphicsMomentumPhaseForTermSurfPhase(int momentum_phase)
     return kCGMomentumScrollPhaseNone;
 }
 
-bool ts_forward_scroll_event(
+void ts_forward_scroll_event(
     ts_web_contents_t wc,
-    double x,
-    double y,
-    double delta_x,
-    double delta_y,
+    int x,
+    int y,
+    float delta_x,
+    float delta_y,
     int phase,
     int momentum_phase,
     bool precise,
     int modifiers)
 {
     WebContents *contents = static_cast<WebContents *>(wc);
-    if (!contents || !validScrollEventInput(x, y, delta_x, delta_y, phase, momentum_phase, modifiers))
-        return false;
+    if (!contents)
+        return;
 
-    CGEventRef cg_event = CGEventCreateScrollWheelEvent2(
-        nullptr,
-        kCGScrollEventUnitPixel,
-        2,
-        static_cast<int32_t>(llround(-delta_y)),
-        static_cast<int32_t>(llround(-delta_x)),
-        0);
+    CGEventRef cg_event = CGEventCreateScrollWheelEvent2(nullptr, kCGScrollEventUnitPixel, 2, delta_y, delta_x, 0);
     if (!cg_event)
-        return false;
+        return;
     CGEventSetLocation(cg_event, eventLocationInGlobalScreen(contents, x, y));
     CGEventSetFlags(cg_event, (CGEventFlags)cocoaModifiers(modifiers));
     CGEventSetIntegerValueField(cg_event, kCGScrollWheelEventIsContinuous, precise ? 1 : 0);
@@ -7400,18 +6923,10 @@ bool ts_forward_scroll_event(
     int64_t cg_scroll_phase = CGEventGetIntegerValueField(cg_event, kCGScrollWheelEventScrollPhase);
     int64_t cg_momentum_phase = CGEventGetIntegerValueField(cg_event, kCGScrollWheelEventMomentumPhase);
     CFRelease(cg_event);
-    ForwardedScrollState forwarded_state {
-        static_cast<CGFloat>(delta_x),
-        static_cast<CGFloat>(delta_y),
-        static_cast<NSEventPhase>(phase),
-        static_cast<NSEventPhase>(momentum_phase),
-        precise,
-    };
-    installScrollEventSwizzles(&forwarded_state);
     NSView *hit_target = [contents->web_view hitTest:window_event.locationInWindow] ?: contents->web_view;
     NSString *dispatch_mode = webkitScrollDispatchMode();
     NSView *dispatch_target = [dispatch_mode isEqualToString:@"target"] ? hit_target : contents->web_view;
-    appendWebKitScrollTrace([NSString stringWithFormat:@"event=forward-scroll tab=%d url=%@ x=%.3f y=%.3f input_delta_x=%.3f input_delta_y=%.3f input_phase=%d input_momentum_phase=%d input_precise=%d modifiers=%d cg_scroll_phase=%lld cg_momentum_phase=%lld ns_delta_x=%.3f ns_delta_y=%.3f ns_phase=%lu ns_momentum_phase=%lu ns_precise=%d cg_continuous=%lld dispatch_mode=%@ target=%@ hit_target=%@ delivered=before",
+    appendWebKitScrollTrace([NSString stringWithFormat:@"event=forward-scroll tab=%d url=%@ x=%d y=%d input_delta_x=%.3f input_delta_y=%.3f input_phase=%d input_momentum_phase=%d input_precise=%d modifiers=%d cg_scroll_phase=%lld cg_momentum_phase=%lld ns_delta_x=%.3f ns_delta_y=%.3f ns_phase=%lu ns_momentum_phase=%lu ns_precise=%d cg_continuous=%lld dispatch_mode=%@ target=%@ hit_target=%@ delivered=before",
         contents->tab_id,
         contents->web_view.URL.absoluteString ?: @"",
         x,
@@ -7439,7 +6954,7 @@ bool ts_forward_scroll_event(
     else
         [dispatch_target scrollWheel:window_event];
     [NSApp _setCurrentEvent:nil];
-    appendWebKitScrollTrace([NSString stringWithFormat:@"event=forward-scroll tab=%d url=%@ x=%.3f y=%.3f input_delta_x=%.3f input_delta_y=%.3f input_phase=%d input_momentum_phase=%d input_precise=%d modifiers=%d cg_scroll_phase=%lld cg_momentum_phase=%lld ns_delta_x=%.3f ns_delta_y=%.3f ns_phase=%lu ns_momentum_phase=%lu ns_precise=%d cg_continuous=%lld dispatch_mode=%@ target=%@ hit_target=%@ delivered=after",
+    appendWebKitScrollTrace([NSString stringWithFormat:@"event=forward-scroll tab=%d url=%@ x=%d y=%d input_delta_x=%.3f input_delta_y=%.3f input_phase=%d input_momentum_phase=%d input_precise=%d modifiers=%d cg_scroll_phase=%lld cg_momentum_phase=%lld ns_delta_x=%.3f ns_delta_y=%.3f ns_phase=%lu ns_momentum_phase=%lu ns_precise=%d cg_continuous=%lld dispatch_mode=%@ target=%@ hit_target=%@ delivered=after",
         contents->tab_id,
         contents->web_view.URL.absoluteString ?: @"",
         x,
@@ -7461,10 +6976,8 @@ bool ts_forward_scroll_event(
         dispatch_mode,
         dispatch_target ? NSStringFromClass(dispatch_target.class) : @"nil",
         hit_target ? NSStringFromClass(hit_target.class) : @"nil"]);
-    restoreScrollEventSwizzles();
     scheduleSnapshotLayerRefresh(contents, @"scroll");
     scheduleScrollSettleSnapshotRefreshes(contents, phase, momentum_phase);
-    return true;
 }
 
 static void submitPdfFindQuery(WebContents *contents)
@@ -7577,81 +7090,13 @@ static bool performPdfKeyboardPageScrollForKeyEvent(WebContents *contents, int t
     return true;
 }
 
-enum class TSNavigationAction {
-    none,
-    consume,
-    back,
-    forward,
-    reload,
-    stop,
-};
-
-static TSNavigationAction navigationActionForPhysicalEvent(
-    int type, int keycode, int modifiers, bool is_loading, bool escape_owned)
-{
-    if (type < 0 || type > 2 || (modifiers & ~15) != 0)
-        return TSNavigationAction::none;
-    if (modifiers == 8 && (keycode == 0xDB || keycode == 0xDD || keycode == 0x52)) {
-        if (type != 0)
-            return TSNavigationAction::consume;
-        return keycode == 0xDB ? TSNavigationAction::back
-            : keycode == 0xDD ? TSNavigationAction::forward
-                              : TSNavigationAction::reload;
-    }
-    if (modifiers == 0 && keycode == 0x1B) {
-        if (type == 0 && is_loading)
-            return TSNavigationAction::stop;
-        if (escape_owned)
-            return TSNavigationAction::consume;
-    }
-    return TSNavigationAction::none;
-}
-
-bool ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const char *utf8, int modifiers)
+void ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const char *utf8, int modifiers)
 {
     WebContents *contents = static_cast<WebContents *>(wc);
-    if (!contents || !contents->web_view || !contents->focused || !utf8
-        || type < 0 || type > 2 || (modifiers & ~15) != 0)
-        return false;
-
-    TSNavigationAction navigation_action = navigationActionForPhysicalEvent(
-        type,
-        keycode,
-        modifiers,
-        contents->web_view.loading,
-        contents->navigation_escape_owned);
-    if (navigation_action == TSNavigationAction::stop)
-        contents->navigation_escape_owned = true;
-    else if (navigation_action == TSNavigationAction::consume
-        && modifiers == 0 && keycode == 0x1B && type == 1)
-        contents->navigation_escape_owned = false;
-    switch (navigation_action) {
-    case TSNavigationAction::back:
-        if (![contents->web_view canGoBack])
-            return false;
-        [contents->web_view goBack];
-        return true;
-    case TSNavigationAction::forward:
-        if (![contents->web_view canGoForward])
-            return false;
-        [contents->web_view goForward];
-        return true;
-    case TSNavigationAction::reload:
-        [contents->web_view reload];
-        return true;
-    case TSNavigationAction::stop:
-        [contents->web_view stopLoading];
-        return true;
-    case TSNavigationAction::consume:
-        return true;
-    case TSNavigationAction::none:
-        break;
-    }
+    if (!contents)
+        return;
 
     NSString *characters = stringFromCString(utf8);
-    if (!characters.length && (modifiers & 8) != 0
-        && keycode >= 0x41 && keycode <= 0x5A)
-        characters = [NSString stringWithFormat:@"%c", keycode + ('a' - 'A')];
     NSEventType eventType = type == 1 ? NSEventTypeKeyUp : NSEventTypeKeyDown;
     bool is_pdf_url = currentUrlLooksPdf(contents);
     if (type == 0 && is_pdf_url && pdfActionProbeEnabled()) {
@@ -7659,23 +7104,23 @@ bool ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const cha
         if (diagnosticAction.length) {
             bool attempted = performPdfActionDiagnostic(contents, diagnosticAction);
             tracePdfAction(contents, attempted ? @"diagnostic-key-result" : @"diagnostic-key-failed", diagnosticAction, [NSString stringWithFormat:@"keycode=%d modifiers=%d attempted=%d", keycode, modifiers, attempted ? 1 : 0]);
-            return attempted;
+            return;
         }
     }
     if (type == 0 && is_pdf_url && keycode == 80 && (modifiers & 8) != 0 && performPdfPrintModalDiagnostic(contents, keycode, modifiers))
-        return true;
+        return;
     if (type == 0 && is_pdf_url && keycode == 80 && (modifiers & 8) != 0 && performPdfPrintDialogDiagnostic(contents, keycode, modifiers))
-        return true;
+        return;
     if (type == 0 && is_pdf_url && keycode == 80 && (modifiers & 8) != 0 && performPdfPrintOperationDiagnostic(contents, keycode, modifiers))
-        return true;
+        return;
     if (type == 0 && is_pdf_url && performPdfProductionZoomForKeyEvent(contents, keycode, modifiers))
-        return true;
+        return;
     if (type == 0 && is_pdf_url && keycode == 83 && (modifiers & 8) != 0) {
         bool invoked = performPdfHudSavePrivateHook(contents);
         tracePdfHudSave(contents, invoked ? @"private-hook-result" : @"private-hook-failed", [NSString stringWithFormat:@"source=command-s invoked=%d", invoked ? 1 : 0]);
         if (invoked) {
             scheduleSnapshotLayerRefresh(contents, @"pdf-hud-save-private-hook");
-            return true;
+            return;
         }
     }
     if (type == 0 && is_pdf_url && keycode == 70 && (modifiers & 8) != 0) {
@@ -7683,31 +7128,31 @@ bool ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const cha
         contents->pdf_find_query = [NSMutableString string];
         tracePdfFind(contents, @"begin", @"source=command-f");
         scheduleSnapshotLayerRefresh(contents, @"find-begin");
-        return true;
+        return;
     }
     if (type == 0 && is_pdf_url && contents->pdf_find_session_active) {
         if (keycode == 13 || keycode == 36) {
             submitPdfFindQuery(contents);
             contents->pdf_find_session_active = false;
-            return true;
+            return;
         }
         if (keycode == 53 || keycode == 27) {
             tracePdfFind(contents, @"end", @"source=escape");
             contents->pdf_find_session_active = false;
             contents->pdf_find_query = nil;
-            return true;
+            return;
         }
         if ((keycode == 51 || keycode == 8) && contents->pdf_find_query.length > 0) {
             [contents->pdf_find_query deleteCharactersInRange:NSMakeRange(contents->pdf_find_query.length - 1, 1)];
             tracePdfFind(contents, @"edit", @"source=backspace");
-            return true;
+            return;
         }
         if (characters.length > 0 && modifiers == 0) {
             if (!contents->pdf_find_query)
                 contents->pdf_find_query = [NSMutableString string];
             [contents->pdf_find_query appendString:characters];
             tracePdfFind(contents, @"edit", [NSString stringWithFormat:@"append_len=%lu", (unsigned long)characters.length]);
-            return true;
+            return;
         }
     }
     if (!is_pdf_url && contents->pdf_find_session_active) {
@@ -7715,12 +7160,12 @@ bool ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const cha
         contents->pdf_find_query = nil;
     }
     if (performPdfKeyboardPageScrollForKeyEvent(contents, type, keycode, modifiers))
-        return true;
+        return;
     unsigned short macKeyCode = macKeyCodeForWindowsKeyCode(keycode);
     NSEvent *event = [NSEvent keyEventWithType:eventType
         location:NSMakePoint(0, 0)
         modifierFlags:cocoaModifiers(modifiers)
-        timestamp:NSProcessInfo.processInfo.systemUptime
+        timestamp:[[NSDate date] timeIntervalSince1970]
         windowNumber:contents->window.windowNumber
         context:nil
         characters:characters
@@ -7751,16 +7196,6 @@ bool ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const cha
         runPdfCopyBridgePreKeyRoutes(contents, copy_bridge_mode, event);
     }
 
-    TSEditingAction editing_action = editingActionForPhysicalEvent(
-        type, keycode, utf8, modifiers, is_pdf_url);
-    TSPendingEditingKey *editing_pending = nil;
-    if (editing_action != TSEditingActionNone) {
-        editing_pending = registerEditingPending(contents, event, editing_action);
-        if (!editing_pending)
-            return false;
-    }
-
-    bool delivered = true;
     if (eventType == NSEventTypeKeyUp)
     {
         [NSApp _setCurrentEvent:event];
@@ -7772,15 +7207,9 @@ bool ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const cha
         [NSApp _setCurrentEvent:event];
         if (route_pdf_text_input)
             [contents->web_view insertText:characters];
-        else if ((modifiers & 8) != 0)
-            delivered = [contents->web_view performKeyEquivalent:event];
         else
             [contents->web_view keyDown:event];
         [NSApp _setCurrentEvent:nil];
-    }
-    if (editing_pending && !delivered) {
-        removeEditingPending(editing_pending);
-        traceEditingResponder(editing_pending, @"rejected", false, @"perform-key-equivalent");
     }
     if (is_pdf_url && type == 1)
         tracePdfPasswordOracle(contents, @"key-up");
@@ -7846,82 +7275,6 @@ bool ts_forward_key_event(ts_web_contents_t wc, int type, int keycode, const cha
         restorePdfCopyBridge(contents, copy_bridge_mode, &copy_bridge_state);
     }
     scheduleSnapshotLayerRefresh(contents, @"key-event");
-    return delivered;
-}
-
-static bool termSurfWireRange(int64_t start, int64_t length, NSRange *out)
-{
-    if (!out)
-        return false;
-    if (start == -1 && length == -1) {
-        *out = NSMakeRange(NSNotFound, 0);
-        return true;
-    }
-    if (start < 0 || length < 0)
-        return false;
-    *out = NSMakeRange((NSUInteger)start, (NSUInteger)length);
-    return true;
-}
-
-bool ts_forward_text_input(ts_web_contents_t wc, const char *type, const char *text,
-    int64_t selected_start, int64_t selected_length,
-    int64_t replacement_start, int64_t replacement_length)
-{
-    WebContents *contents = static_cast<WebContents *>(wc);
-    if (!contents || !contents->web_view || !contents->focused || !type || !text)
-        return false;
-
-    NSRange selected;
-    NSRange replacement;
-    if (!termSurfWireRange(selected_start, selected_length, &selected)
-        || !termSurfWireRange(replacement_start, replacement_length, &replacement))
-        return false;
-
-    NSString *kind = stringFromCString(type);
-    NSString *value = stringFromCString(text);
-    id<NSTextInputClient> input = (id<NSTextInputClient>)contents->web_view;
-    if ([kind isEqualToString:@"commit"]) {
-        if (contents->composition_active)
-            return false;
-        [input insertText:value replacementRange:replacement];
-    } else if ([kind isEqualToString:@"ime_start"]) {
-        if (contents->composition_active || value.length)
-            return false;
-        [input setMarkedText:@"" selectedRange:selected replacementRange:replacement];
-        contents->composition_active = true;
-    } else if ([kind isEqualToString:@"ime_update"]) {
-        if (!contents->composition_active || selected.location == NSNotFound
-            || NSMaxRange(selected) > value.length)
-            return false;
-        [input setMarkedText:value selectedRange:selected replacementRange:replacement];
-    } else if ([kind isEqualToString:@"ime_commit"]) {
-        if (!contents->composition_active)
-            return false;
-        [input insertText:value replacementRange:replacement];
-        contents->composition_active = false;
-    } else if ([kind isEqualToString:@"ime_cancel"]) {
-        if (!contents->composition_active || value.length)
-            return false;
-        [input setMarkedText:@"" selectedRange:NSMakeRange(0, 0)
-            replacementRange:NSMakeRange(NSNotFound, 0)];
-        [input unmarkText];
-        contents->composition_active = false;
-        contents->composition_cancel_pending = true;
-        uint64_t generation = ++contents->composition_cancel_generation;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            if (!isRegisteredContents(contents))
-                return;
-            if (contents->composition_cancel_generation != generation)
-                return;
-            contents->composition_cancel_pending = false;
-            if (!contents->focused && contents->window)
-                [contents->window makeFirstResponder:nil];
-        });
-    } else {
-        return false;
-    }
-    scheduleSnapshotLayerRefresh(contents, @"text-input");
-    return true;
 }
 
 void ts_set_focus(ts_web_contents_t wc, bool focused)
@@ -7930,16 +7283,12 @@ void ts_set_focus(ts_web_contents_t wc, bool focused)
     if (!contents)
         return;
 
-    if (!focused)
-        cancelEditingPending(contents, @"focus-lost");
     contents->focused = focused;
     traceCopyState(contents, focused ? @"focus-true" : @"focus-false");
     tracePdfSelectionSurface(contents, focused ? @"focus-true" : @"focus-false");
     if (!focused)
         clearPdfSelectedTextCache(contents, @"focus-false");
     if (!focused) {
-        if (contents->composition_cancel_pending)
-            return;
         if (contents->window) {
             [contents->window makeFirstResponder:nil];
             if ([NSProcessInfo.processInfo.environment[@"ASTROHACKER_WEBKIT_ALLOW_HOST_MOUSE"] isEqualToString:@"1"])
@@ -8066,12 +7415,6 @@ void ts_set_on_loading_state(ts_loading_state_cb cb, void *user_data)
 {
     g_callbacks.on_loading_state = cb;
     g_callbacks.on_loading_state_data = user_data;
-}
-
-void ts_set_on_navigation_state(ts_navigation_state_cb cb, void *user_data)
-{
-    g_callbacks.on_navigation_state = cb;
-    g_callbacks.on_navigation_state_data = user_data;
 }
 
 void ts_set_on_title_changed(ts_title_changed_cb cb, void *user_data)
@@ -8206,50 +7549,6 @@ extern "C" void ts_webkit_test_kill_web_content_process(ts_web_contents_t wc)
 extern "C" int ts_webkit_test_renderer_crash_delegate_count(void)
 {
     return g_test_renderer_crash_delegate_count.load();
-}
-
-extern "C" int ts_webkit_test_editing_action_for_key(
-    int type, int keycode, const char *utf8, int modifiers, int is_pdf)
-{
-    return static_cast<int>(editingActionForPhysicalEvent(
-        type, keycode, utf8, modifiers, is_pdf != 0));
-}
-
-extern "C" int ts_webkit_test_navigation_action_for_key(
-    int type, int keycode, int modifiers, int is_loading, int escape_owned)
-{
-    return static_cast<int>(navigationActionForPhysicalEvent(
-        type, keycode, modifiers, is_loading != 0, escape_owned != 0));
-}
-
-extern "C" int ts_webkit_test_editing_responder_execution_count(void)
-{
-    return g_editing_responder_execution_count.load();
-}
-
-extern "C" int ts_webkit_test_editing_pending_count(void)
-{
-    return static_cast<int>(g_pending_editing_keys.count);
-}
-
-extern "C" int ts_webkit_test_unrelated_editing_event_consumed(void)
-{
-    TSPendingEditingKey *pending = g_pending_editing_keys.allValues.firstObject;
-    if (!pending)
-        return -1;
-    NSEvent *event = [NSEvent keyEventWithType:pending.event.type
-        location:pending.event.locationInWindow
-        modifierFlags:pending.event.modifierFlags
-        timestamp:pending.event.timestamp
-        windowNumber:pending.event.windowNumber
-        context:nil
-        characters:pending.event.characters ?: @""
-        charactersIgnoringModifiers:pending.event.charactersIgnoringModifiers ?: @""
-        isARepeat:pending.event.isARepeat
-        keyCode:pending.event.keyCode];
-    if (!event || event == pending.event)
-        return -1;
-    return consumeEditingResponderResend(event) ? 1 : 0;
 }
 
 extern "C" int ts_webkit_test_host_ignores_mouse_events(ts_web_contents_t wc)

@@ -23,7 +23,7 @@ enum AppEvent {
 }
 
 fn main() -> io::Result<()> {
-    if handle_identity_arg() {
+    if handle_identity_arg(std::env::args().skip(1)) {
         return Ok(());
     }
 
@@ -133,9 +133,13 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn handle_identity_arg() -> bool {
-    for arg in std::env::args().skip(1) {
-        match arg.as_str() {
+fn handle_identity_arg<I, S>(args: I) -> bool
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    for arg in args {
+        match arg.as_ref() {
             "--version" => {
                 println!("Astrohacker App {}", env!("ASTROHACKER_CLI_VERSION"));
                 return true;
@@ -321,7 +325,15 @@ fn read_message(stream: &mut UnixStream) -> io::Result<TermSurfMessage> {
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_chromium_env_path;
+    use super::{handle_identity_arg, resolve_chromium_env_path};
+
+    #[test]
+    fn identity_args_exit_before_runtime_setup() {
+        assert!(handle_identity_arg(["--version"]));
+        assert!(handle_identity_arg(["--help"]));
+        assert!(handle_identity_arg(["-h"]));
+        assert!(!handle_identity_arg(["--browser=chromium"]));
+    }
 
     #[test]
     fn chromium_env_prefers_astrohacker_name() {

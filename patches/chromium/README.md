@@ -7,16 +7,31 @@ branch notes that are safe to commit.
 
 ## Current State
 
-- **Production reconstructable baseline:** `150.0.7871.47-issue-26071112000924` / base
+- **Restored reconstructable baseline:** `150.0.7871.47-issue-26071420489654` / base
   `150.0.7871.47` (`0c3cca15d78645281db2d339b2dc3d6fad4ee90a`)
 - Main build target: `libtermsurf_chromium`
 - Working tree: `forks/chromium/src`
 - Tooling: `forks/chromium/depot_tools`
 - Patch archives: `patches/chromium/patches`
-- Historical: `148.0.7778.271-issue-26070612000901` remains in the archive ledger only;
-  issue-26071112000924 is current after Issue 26071112000924 Experiment 4 Pass.
+- Historical: Issue `26071112000924` remains the exact `0.1.17` release
+  archive; later archives remain history. Issue `26071420489654` is the active
+  restoration record.
 
-### Issue 26071112000924 / Electron stable Chromium 150 (current)
+### Issue 26071420489654 / 0.1.17 restoration (current)
+
+| Field | Value |
+| --- | --- |
+| Target base | `150.0.7871.47` / `0c3cca15d78645281db2d339b2dc3d6fad4ee90a` |
+| Policy | Restore the exact shipped `0.1.17` Chromium product tree |
+| Product branch | `150.0.7871.47-issue-26071420489654` |
+| Product HEAD | `cd36368f70078014b2b6386fae0999b912b86b30` (119 commits on base) |
+| Product tree | `8264590e738a8f4b2f0c1f0b4f46a4431347f073` (equal to historical `0.1.17`) |
+| Archive | `patches/chromium/patches/issue-26071420489654/` (119 format-patches) |
+| Archive aggregate SHA-256 | `b332e1468f309e78459da164b40656aa848b4caa2e2f0e92a3abab0844f04a8b` |
+| Reconstruction | **Pass** — 119 stable patch IDs equal; two clean replays produced the expected tree |
+| Build status | **Not built** — engine build, resize behavior, binary comparison, and release qualification are deferred |
+
+### Issue 26071112000924 / Electron stable Chromium 150 (`0.1.17` historical)
 
 | Field | Value |
 | --- | --- |
@@ -59,8 +74,8 @@ For the current fully archived baseline:
 ```bash
 cd forks/chromium/src
 git checkout 0c3cca15d78645281db2d339b2dc3d6fad4ee90a
-git checkout -b 150.0.7871.47-issue-26071112000924
-git am ../../../patches/chromium/patches/issue-26071112000924/*.patch
+git checkout -b 150.0.7871.47-issue-26071420489654
+git am ../../../patches/chromium/patches/issue-26071420489654/*.patch
 ```
 
 Historical 901 baseline (pre–Issue 26071112000924):

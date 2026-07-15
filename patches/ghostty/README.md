@@ -3,20 +3,31 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-## Current State (Issue 26071112000924)
+## Current State (Issue 26071420489654)
 
 - Upstream repository: `https://github.com/ghostty-org/ghostty`
-- Upstream base policy: **latest commit on upstream `main`**
 - Upstream base commit: `53bd14fecfd68c6c0ab64d37b5943247299e2b40`
 - Local fork working tree: `forks/ghostty`
-- Product branch: `issue-26071112000924-ghostty-upstream`
+- Product branch: `issue-26071420489654-ghostty-restoration`
 - Product HEAD (base + product commit):
-  `ad9768db5138df928b3c307754e7dae0f7945af9`
-- Issue archive: `patches/ghostty/patches/issue-26071112000924/`
+  `e380e7211d12c0da2ad7f8a1796d5793e12f11fc`
+- Product tree: `362ce2b98d3700ab1a00c231614388d53dff5786`
+- Issue archive: `patches/ghostty/patches/issue-26071420489654/`
 - Patch:
-  `patches/ghostty/patches/issue-26071112000924/0001-astrohacker-terminal-ghostty.patch`
-- Prior archive (historical): `patches/ghostty/patches/issue-26070412000013/`
-  on base `2c62d182cec246764ff725096a70b9ef44996f7f`
+  `patches/ghostty/patches/issue-26071420489654/0001-astrohacker-Terminal-ghostty-product-patch-on-tip-is.patch`
+- Patch SHA-256:
+  `e620a06511f57372488dd640459db4700d99cd0a3c5601936b515faada6b9387`
+- Archive aggregate SHA-256:
+  `1b81bd9875d152221b8d7329883217f590a080f14f828743c0c705bacc4314dc`
+- Verification: **archive replay Pass; not built**
+
+## Historical Archives
+
+- Issue `26071112000924`: `patches/ghostty/patches/issue-26071112000924/`
+  on base `53bd14fecfd68c6c0ab64d37b5943247299e2b40`, product HEAD
+  `ad9768db5138df928b3c307754e7dae0f7945af9`.
+- Issue `26070412000013`: `patches/ghostty/patches/issue-26070412000013/`
+  on base `2c62d182cec246764ff725096a70b9ef44996f7f`.
 
 Executable product name: **`ahterm`** inside
 `Astrohacker Terminal.app`.
@@ -25,17 +36,16 @@ Executable product name: **`ahterm`** inside
 
 ```sh
 BASE=53bd14fecfd68c6c0ab64d37b5943247299e2b40
-git -C forks/ghostty fetch origin
-git -C forks/ghostty worktree add /tmp/astrohacker-ghostty-0924 "$BASE"
-git -C /tmp/astrohacker-ghostty-0924 am \
-  "$PWD/patches/ghostty/patches/issue-26071112000924/0001-astrohacker-terminal-ghostty.patch"
+git -C forks/ghostty worktree add /tmp/astrohacker-ghostty-restoration "$BASE"
+git -C /tmp/astrohacker-ghostty-restoration am \
+  "$PWD/patches/ghostty/patches/issue-26071420489654/0001-astrohacker-Terminal-ghostty-product-patch-on-tip-is.patch"
 ```
 
 ## Generate
 
 ```sh
-git -C forks/ghostty format-patch -1 HEAD --stdout \
-  > patches/ghostty/patches/issue-26071112000924/0001-astrohacker-terminal-ghostty.patch
+git -C forks/ghostty format-patch -1 HEAD \
+  -o patches/ghostty/patches/issue-26071420489654/
 ```
 
 ## Build / verify

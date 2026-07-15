@@ -133,7 +133,7 @@ fn startup_trace(event: &str) {
 // --- main ---
 
 fn main() {
-    if handle_identity_arg() {
+    if handle_identity_arg(std::env::args().skip(1)) {
         return;
     }
 
@@ -180,7 +180,6 @@ fn main() {
         ffi::ts_set_on_ca_context_id(Some(dispatch::on_ca_context_id), ptr::null_mut());
         ffi::ts_set_on_url_changed(Some(dispatch::on_url_changed), ptr::null_mut());
         ffi::ts_set_on_loading_state(Some(dispatch::on_loading_state), ptr::null_mut());
-        ffi::ts_set_on_navigation_state(Some(dispatch::on_navigation_state), ptr::null_mut());
         ffi::ts_set_on_title_changed(Some(dispatch::on_title_changed), ptr::null_mut());
         ffi::ts_set_on_cursor_changed(Some(dispatch::on_cursor_changed), ptr::null_mut());
         ffi::ts_set_on_target_url_changed(Some(dispatch::on_target_url_changed), ptr::null_mut());
@@ -201,9 +200,13 @@ fn main() {
     std::process::exit(ret);
 }
 
-fn handle_identity_arg() -> bool {
-    for arg in std::env::args().skip(1) {
-        match arg.as_str() {
+fn handle_identity_arg<I, S>(args: I) -> bool
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    for arg in args {
+        match arg.as_ref() {
             "--version" => {
                 println!(
                     "Astrohacker Chromium Engine {}",
@@ -223,4 +226,17 @@ Options:\n      --ipc-socket=<PATH>       Connect to an Astrohacker Terminal IPC
         }
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::handle_identity_arg;
+
+    #[test]
+    fn identity_args_exit_before_runtime_setup() {
+        assert!(handle_identity_arg(["--version"]));
+        assert!(handle_identity_arg(["--help"]));
+        assert!(handle_identity_arg(["-h"]));
+        assert!(!handle_identity_arg(["--termsurf-warmup"]));
+    }
 }

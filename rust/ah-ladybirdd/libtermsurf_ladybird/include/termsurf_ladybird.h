@@ -53,12 +53,6 @@ typedef struct TsLadybirdRendererCrash {
   bool can_reload;
 } TsLadybirdRendererCrash;
 
-typedef struct TsLadybirdNavigationState {
-  bool can_go_back;
-  bool can_go_forward;
-  bool can_refresh;
-} TsLadybirdNavigationState;
-
 const char *ts_ladybird_runtime_name(void);
 const char *ts_ladybird_runtime_version(void);
 const char *ts_ladybird_runtime_resource_root(void);
@@ -90,12 +84,6 @@ bool ts_ladybird_view_scroll_event(TsLadybirdView *view, double x, double y,
 bool ts_ladybird_view_key_event(TsLadybirdView *view, const char *type,
                                 int windows_key_code, const char *utf8,
                                 unsigned long long modifiers);
-bool ts_ladybird_view_run_javascript_for_testing(TsLadybirdView *view,
-                                                 const char *script);
-bool ts_ladybird_view_navigation_action(TsLadybirdView *view,
-                                        const char *action);
-bool ts_ladybird_view_navigation_state(
-    const TsLadybirdView *view, TsLadybirdNavigationState *out_state);
 bool ts_ladybird_view_take_title_changed(TsLadybirdView *view, char *out_title,
                                          size_t out_title_len);
 bool ts_ladybird_view_take_console_message(

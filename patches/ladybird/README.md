@@ -9,13 +9,18 @@ tracks patch archives and branch notes that are safe to commit.
 - **Upstream policy:** default branch **`master`** tip (remote HEAD is
   `refs/heads/master`, not `main`).
 - **Current base:** `2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd`
-- **Current branch:** `2a3bc6a3-issue-26071112000924`
-- **Current HEAD:** `616dd0cdc9061fc17f49248fa507770df4df92de`
-- **Archive:** `patches/ladybird/patches/issue-26071112000924/` (18 patches; TREE_MATCH)
+- **Current branch:** `2a3bc6a3-issue-26071420489654-restoration`
+- **Current HEAD:** `986f63961a10e8b375c7fdc82b4d0983fce4e56a`
+- **Current tree:** `118f26862c9d745e38509a3c9e77cc856409925f`
+- **Archive:** `patches/ladybird/patches/issue-26071420489654/` (18 patches)
+- **Archive aggregate SHA-256:**
+  `c1d4db1a665c1b07e69ea3067ed03169ac90003d1355417fcb3d705d4fb3f041`
+- **Verification:** **archive replay Pass; not built**
 - Working tree: `forks/ladybird`
 
-Historical flat 0884/0890 files under `patches/ladybird/patches/` remain as
-pre-924 imports; issue-26071112000924 is the reconstructable current stack.
+Every earlier/later archive under `patches/ladybird/patches/` remains a
+historical record. Issue `26071112000924` is the tag-stored `0.1.17` stack;
+post-`0.1.17` archives are present but are not part of this restoration claim.
 
 ## Merge-upstream
 
@@ -59,9 +64,11 @@ pre-924 imports; issue-26071112000924 is the reconstructable current stack.
 
 ```bash
 cd forks/ladybird
-git fetch origin 2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd
-git switch -C 2a3bc6a3-issue-26071112000924 2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd
-git am ../../patches/ladybird/patches/issue-26071112000924/*.patch
+git worktree add -b 2a3bc6a3-issue-26071420489654-restoration \
+  /tmp/astrohacker-ladybird-restoration \
+  2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd
+git -C /tmp/astrohacker-ladybird-restoration am \
+  "$PWD/../../patches/ladybird/patches/issue-26071420489654/"*.patch
 ```
 
 ## Generating Patches
@@ -69,7 +76,7 @@ git am ../../patches/ladybird/patches/issue-26071112000924/*.patch
 ```bash
 git -C forks/ladybird format-patch \
   2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd..HEAD \
-  -o "$PWD/patches/ladybird/patches/issue-26071112000924"
+  -o "$PWD/patches/ladybird/patches/issue-26071420489654"
 ```
 
 ## Verification
