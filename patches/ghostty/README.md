@@ -3,6 +3,18 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
+## Active Add-on (Issue 26071611180778)
+
+- Parent product commit: `328d150826cb17be0f0eaa15fada9549fe2c60a1`
+- Product branch: `issue-26071611180778-split-webview-disappearance`
+- Product HEAD: `58d5855ccfc1b2d5d788af87d708f8c1b9b15c98`
+- Product tree: `c49e204f49636262be90e23c0fd90e5b7c4f0a4e`
+- Issue archive: `patches/ghostty/patches/issue-26071611180778/`
+- Scope: split-tree/focus diagnostics plus AppKit overlay-lifetime preservation
+  across transient window detachment.
+- Verification: **focused tests, source build, corrected Chromium product gate,
+  and two-patch archive replay Pass**; Experiment 2 result review approved.
+
 ## Current State (Issue 26071420489654)
 
 - Upstream repository: `https://github.com/ghostty-org/ghostty`
