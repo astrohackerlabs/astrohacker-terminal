@@ -91,8 +91,22 @@ Implemented:
   Chromium/Chromium-compatible field normalization and `ts_reply_http_auth`;
 - renderer crash reporting through WebKit process-termination delegate
   callbacks;
+- semantic Back and Forward through `WKWebView.goBack` and
+  `WKWebView.goForward`, with authoritative per-view `canGoBack` and
+  `canGoForward` callbacks and fail-closed crash state;
 - DevTools tab creation through WebKit Inspector's frontend `WKWebView`, exposed
   as a normal Astrohacker Terminal/TermSurf protocol CA context surface.
 
 No unsupported C ABI entry points are currently known in the smoke-tested
 WebKit surface. Ghostboard integration remains unproven.
+
+The combined Back/Forward native contract has its own two-view Forward smoke:
+
+```bash
+rust/ah-webkitd/libtermsurf_webkit/smoke-test/run-forward-action-smoke.sh
+```
+
+It builds the Release wrapper, serves a WebKit-local deterministic fixture, and
+proves a Back/Forward history round trip, independent enabled and disabled
+state, fresh-navigation clearing, same-document history, view isolation, and
+content-process crash/recovery without synthesizing a key event.

@@ -10,7 +10,7 @@ message TermSurfMessage {
     Resize resize = 3;
     CloseTab close_tab = 4;
 
-    // Navigation (GUI → Chromium, TUI → GUI)
+    // Navigation (GUI → engine, TUI → GUI)
     Navigate navigate = 5;
 
     // Input (GUI → Chromium)
@@ -76,6 +76,12 @@ message TermSurfMessage {
 
     // Generic render surface metadata (engine → GUI)
     RenderSurface render_surface = 43;
+
+    // Semantic navigation (TUI → GUI → engine, engine → GUI → TUI)
+    // Tag 44 intentionally remains unused. Tags 45/46 preserve the historical
+    // TermSurf wire assignment for this contract.
+    NavigationAction navigation_action = 45;
+    NavigationState navigation_state = 46;
   }
 }
 
@@ -115,9 +121,27 @@ message CloseTab {
 // --- Navigation ---
 
 message Navigate {
-  int64 tab_id = 1;      // nonzero when GUI → Chromium
+  int64 tab_id = 1;      // nonzero when GUI → engine
   string pane_id = 2;    // nonempty when TUI → GUI
   string url = 3;
+}
+
+// TUI → GUI: tab_id=0, pane_id identifies the owning pane.
+// GUI → engine: tab_id identifies the native tab, pane_id is empty.
+// Legal actions are "back", "forward", and "refresh".
+message NavigationAction {
+  int64 tab_id = 1;
+  string pane_id = 2;
+  string action = 3;
+  uint64 request_id = 4; // zero TUI -> GUI; nonzero GUI -> engine for Refresh
+}
+
+// Engine → GUI → TUI. State is authoritative for exactly one native tab.
+message NavigationState {
+  int64 tab_id = 1;
+  bool can_go_back = 2;
+  bool can_go_forward = 3;
+  bool can_refresh = 4;
 }
 
 // --- Input ---
@@ -216,6 +240,7 @@ message LoadingState {
   int64 tab_id = 1;
   string state = 2;      // "loading", "progress", "done", "error"
   uint64 progress = 3;   // 0-100
+  uint64 navigation_request_id = 4; // nonzero only for a correlated Refresh
 }
 
 message TitleChanged {

@@ -375,6 +375,56 @@ bool ts_ladybird_view_key_event(TsLadybirdView *view, const char *type,
   return true;
 }
 
+bool ts_ladybird_view_run_javascript_for_testing(TsLadybirdView *view,
+                                                 const char *script) {
+  if (!view || view->destroyed) {
+    set_error(view ? view->runtime : NULL, "stub view is invalid");
+    return false;
+  }
+  if (!script) {
+    set_error(view->runtime, "stub script is null");
+    return false;
+  }
+  return true;
+}
+
+bool ts_ladybird_view_navigation_action(TsLadybirdView *view,
+                                        const char *action) {
+  if (!view || view->destroyed) {
+    set_error(view ? view->runtime : NULL, "stub view is invalid");
+    return false;
+  }
+  if (!action) {
+    set_error(view->runtime, "stub navigation action is null");
+    return false;
+  }
+  if (strcmp(action, "back") == 0) {
+    set_error(view->runtime, "stub back navigation is unavailable");
+    return false;
+  }
+  if (strcmp(action, "refresh") == 0) {
+    set_error(view->runtime, "stub refresh navigation is unavailable");
+    return false;
+  }
+  set_error(view->runtime, "stub navigation action is unsupported");
+  return false;
+}
+
+bool ts_ladybird_view_navigation_state(
+    const TsLadybirdView *view, TsLadybirdNavigationState *out_state) {
+  if (!out_state) {
+    set_error(view ? view->runtime : NULL,
+              "stub navigation state output is null");
+    return false;
+  }
+  memset(out_state, 0, sizeof(*out_state));
+  if (!view || view->destroyed) {
+    set_error(view ? view->runtime : NULL, "stub view is invalid");
+    return false;
+  }
+  return true;
+}
+
 bool ts_ladybird_view_take_title_changed(TsLadybirdView *view, char *out_title,
                                          size_t out_title_len) {
   if (!view || view->destroyed) {

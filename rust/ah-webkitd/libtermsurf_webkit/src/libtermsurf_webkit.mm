@@ -90,6 +90,8 @@ struct CallbackState {
     void *on_url_changed_data = nullptr;
     ts_loading_state_cb on_loading_state = nullptr;
     void *on_loading_state_data = nullptr;
+    ts_navigation_state_cb on_navigation_state = nullptr;
+    void *on_navigation_state_data = nullptr;
     ts_title_changed_cb on_title_changed = nullptr;
     void *on_title_changed_data = nullptr;
     ts_cursor_changed_cb on_cursor_changed = nullptr;
@@ -216,6 +218,10 @@ static bool currentUrlLooksPdf(WebContents *contents);
 @property(nonatomic) WebContents *owner;
 @end
 
+@interface TSNavigationStateObserver : NSObject
+@property(nonatomic) WebContents *owner;
+@end
+
 @interface TSUIDelegate : NSObject <WKUIDelegatePrivate>
 @property(nonatomic) WebContents *owner;
 @end
@@ -243,6 +249,7 @@ struct WebContents {
     WKWebView *web_view;
     _WKInspector *inspector;
     TSNavigationDelegate *navigation_delegate;
+    TSNavigationStateObserver *navigation_state_observer;
     TSUIDelegate *ui_delegate;
     TSConsoleMessageHandler *console_message_handler;
     NSMutableDictionary<NSNumber *, TSPendingJavaScriptDialog *> *pending_javascript_dialogs;
@@ -253,6 +260,8 @@ struct WebContents {
     uint64_t cursor_probe_generation;
     bool suppress_cursor_notifications;
     bool renderer_crash_reported;
+    bool renderer_crashed;
+    bool has_committed_document;
     CAContext *remote_context;
     CALayer *snapshot_layer;
     bool snapshot_refresh_pending;
@@ -5288,6 +5297,28 @@ static void fireLoading(WebContents *contents, NSString *url, int loading)
     });
 }
 
+static void fireNavigationState(WebContents *contents)
+{
+    if (!contents || !g_callbacks.on_navigation_state)
+        return;
+    bool can_go_back = !contents->is_devtools
+        && !contents->renderer_crashed
+        && contents->web_view
+        && contents->web_view.canGoBack;
+    bool can_go_forward = !contents->is_devtools
+        && !contents->renderer_crashed
+        && contents->web_view
+        && contents->web_view.canGoForward;
+    bool can_refresh = !contents->is_devtools
+        && contents->has_committed_document;
+    g_callbacks.on_navigation_state(
+        contents,
+        can_go_back,
+        can_go_forward,
+        can_refresh,
+        g_callbacks.on_navigation_state_data);
+}
+
 static void fireUrl(WebContents *contents, NSString *url)
 {
     if (!g_callbacks.on_url_changed)
@@ -5305,6 +5336,25 @@ static void fireTitle(WebContents *contents, NSString *title)
         g_callbacks.on_title_changed(contents, c_title, g_callbacks.on_title_changed_data);
     });
 }
+
+@implementation TSNavigationStateObserver
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
+                       context:(void *)context
+{
+    (void)change;
+    (void)context;
+    if (!self.owner || object != self.owner->web_view
+        || !([keyPath isEqualToString:@"canGoBack"]
+            || [keyPath isEqualToString:@"canGoForward"]
+            || [keyPath isEqualToString:@"URL"])) {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        return;
+    }
+    fireNavigationState(self.owner);
+}
+@end
 
 static bool closeToColor(NSUInteger red, NSUInteger green, NSUInteger blue, NSUInteger target_red, NSUInteger target_green, NSUInteger target_blue)
 {
@@ -6034,14 +6084,18 @@ static NSString *rendererCrashReason(NSInteger reason)
 
 static void fireRendererCrashed(WebContents *contents, NSString *reason)
 {
-    if (!contents || !g_callbacks.on_renderer_crashed)
+    if (!contents)
         return;
     if (contents->renderer_crash_reported)
         return;
 
     contents->renderer_crash_reported = true;
+    contents->renderer_crashed = true;
+    fireNavigationState(contents);
+    if (!g_callbacks.on_renderer_crashed)
+        return;
     NSString *url = contents->web_view.URL.absoluteString ?: @"";
-    bool visible = contents->window.visible;
+    bool can_reload = contents->has_committed_document;
     withCString(reason ?: @"unknown", ^(const char *c_reason) {
         withCString(url, ^(const char *c_url) {
             g_callbacks.on_renderer_crashed(
@@ -6049,7 +6103,7 @@ static void fireRendererCrashed(WebContents *contents, NSString *reason)
                 c_reason,
                 0,
                 c_url,
-                visible,
+                can_reload,
                 g_callbacks.on_renderer_crashed_data);
         });
     });
@@ -6243,9 +6297,12 @@ static void exportContext(WebContents *contents)
 - (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
 {
     (void)navigation;
+    self.owner->renderer_crashed = false;
+    self.owner->has_committed_document = true;
     clearPdfSelectedTextCache(self.owner, @"navigation-commit");
     tracePdfNavigationDiagnostics(self.owner, @"navigation-commit", webView.URL.absoluteString);
     fireUrl(self.owner, webView.URL.absoluteString);
+    fireNavigationState(self.owner);
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
@@ -6509,6 +6566,8 @@ ts_web_contents_t ts_create_web_contents(ts_browser_context_t ctx, const char *u
     contents->cursor_probe_generation = 0;
     contents->suppress_cursor_notifications = false;
     contents->renderer_crash_reported = false;
+    contents->renderer_crashed = false;
+    contents->has_committed_document = false;
     contents->snapshot_layer = nil;
     contents->snapshot_refresh_pending = false;
     contents->snapshot_refresh_again = false;
@@ -6546,6 +6605,13 @@ ts_web_contents_t ts_create_web_contents(ts_browser_context_t ctx, const char *u
     contents->navigation_delegate = [[TSNavigationDelegate alloc] init];
     contents->navigation_delegate.owner = contents;
     contents->web_view.navigationDelegate = contents->navigation_delegate;
+    contents->navigation_state_observer = [[TSNavigationStateObserver alloc] init];
+    contents->navigation_state_observer.owner = contents;
+    for (NSString *keyPath in @[@"canGoBack", @"canGoForward", @"URL"])
+        [contents->web_view addObserver:contents->navigation_state_observer
+                            forKeyPath:keyPath
+                               options:NSKeyValueObservingOptionNew
+                               context:nullptr];
     contents->ui_delegate = [[TSUIDelegate alloc] init];
     contents->ui_delegate.owner = contents;
     contents->web_view.UIDelegate = contents->ui_delegate;
@@ -6559,6 +6625,7 @@ ts_web_contents_t ts_create_web_contents(ts_browser_context_t ctx, const char *u
 
     if (g_callbacks.on_tab_ready)
         g_callbacks.on_tab_ready(contents, contents->tab_id, g_callbacks.on_tab_ready_data);
+    fireNavigationState(contents);
 
     exportContext(contents);
     ts_load_url(contents, url);
@@ -6606,6 +6673,8 @@ ts_web_contents_t ts_create_devtools_web_contents(
     contents->cursor_probe_generation = 0;
     contents->suppress_cursor_notifications = false;
     contents->renderer_crash_reported = false;
+    contents->renderer_crashed = false;
+    contents->has_committed_document = false;
     contents->snapshot_layer = nil;
     contents->snapshot_refresh_pending = false;
     contents->snapshot_refresh_again = false;
@@ -6636,6 +6705,7 @@ ts_web_contents_t ts_create_devtools_web_contents(
 
     if (g_callbacks.on_tab_ready)
         g_callbacks.on_tab_ready(contents, contents->tab_id, g_callbacks.on_tab_ready_data);
+    fireNavigationState(contents);
 
     exportContext(contents);
     return contents;
@@ -6654,6 +6724,9 @@ void ts_destroy_web_contents(ts_web_contents_t wc)
     if (contents->is_devtools) {
         [contents->inspector close];
     } else {
+        for (NSString *keyPath in @[@"canGoBack", @"canGoForward", @"URL"])
+            [contents->web_view removeObserver:contents->navigation_state_observer forKeyPath:keyPath];
+        contents->navigation_state_observer.owner = nullptr;
         contents->web_view.navigationDelegate = nil;
         contents->web_view.UIDelegate = nil;
         [contents->web_view.configuration.userContentController removeScriptMessageHandlerForName:@"termsurfConsole"];
@@ -6684,6 +6757,30 @@ void ts_load_url(ts_web_contents_t wc, const char *url)
     }
 
     [contents->web_view loadRequest:[NSURLRequest requestWithURL:ns_url]];
+}
+
+bool ts_navigation_action(ts_web_contents_t wc, const char *action)
+{
+    WebContents *contents = static_cast<WebContents *>(wc);
+    if (!contents || !isRegisteredContents(contents) || !contents->web_view
+        || contents->is_devtools || !action)
+        return false;
+    if (strcmp(action, "back") == 0) {
+        if (contents->renderer_crashed || !contents->web_view.canGoBack)
+            return false;
+        [contents->web_view goBack];
+    } else if (strcmp(action, "forward") == 0) {
+        if (contents->renderer_crashed || !contents->web_view.canGoForward)
+            return false;
+        [contents->web_view goForward];
+    } else if (strcmp(action, "refresh") == 0) {
+        if (!contents->has_committed_document)
+            return false;
+        [contents->web_view reload];
+    } else {
+        return false;
+    }
+    return true;
 }
 
 void ts_set_view_size(
@@ -7415,6 +7512,12 @@ void ts_set_on_loading_state(ts_loading_state_cb cb, void *user_data)
 {
     g_callbacks.on_loading_state = cb;
     g_callbacks.on_loading_state_data = user_data;
+}
+
+void ts_set_on_navigation_state(ts_navigation_state_cb cb, void *user_data)
+{
+    g_callbacks.on_navigation_state = cb;
+    g_callbacks.on_navigation_state_data = user_data;
 }
 
 void ts_set_on_title_changed(ts_title_changed_cb cb, void *user_data)

@@ -23,6 +23,8 @@ struct Args {
     render_surface_smoke: bool,
     real_frame_attachment_smoke: bool,
     renderer_crash_smoke: bool,
+    navigation_action_smoke: bool,
+    refresh_action_smoke: bool,
     resource_root_smoke: bool,
 }
 
@@ -95,6 +97,28 @@ fn main() {
         let version = ffi::runtime_version();
         let ok = ffi::renderer_crash_smoke();
         eprintln!("[Ladybird] renderer-crash-smoke runtime={runtime} version={version} ok={ok}");
+        if !ok {
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    if args.navigation_action_smoke {
+        let runtime = ffi::runtime_name();
+        let version = ffi::runtime_version();
+        let ok = ffi::back_action_smoke();
+        eprintln!("[Ladybird] navigation-action-smoke runtime={runtime} version={version} ok={ok}");
+        if !ok {
+            std::process::exit(1);
+        }
+        return;
+    }
+
+    if args.refresh_action_smoke {
+        let runtime = ffi::runtime_name();
+        let version = ffi::runtime_version();
+        let ok = ffi::refresh_action_smoke();
+        eprintln!("[Ladybird] refresh-action-smoke runtime={runtime} version={version} ok={ok}");
         if !ok {
             std::process::exit(1);
         }
@@ -239,6 +263,8 @@ where
         render_surface_smoke: false,
         real_frame_attachment_smoke: false,
         renderer_crash_smoke: false,
+        navigation_action_smoke: false,
+        refresh_action_smoke: false,
         resource_root_smoke: false,
     };
 
@@ -268,6 +294,11 @@ where
             args.real_frame_attachment_smoke = true;
         } else if arg == "--termsurf-renderer-crash-smoke" {
             args.renderer_crash_smoke = true;
+        } else if arg == "--termsurf-back-action-smoke" || arg == "--termsurf-forward-action-smoke"
+        {
+            args.navigation_action_smoke = true;
+        } else if arg == "--termsurf-refresh-action-smoke" {
+            args.refresh_action_smoke = true;
         } else if arg == "--termsurf-resource-root-smoke" {
             args.resource_root_smoke = true;
         } else if arg == "--hidden" || arg == "--no-sandbox" || arg == "--enable-logging" {
@@ -327,6 +358,9 @@ mod tests {
             "--termsurf-engine-thread-smoke",
             "--termsurf-render-surface-smoke",
             "--termsurf-real-frame-attachment-smoke",
+            "--termsurf-back-action-smoke",
+            "--termsurf-forward-action-smoke",
+            "--termsurf-refresh-action-smoke",
             "--termsurf-resource-root-smoke",
             "--hidden",
             "--no-sandbox",
@@ -348,6 +382,8 @@ mod tests {
         assert!(args.engine_thread_smoke);
         assert!(args.render_surface_smoke);
         assert!(args.real_frame_attachment_smoke);
+        assert!(args.navigation_action_smoke);
+        assert!(args.refresh_action_smoke);
         assert!(args.resource_root_smoke);
     }
 }

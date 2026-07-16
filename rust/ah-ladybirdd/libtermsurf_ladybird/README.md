@@ -24,8 +24,7 @@ wrappers:
 - callbacks for tab readiness, render-surface identity, URL/title/loading state,
   cursor, target URL, JavaScript dialogs, console messages, HTTP auth, crashes,
   and shutdown;
-- PDF capability/runtime asset checks. See
-  [Ladybird PDF support](../../docs/ladybird-pdf-support.md).
+- PDF capability/runtime asset checks (Ladybird pdf.js path in upstream Ladybird).
 
 The Rust side should continue to own protobuf parsing, Unix-socket IPC,
 profile-server process lifecycle, and protocol behavior. The C ABI should own
@@ -71,6 +70,8 @@ Both build modes export:
 - `ts_ladybird_view_last_url`
 - `ts_ladybird_view_did_finish_load`
 - `ts_ladybird_view_did_crash`
+- `ts_ladybird_view_navigation_action`
+- `ts_ladybird_view_navigation_state`
 - `ts_ladybird_view_render_surface_probe`
 
 `ts_ladybird_runtime_name` returns `libtermsurf_ladybird-stub` specifically so
@@ -95,6 +96,27 @@ The current warmup is still a lifecycle probe only. It creates a runtime,
 creates a headless view, loads a deterministic `data:` URL, pumps until the load
 callback, and destroys the handles. It is not visible rendering or full
 TermSurf protocol parity.
+
+## Semantic Navigation
+
+Both backends expose a semantic Back/Forward history ABI. The real backend
+accepts `ts_ladybird_view_navigation_action` with `"back"` or `"forward"` only
+when Ladybird's corresponding native action is enabled and its session-history
+traversal reports a started operation. `ts_ladybird_view_navigation_state`
+reports native `can_go_back` and `can_go_forward` truth and fails closed after a
+renderer crash. The stub preserves the ABI shape but always reports both
+directions unavailable; it is not navigation proof.
+
+The deterministic real-backend Forward smoke builds the issue branch, creates
+two simultaneous Ladybird views, and proves a Back/Forward history round trip,
+fresh-navigation clearing, same-document history, disabled and future-action
+rejection, tab isolation, crash/recovery, and cleanup:
+
+```bash
+rust/ah-ladybirdd/libtermsurf_ladybird/smoke-test/run-forward-action-smoke.sh
+```
+
+Its fixture is local to this wrapper and has no Gecko dependency.
 
 ## Render-Surface Probe
 

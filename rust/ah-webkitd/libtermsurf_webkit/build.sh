@@ -106,5 +106,37 @@ clang \
   -rpath "$webkit_build" \
   -o build/smoke-test
 
+clang \
+  -fobjc-arc \
+  -Wall \
+  -Wextra \
+  -Werror \
+  -Iinclude \
+  -Ismoke-test \
+  smoke-test/back_action_smoke.m \
+  -Lbuild \
+  -ltermsurf_webkit \
+  -framework Cocoa \
+  -rpath "$PWD/build" \
+  -rpath "$webkit_build" \
+  -o build/back-action-smoke
+
+clang \
+  -fobjc-arc \
+  -Wall \
+  -Wextra \
+  -Werror \
+  -Iinclude \
+  -Ismoke-test \
+  smoke-test/refresh_action_smoke.m \
+  -Lbuild \
+  -ltermsurf_webkit \
+  -framework Cocoa \
+  -rpath "$PWD/build" \
+  -rpath "$webkit_build" \
+  -o build/refresh-action-smoke
+
 printf '%s\n' "built webkit/libtermsurf_webkit/build/libtermsurf_webkit.dylib"
 printf '%s\n' "built webkit/libtermsurf_webkit/build/smoke-test"
+printf '%s\n' "built webkit/libtermsurf_webkit/build/back-action-smoke"
+printf '%s\n' "built webkit/libtermsurf_webkit/build/refresh-action-smoke"

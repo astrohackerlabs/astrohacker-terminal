@@ -6,6 +6,7 @@
 
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc;
 use std::sync::Mutex;
 
@@ -29,8 +30,16 @@ pub enum CompositorMessage {
         url: String,
     },
     LoadingState {
+        tab_id: i64,
         state: String,
         _progress: u8,
+        navigation_request_id: u64,
+    },
+    NavigationState {
+        tab_id: i64,
+        can_go_back: bool,
+        can_go_forward: bool,
+        can_refresh: bool,
     },
     TitleChanged {
         title: String,
@@ -276,6 +285,48 @@ impl CompositorConnection {
         }));
     }
 
+    /// Request semantic Back through the compositor-owned pane route.
+    pub fn send_back(&self, pane_id: &str) -> bool {
+        if pane_id.is_empty() {
+            return false;
+        }
+        self.send(Msg::NavigationAction(proto::NavigationAction {
+            tab_id: 0,
+            pane_id: pane_id.into(),
+            action: "back".into(),
+            request_id: 0,
+        }));
+        true
+    }
+
+    /// Request semantic Forward through the compositor-owned pane route.
+    pub fn send_forward(&self, pane_id: &str) -> bool {
+        if pane_id.is_empty() {
+            return false;
+        }
+        self.send(Msg::NavigationAction(proto::NavigationAction {
+            tab_id: 0,
+            pane_id: pane_id.into(),
+            action: "forward".into(),
+            request_id: 0,
+        }));
+        true
+    }
+
+    /// Request semantic Refresh through the compositor-owned pane route.
+    pub fn send_refresh(&self, pane_id: &str) -> bool {
+        if pane_id.is_empty() {
+            return false;
+        }
+        self.send(Msg::NavigationAction(proto::NavigationAction {
+            tab_id: 0,
+            pane_id: pane_id.into(),
+            action: "refresh".into(),
+            request_id: 0,
+        }));
+        true
+    }
+
     /// Send a color scheme override (Issue 26022812000680).
     pub fn send_set_color_scheme(&self, pane_id: &str, scheme: &str) {
         let dark = scheme == "dark";
@@ -370,9 +421,15 @@ fn reader_loop(
 
     loop {
         let n = match stream.read(&mut tmp) {
-            Ok(0) => return, // EOF
+            Ok(0) => {
+                emit_disconnected_back_state(&event_tx, tab_id);
+                return;
+            }
             Ok(n) => n,
-            Err(_) => return,
+            Err(_) => {
+                emit_disconnected_back_state(&event_tx, tab_id);
+                return;
+            }
         };
         buf.extend_from_slice(&tmp[..n]);
 
@@ -390,6 +447,18 @@ fn reader_loop(
             buf.drain(..4 + msg_len);
         }
     }
+}
+
+fn emit_disconnected_back_state(event_tx: &mpsc::Sender<super::LoopEvent>, tab_id: i64) {
+    if tab_id <= 0 {
+        return;
+    }
+    let _ = event_tx.send(super::LoopEvent::Ipc(CompositorMessage::NavigationState {
+        tab_id,
+        can_go_back: false,
+        can_go_forward: false,
+        can_refresh: false,
+    }));
 }
 
 /// A direct connection to a browser engine process (Chromium) via Unix socket.
@@ -427,6 +496,53 @@ impl BrowserConnection {
             pane_id: String::new(),
             url: url.into(),
         }));
+    }
+
+    /// Request semantic Back directly from this connection's native tab.
+    pub fn send_back(&self) -> bool {
+        if self.tab_id <= 0 {
+            return false;
+        }
+        self.send(Msg::NavigationAction(proto::NavigationAction {
+            tab_id: self.tab_id,
+            pane_id: String::new(),
+            action: "back".into(),
+            request_id: 0,
+        }));
+        true
+    }
+
+    /// Request semantic Forward directly from this connection's native tab.
+    pub fn send_forward(&self) -> bool {
+        if self.tab_id <= 0 {
+            return false;
+        }
+        self.send(Msg::NavigationAction(proto::NavigationAction {
+            tab_id: self.tab_id,
+            pane_id: String::new(),
+            action: "forward".into(),
+            request_id: 0,
+        }));
+        true
+    }
+
+    /// Request semantic Refresh directly from this connection's native tab.
+    pub fn send_refresh(&self) -> Option<u64> {
+        if self.tab_id <= 0 {
+            return None;
+        }
+        static NEXT_REFRESH_REQUEST_ID: AtomicU64 = AtomicU64::new(1);
+        let mut request_id = NEXT_REFRESH_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
+        if request_id == 0 {
+            request_id = NEXT_REFRESH_REQUEST_ID.fetch_add(1, Ordering::Relaxed);
+        }
+        self.send(Msg::NavigationAction(proto::NavigationAction {
+            tab_id: self.tab_id,
+            pane_id: String::new(),
+            action: "refresh".into(),
+            request_id,
+        }));
+        Some(request_id)
     }
 
     /// Send a SetColorScheme message directly to the browser.
@@ -512,8 +628,21 @@ fn dispatch_message(
                 return;
             }
             let _ = event_tx.send(super::LoopEvent::Ipc(CompositorMessage::LoadingState {
+                tab_id: m.tab_id,
                 state: m.state.clone(),
                 _progress: m.progress as u8,
+                navigation_request_id: m.navigation_request_id,
+            }));
+        }
+        Some(Msg::NavigationState(m)) => {
+            if m.tab_id <= 0 || (tab_id != 0 && m.tab_id != tab_id) {
+                return;
+            }
+            let _ = event_tx.send(super::LoopEvent::Ipc(CompositorMessage::NavigationState {
+                tab_id: m.tab_id,
+                can_go_back: m.can_go_back,
+                can_go_forward: m.can_go_forward,
+                can_refresh: m.can_refresh,
             }));
         }
         Some(Msg::TitleChanged(m)) => {
@@ -595,5 +724,253 @@ fn dispatch_message(
         }
 
         _ => {} // Ignore unexpected messages.
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    fn decode_frame(stream: &mut UnixStream) -> TermSurfMessage {
+        let mut len = [0u8; 4];
+        stream.read_exact(&mut len).unwrap();
+        let mut payload = vec![0u8; u32::from_le_bytes(len) as usize];
+        stream.read_exact(&mut payload).unwrap();
+        TermSurfMessage::decode(payload.as_slice()).unwrap()
+    }
+
+    fn compositor_connection(stream: UnixStream) -> CompositorConnection {
+        let (_reply_tx, reply_rx) = mpsc::channel();
+        CompositorConnection {
+            stream: Mutex::new(stream),
+            reply_rx: Mutex::new(reply_rx),
+        }
+    }
+
+    #[test]
+    fn compositor_back_is_pane_addressed() {
+        let (client, mut peer) = UnixStream::pair().unwrap();
+        let connection = compositor_connection(client);
+
+        assert!(connection.send_back("pane-a"));
+        let message = decode_frame(&mut peer);
+        let Some(Msg::NavigationAction(action)) = message.msg else {
+            panic!("expected NavigationAction");
+        };
+        assert_eq!(action.tab_id, 0);
+        assert_eq!(action.pane_id, "pane-a");
+        assert_eq!(action.action, "back");
+        assert_eq!(action.request_id, 0);
+        assert!(!connection.send_back(""));
+    }
+
+    #[test]
+    fn compositor_forward_is_pane_addressed() {
+        let (client, mut peer) = UnixStream::pair().unwrap();
+        let connection = compositor_connection(client);
+
+        assert!(connection.send_forward("pane-a"));
+        let message = decode_frame(&mut peer);
+        let Some(Msg::NavigationAction(action)) = message.msg else {
+            panic!("expected NavigationAction");
+        };
+        assert_eq!(action.tab_id, 0);
+        assert_eq!(action.pane_id, "pane-a");
+        assert_eq!(action.action, "forward");
+        assert_eq!(action.request_id, 0);
+        assert!(!connection.send_forward(""));
+    }
+
+    #[test]
+    fn direct_back_is_tab_addressed() {
+        let (client, mut peer) = UnixStream::pair().unwrap();
+        let connection = BrowserConnection {
+            stream: Mutex::new(client),
+            tab_id: 42,
+        };
+
+        assert!(connection.send_back());
+        let message = decode_frame(&mut peer);
+        let Some(Msg::NavigationAction(action)) = message.msg else {
+            panic!("expected NavigationAction");
+        };
+        assert_eq!(action.tab_id, 42);
+        assert!(action.pane_id.is_empty());
+        assert_eq!(action.action, "back");
+        assert_eq!(action.request_id, 0);
+
+        let (invalid, _peer) = UnixStream::pair().unwrap();
+        let invalid = BrowserConnection {
+            stream: Mutex::new(invalid),
+            tab_id: 0,
+        };
+        assert!(!invalid.send_back());
+    }
+
+    #[test]
+    fn direct_forward_is_tab_addressed() {
+        let (client, mut peer) = UnixStream::pair().unwrap();
+        let connection = BrowserConnection {
+            stream: Mutex::new(client),
+            tab_id: 42,
+        };
+
+        assert!(connection.send_forward());
+        let message = decode_frame(&mut peer);
+        let Some(Msg::NavigationAction(action)) = message.msg else {
+            panic!("expected NavigationAction");
+        };
+        assert_eq!(action.tab_id, 42);
+        assert!(action.pane_id.is_empty());
+        assert_eq!(action.action, "forward");
+        assert_eq!(action.request_id, 0);
+    }
+
+    #[test]
+    fn refresh_uses_zero_for_compositor_and_nonzero_for_direct_engine() {
+        let (client, mut peer) = UnixStream::pair().unwrap();
+        let compositor = compositor_connection(client);
+        assert!(compositor.send_refresh("pane-a"));
+        let message = decode_frame(&mut peer);
+        let Some(Msg::NavigationAction(action)) = message.msg else {
+            panic!("expected compositor Refresh");
+        };
+        assert_eq!(
+            (
+                action.tab_id,
+                action.pane_id.as_str(),
+                action.action.as_str()
+            ),
+            (0, "pane-a", "refresh")
+        );
+        assert_eq!(action.request_id, 0);
+
+        let (client, mut peer) = UnixStream::pair().unwrap();
+        let direct = BrowserConnection {
+            stream: Mutex::new(client),
+            tab_id: 42,
+        };
+        let request_id = direct.send_refresh().expect("direct Refresh id");
+        assert_ne!(request_id, 0);
+        let message = decode_frame(&mut peer);
+        let Some(Msg::NavigationAction(action)) = message.msg else {
+            panic!("expected direct Refresh");
+        };
+        assert_eq!(
+            (
+                action.tab_id,
+                action.pane_id.as_str(),
+                action.action.as_str()
+            ),
+            (42, "", "refresh")
+        );
+        assert_eq!(action.request_id, request_id);
+    }
+
+    #[test]
+    fn loading_state_preserves_tab_and_refresh_request_identity() {
+        let (event_tx, event_rx) = mpsc::channel();
+        let (reply_tx, _reply_rx) = mpsc::channel();
+        dispatch_message(
+            TermSurfMessage {
+                msg: Some(Msg::LoadingState(proto::LoadingState {
+                    tab_id: 42,
+                    state: "loading".into(),
+                    progress: 7,
+                    navigation_request_id: 99,
+                })),
+            },
+            &event_tx,
+            &reply_tx,
+            42,
+        );
+        let super::super::LoopEvent::Ipc(CompositorMessage::LoadingState {
+            tab_id,
+            state,
+            _progress,
+            navigation_request_id,
+        }) = event_rx.recv_timeout(Duration::from_secs(1)).unwrap()
+        else {
+            panic!("expected LoadingState");
+        };
+        assert_eq!(
+            (tab_id, state.as_str(), _progress, navigation_request_id),
+            (42, "loading", 7, 99)
+        );
+    }
+
+    #[test]
+    fn navigation_state_is_authoritative_and_tab_filtered() {
+        let (event_tx, event_rx) = mpsc::channel();
+        let (reply_tx, _reply_rx) = mpsc::channel();
+
+        dispatch_message(
+            TermSurfMessage {
+                msg: Some(Msg::NavigationState(proto::NavigationState {
+                    tab_id: 42,
+                    can_go_back: true,
+                    can_go_forward: false,
+                    can_refresh: true,
+                })),
+            },
+            &event_tx,
+            &reply_tx,
+            42,
+        );
+        let super::super::LoopEvent::Ipc(CompositorMessage::NavigationState {
+            tab_id,
+            can_go_back,
+            can_go_forward,
+            can_refresh,
+        }) = event_rx.recv_timeout(Duration::from_secs(1)).unwrap()
+        else {
+            panic!("expected NavigationState event");
+        };
+        assert_eq!(tab_id, 42);
+        assert!(can_go_back);
+        assert!(!can_go_forward);
+        assert!(can_refresh);
+
+        for state_tab in [0, 41] {
+            dispatch_message(
+                TermSurfMessage {
+                    msg: Some(Msg::NavigationState(proto::NavigationState {
+                        tab_id: state_tab,
+                        can_go_back: false,
+                        can_go_forward: true,
+                        can_refresh: true,
+                    })),
+                },
+                &event_tx,
+                &reply_tx,
+                42,
+            );
+        }
+        assert!(event_rx.try_recv().is_err());
+    }
+
+    #[test]
+    fn direct_reader_eof_emits_false_for_its_tab() {
+        let (reader, writer) = UnixStream::pair().unwrap();
+        let (event_tx, event_rx) = mpsc::channel();
+        let (reply_tx, _reply_rx) = mpsc::channel();
+        let thread = std::thread::spawn(move || reader_loop(reader, event_tx, reply_tx, 77));
+
+        drop(writer);
+        let super::super::LoopEvent::Ipc(CompositorMessage::NavigationState {
+            tab_id,
+            can_go_back,
+            can_go_forward,
+            can_refresh,
+        }) = event_rx.recv_timeout(Duration::from_secs(1)).unwrap()
+        else {
+            panic!("expected EOF-derived NavigationState event");
+        };
+        assert_eq!(tab_id, 77);
+        assert!(!can_go_back);
+        assert!(!can_go_forward);
+        assert!(!can_refresh);
+        thread.join().unwrap();
     }
 }

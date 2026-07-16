@@ -54,6 +54,12 @@ extern "C" {
         utf8: *const c_char,
         modifiers: c_ulonglong,
     ) -> bool;
+    fn ts_ladybird_view_run_javascript_for_testing(view: *mut View, script: *const c_char) -> bool;
+    fn ts_ladybird_view_navigation_action(view: *mut View, action: *const c_char) -> bool;
+    fn ts_ladybird_view_navigation_state(
+        view: *const View,
+        out_state: *mut NavigationStateRecord,
+    ) -> bool;
     fn ts_ladybird_view_take_title_changed(
         view: *mut View,
         out_title: *mut c_char,
@@ -149,6 +155,14 @@ pub struct RendererCrashRecord {
     pub termination_status_code: c_int,
     pub url: [c_char; 1024],
     pub can_reload: bool,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct NavigationStateRecord {
+    pub can_go_back: bool,
+    pub can_go_forward: bool,
+    pub can_refresh: bool,
 }
 
 impl Default for RendererCrashRecord {
@@ -380,6 +394,34 @@ impl AbiView {
         }
     }
 
+    pub fn run_javascript_for_testing(&self, script: &str) -> Result<(), String> {
+        let script = CString::new(script).map_err(|_| "script contains nul byte".to_string())?;
+        if unsafe { ts_ladybird_view_run_javascript_for_testing(self.raw, script.as_ptr()) } {
+            Ok(())
+        } else {
+            Err(last_error(ptr::null()))
+        }
+    }
+
+    pub fn navigation_action(&self, action: &str) -> Result<(), String> {
+        let action =
+            CString::new(action).map_err(|_| "navigation action contains nul byte".to_string())?;
+        if unsafe { ts_ladybird_view_navigation_action(self.raw, action.as_ptr()) } {
+            Ok(())
+        } else {
+            Err(last_error(ptr::null()))
+        }
+    }
+
+    pub fn navigation_state(&self) -> Result<NavigationStateRecord, String> {
+        let mut state = NavigationStateRecord::default();
+        if unsafe { ts_ladybird_view_navigation_state(self.raw, &mut state as *mut _) } {
+            Ok(state)
+        } else {
+            Err(last_error(ptr::null()))
+        }
+    }
+
     pub fn take_title_changed(&self) -> Result<Option<String>, String> {
         let mut title = [0_i8; 1024];
         let changed = unsafe {
@@ -564,17 +606,51 @@ pub fn negative_smoke() -> bool {
     let duplicate = unsafe { ts_ladybird_runtime_create() };
     let duplicate_failed = duplicate.is_null();
     let error = last_error(ptr::null());
-    unsafe { ts_ladybird_runtime_destroy(runtime) };
 
     if !duplicate_failed {
-        unsafe { ts_ladybird_runtime_destroy(duplicate) };
+        unsafe {
+            ts_ladybird_runtime_destroy(duplicate);
+            ts_ladybird_runtime_destroy(runtime);
+        }
         eprintln!("[Ladybird] abi-negative-smoke duplicate runtime unexpectedly succeeded");
         return false;
     }
     if error.is_empty() {
+        unsafe { ts_ladybird_runtime_destroy(runtime) };
         eprintln!("[Ladybird] abi-negative-smoke duplicate runtime error was empty");
         return false;
     }
+
+    if runtime_name().contains("stub") {
+        let view = unsafe { ts_ladybird_view_create(runtime, 320, 240) };
+        if view.is_null() {
+            unsafe { ts_ladybird_runtime_destroy(runtime) };
+            eprintln!(
+                "[Ladybird] abi-negative-smoke view failed: {}",
+                last_error(ptr::null())
+            );
+            return false;
+        }
+        let mut state = NavigationStateRecord::default();
+        let state_is_false = unsafe { ts_ladybird_view_navigation_state(view, &mut state) }
+            && !state.can_go_back
+            && !state.can_go_forward;
+        let actions =
+            ["back", "forward", "refresh", "future"].map(|action| CString::new(action).unwrap());
+        let actions_rejected = actions
+            .iter()
+            .all(|action| unsafe { !ts_ladybird_view_navigation_action(view, action.as_ptr()) })
+            && !unsafe { ts_ladybird_view_navigation_action(view, ptr::null()) };
+        unsafe { ts_ladybird_view_destroy(view) };
+        if !state_is_false || !actions_rejected {
+            unsafe { ts_ladybird_runtime_destroy(runtime) };
+            eprintln!(
+                "[Ladybird] abi-negative-smoke Back-only state/action rejection failed state_false={state_is_false} actions_rejected={actions_rejected}"
+            );
+            return false;
+        }
+    }
+    unsafe { ts_ladybird_runtime_destroy(runtime) };
 
     eprintln!("[Ladybird] abi-negative-smoke duplicate runtime failed as expected: {error}");
     true
@@ -859,6 +935,563 @@ pub fn renderer_crash_smoke() -> bool {
 
     eprintln!("[Ladybird] renderer-crash-smoke failed: crash callback timed out");
     false
+}
+
+pub fn refresh_action_smoke() -> bool {
+    if runtime_name().contains("stub") {
+        eprintln!(
+            "[Ladybird] refresh-action-smoke failed: stub backend cannot prove native reload"
+        );
+        return false;
+    }
+    let base_url = match std::env::var("TERMSURF_LADYBIRD_SMOKE_BASE_URL") {
+        Ok(value) if !value.is_empty() => value,
+        _ => {
+            eprintln!(
+                "[Ladybird] refresh-action-smoke failed: TERMSURF_LADYBIRD_SMOKE_BASE_URL is unset"
+            );
+            return false;
+        }
+    };
+    let runtime = match AbiRuntime::create() {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("[Ladybird] refresh-action-smoke runtime create failed: {error}");
+            return false;
+        }
+    };
+    let a = match runtime.create_view(800, 600) {
+        Ok(view) => view,
+        Err(error) => {
+            eprintln!("[Ladybird] refresh-action-smoke view A create failed: {error}");
+            return false;
+        }
+    };
+    let b = match runtime.create_view(800, 600) {
+        Ok(view) => view,
+        Err(error) => {
+            eprintln!("[Ladybird] refresh-action-smoke view B create failed: {error}");
+            return false;
+        }
+    };
+    let mut title_a = String::new();
+    let mut title_b = String::new();
+    if !refresh_expect_state("precommit-a", &a, false, false, false)
+        || !refresh_expect_state("precommit-b", &b, false, false, false)
+        || a.navigation_action("refresh").is_ok()
+        || b.navigation_action("refresh").is_ok()
+    {
+        eprintln!("[Ladybird] refresh-action-smoke precommit disabled gate failed");
+        return false;
+    }
+
+    let a_url = format!("{base_url}/a");
+    let b_url = format!("{base_url}/b");
+    if !back_load_and_wait(
+        &runtime,
+        &a,
+        &mut title_a,
+        "initial-a",
+        &a_url,
+        "A reload=1 status=200",
+    ) || !back_load_and_wait(
+        &runtime,
+        &b,
+        &mut title_b,
+        "initial-b",
+        &b_url,
+        "B reload=1 status=200",
+    ) || !refresh_expect_state("initial-a", &a, false, false, true)
+        || !refresh_expect_peer(&b, &mut title_b)
+        || a.navigation_action("future").is_ok()
+        || unsafe { ts_ladybird_view_navigation_action(ptr::null_mut(), c"refresh".as_ptr()) }
+    {
+        return false;
+    }
+
+    if !navigation_action_and_wait(
+        &runtime,
+        &a,
+        &mut title_a,
+        "http-500-refresh",
+        "refresh",
+        "/a",
+        "A reload=2 status=500",
+    ) || !refresh_expect_state("http-500-refresh", &a, false, false, true)
+        || !refresh_expect_peer(&b, &mut title_b)
+    {
+        return false;
+    }
+
+    if let Err(error) = a.crash_current_page_for_testing() {
+        eprintln!("[Ladybird] refresh-action-smoke crash induction failed: {error}");
+        return false;
+    }
+    let crash_seen = back_pump_until(
+        &runtime,
+        "refresh-crash",
+        Duration::from_secs(30),
+        || match a.take_renderer_crashed()? {
+            Some(crash) => Ok(crash.termination_status == "crashed" && crash.can_reload),
+            None => Ok(false),
+        },
+    );
+    if !crash_seen
+        || !refresh_expect_state("refresh-crash", &a, false, false, true)
+        || !refresh_expect_peer(&b, &mut title_b)
+        || !navigation_action_and_wait(
+            &runtime,
+            &a,
+            &mut title_a,
+            "crash-refresh",
+            "refresh",
+            "/a",
+            "A reload=4 status=200",
+        )
+        || !refresh_expect_state("crash-refresh", &a, false, false, true)
+        || !refresh_expect_peer(&b, &mut title_b)
+    {
+        return false;
+    }
+
+    let stale_a = a.raw;
+    drop(a);
+    if unsafe { ts_ladybird_view_navigation_action(stale_a, c"refresh".as_ptr()) }
+        || !refresh_expect_peer(&b, &mut title_b)
+    {
+        eprintln!("[Ladybird] refresh-action-smoke stale action gate failed");
+        return false;
+    }
+    drop(b);
+    drop(runtime);
+    println!("REFRESH_ACTION_SMOKE_PASS engine=ladybird tabs=2 reload=1 capability=1 history_unchanged=1 request_correlation=1 disabled=1 isolation=1 failed_reload=1 crash_recovery=1 cleanup=1 future_actions_rejected=1");
+    true
+}
+
+fn refresh_expect_state(
+    label: &str,
+    view: &AbiView,
+    expected_back: bool,
+    expected_forward: bool,
+    expected_refresh: bool,
+) -> bool {
+    match view.navigation_state() {
+        Ok(state)
+            if state.can_go_back == expected_back
+                && state.can_go_forward == expected_forward
+                && state.can_refresh == expected_refresh =>
+        {
+            eprintln!(
+                "REFRESH_ACTION_SMOKE_STEP label={label} state=({},{},{})",
+                state.can_go_back, state.can_go_forward, state.can_refresh
+            );
+            true
+        }
+        Ok(state) => {
+            eprintln!(
+                "[Ladybird] refresh-action-smoke {label} state mismatch expected=({expected_back},{expected_forward},{expected_refresh}) actual=({},{},{})",
+                state.can_go_back, state.can_go_forward, state.can_refresh
+            );
+            false
+        }
+        Err(error) => {
+            eprintln!("[Ladybird] refresh-action-smoke {label} state query failed: {error}");
+            false
+        }
+    }
+}
+
+fn refresh_expect_peer(view: &AbiView, title: &mut String) -> bool {
+    while let Ok(Some(next)) = view.take_title_changed() {
+        *title = next;
+    }
+    let state = match view.navigation_state() {
+        Ok(state) => state,
+        Err(error) => {
+            eprintln!("[Ladybird] refresh-action-smoke peer state failed: {error}");
+            return false;
+        }
+    };
+    let ok = back_url_path(&view.last_url()) == "/b"
+        && title.contains("B reload=1 status=200")
+        && !state.can_go_back
+        && !state.can_go_forward
+        && state.can_refresh;
+    if !ok {
+        eprintln!(
+            "[Ladybird] refresh-action-smoke peer changed url={} title={title} state=({},{},{})",
+            view.last_url(),
+            state.can_go_back,
+            state.can_go_forward,
+            state.can_refresh
+        );
+    }
+    ok
+}
+
+pub fn back_action_smoke() -> bool {
+    if runtime_name().contains("stub") {
+        eprintln!("[Ladybird] back-action-smoke failed: stub backend cannot prove native history");
+        return false;
+    }
+    let base_url = match std::env::var("TERMSURF_LADYBIRD_SMOKE_BASE_URL") {
+        Ok(value) if !value.is_empty() => value,
+        _ => {
+            eprintln!(
+                "[Ladybird] back-action-smoke failed: TERMSURF_LADYBIRD_SMOKE_BASE_URL is unset"
+            );
+            return false;
+        }
+    };
+    let runtime = match AbiRuntime::create() {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("[Ladybird] back-action-smoke runtime create failed: {error}");
+            return false;
+        }
+    };
+    let a = match runtime.create_view(800, 600) {
+        Ok(view) => view,
+        Err(error) => {
+            eprintln!("[Ladybird] back-action-smoke view A create failed: {error}");
+            return false;
+        }
+    };
+    let b = match runtime.create_view(800, 600) {
+        Ok(view) => view,
+        Err(error) => {
+            eprintln!("[Ladybird] back-action-smoke view B create failed: {error}");
+            return false;
+        }
+    };
+    let mut title_a = String::new();
+    let mut title_b = String::new();
+    if !back_expect_state("precommit-a", &a, false, false)
+        || !back_expect_state("precommit-b", &b, false, false)
+    {
+        return false;
+    }
+
+    let a1 = format!("{base_url}/a1");
+    let a2 = format!("{base_url}/a2");
+    let b1 = format!("{base_url}/b1");
+    let recovery = format!("{base_url}/recovery");
+    if !back_load_and_wait(&runtime, &a, &mut title_a, "initial-a1", &a1, "A1")
+        || !back_load_and_wait(&runtime, &b, &mut title_b, "initial-b1", &b1, "B1")
+        || !back_expect_state("initial-a", &a, false, false)
+        || !back_expect_state("initial-b", &b, false, false)
+    {
+        return false;
+    }
+    if !back_load_and_wait(&runtime, &a, &mut title_a, "first-a2", &a2, "A2")
+        || !back_expect_state("first-a2-a", &a, true, false)
+        || !back_expect_peer("first-a2-b", &b, &mut title_b, "/b1", "B1", false, false)
+    {
+        return false;
+    }
+    if !navigation_action_and_wait(
+        &runtime,
+        &a,
+        &mut title_a,
+        "first-back",
+        "back",
+        "/a1",
+        "A1",
+    ) || !back_expect_state("first-back-a", &a, false, true)
+        || !back_expect_peer("first-back-b", &b, &mut title_b, "/b1", "B1", false, false)
+    {
+        return false;
+    }
+
+    let disabled_url = a.last_url();
+    if a.navigation_action("back").is_ok()
+        || b.navigation_action("forward").is_ok()
+        || a.navigation_action("future").is_ok()
+        || unsafe { ts_ladybird_view_navigation_action(a.raw, ptr::null()) }
+        || unsafe { ts_ladybird_view_navigation_action(ptr::null_mut(), c"back".as_ptr()) }
+    {
+        eprintln!("[Ladybird] back-action-smoke rejected-action gate failed");
+        return false;
+    }
+    if a.last_url() != disabled_url || !back_expect_state("disabled-a", &a, false, true) {
+        eprintln!("[Ladybird] back-action-smoke disabled action mutated view A");
+        return false;
+    }
+
+    if !navigation_action_and_wait(
+        &runtime,
+        &a,
+        &mut title_a,
+        "first-forward",
+        "forward",
+        "/a2",
+        "A2",
+    ) || !back_expect_state("first-forward-a", &a, true, false)
+        || !navigation_action_and_wait(
+            &runtime,
+            &a,
+            &mut title_a,
+            "back-before-fresh",
+            "back",
+            "/a1",
+            "A1",
+        )
+        || !back_expect_state("back-before-fresh-a", &a, false, true)
+        || !back_load_and_wait(&runtime, &a, &mut title_a, "second-a2", &a2, "A2")
+        || !back_expect_state("second-a2-a", &a, true, false)
+    {
+        return false;
+    }
+    let push_script = r#"
+window.addEventListener('popstate', () => { document.title = 'A2 popped'; });
+history.pushState({backSmoke:true}, '', '/a2#state');
+document.title = 'A2 pushed';
+"#;
+    if let Err(error) = a.run_javascript_for_testing(push_script) {
+        eprintln!("[Ladybird] back-action-smoke pushState failed: {error}");
+        return false;
+    }
+    if !back_wait_for_page(
+        &runtime,
+        &a,
+        &mut title_a,
+        "push-state",
+        "/a2#state",
+        "A2 pushed",
+    ) || !back_expect_state("push-state-a", &a, true, false)
+        || !back_expect_peer("push-state-b", &b, &mut title_b, "/b1", "B1", false, false)
+    {
+        return false;
+    }
+    if !navigation_action_and_wait(
+        &runtime,
+        &a,
+        &mut title_a,
+        "same-document-back",
+        "back",
+        "/a2",
+        "A2 popped",
+    ) || !back_expect_state("same-document-back-a", &a, true, true)
+        || !navigation_action_and_wait(
+            &runtime,
+            &a,
+            &mut title_a,
+            "same-document-forward",
+            "forward",
+            "/a2#state",
+            "A2 popped",
+        )
+        || !back_expect_state("same-document-forward-a", &a, true, false)
+    {
+        return false;
+    }
+
+    if let Err(error) = a.crash_current_page_for_testing() {
+        eprintln!("[Ladybird] back-action-smoke crash induction failed: {error}");
+        return false;
+    }
+    let crash_seen = back_pump_until(&runtime, "crash-a", Duration::from_secs(30), || {
+        match a.take_renderer_crashed()? {
+            Some(crash) => Ok(crash.termination_status == "crashed" && crash.can_reload),
+            None => Ok(false),
+        }
+    });
+    if !crash_seen
+        || !back_expect_state("crash-a", &a, false, false)
+        || a.navigation_action("back").is_ok()
+        || a.navigation_action("forward").is_ok()
+        || !back_expect_peer("crash-b", &b, &mut title_b, "/b1", "B1", false, false)
+    {
+        return false;
+    }
+
+    if !back_load_and_wait(
+        &runtime,
+        &a,
+        &mut title_a,
+        "recovery-page",
+        &recovery,
+        "Recovery",
+    ) || !back_expect_state("recovery-page-state", &a, true, false)
+        || !navigation_action_and_wait(
+            &runtime,
+            &a,
+            &mut title_a,
+            "recovery-back-retained",
+            "back",
+            "/a2",
+            "A2",
+        )
+        || !back_expect_state("recovery-back-state", &a, true, true)
+        || !back_expect_peer("recovery-b", &b, &mut title_b, "/b1", "B1", false, false)
+    {
+        return false;
+    }
+
+    drop(a);
+    drop(b);
+    drop(runtime);
+    eprintln!("FORWARD_ACTION_SMOKE_STEP cleanup=clean");
+    println!("FORWARD_ACTION_SMOKE_PASS engine=ladybird tabs=2 history_round_trip=1 back_action=1 forward_action=1 state=1 disabled=1 isolation=1 same_document=1 fresh_navigation_clears_forward=1 wrong_tab_rejected=1 crash_recovery=1 cleanup=1 future_actions_rejected=1");
+    true
+}
+
+fn back_load_and_wait(
+    runtime: &AbiRuntime,
+    view: &AbiView,
+    title: &mut String,
+    label: &str,
+    url: &str,
+    expected_title: &str,
+) -> bool {
+    if let Err(error) = view.load_url(url) {
+        eprintln!("[Ladybird] back-action-smoke {label} load failed: {error}");
+        return false;
+    }
+    back_wait_for_page(
+        runtime,
+        view,
+        title,
+        label,
+        back_url_path(url),
+        expected_title,
+    )
+}
+
+fn navigation_action_and_wait(
+    runtime: &AbiRuntime,
+    view: &AbiView,
+    title: &mut String,
+    label: &str,
+    action: &str,
+    expected_path: &str,
+    expected_title: &str,
+) -> bool {
+    title.clear();
+    if let Err(error) = view.navigation_action(action) {
+        eprintln!("[Ladybird] back-action-smoke {label} action failed: {error}");
+        return false;
+    }
+    back_wait_for_page(runtime, view, title, label, expected_path, expected_title)
+}
+
+fn back_wait_for_page(
+    runtime: &AbiRuntime,
+    view: &AbiView,
+    title: &mut String,
+    label: &str,
+    expected_path: &str,
+    expected_title: &str,
+) -> bool {
+    let ok = back_pump_until(runtime, label, Duration::from_secs(30), || {
+        while let Some(next) = view.take_title_changed()? {
+            *title = next;
+        }
+        let url = view.last_url();
+        Ok(back_url_path(&url) == expected_path && title.contains(expected_title))
+    });
+    if ok {
+        eprintln!(
+            "BACK_ACTION_SMOKE_STEP label={label} url={} title={} can_go_back={}",
+            view.last_url(),
+            title,
+            view.navigation_state()
+                .map(|state| state.can_go_back)
+                .unwrap_or(false)
+        );
+    }
+    ok
+}
+
+fn back_expect_peer(
+    label: &str,
+    view: &AbiView,
+    title: &mut String,
+    expected_path: &str,
+    expected_title: &str,
+    expected_back: bool,
+    expected_forward: bool,
+) -> bool {
+    while let Ok(Some(next)) = view.take_title_changed() {
+        *title = next;
+    }
+    let ok = back_url_path(&view.last_url()) == expected_path
+        && title.contains(expected_title)
+        && view
+            .navigation_state()
+            .map(|state| {
+                state.can_go_back == expected_back && state.can_go_forward == expected_forward
+            })
+            .unwrap_or(false);
+    if !ok {
+        eprintln!(
+            "[Ladybird] back-action-smoke {label} peer mismatch url={} title={title}",
+            view.last_url()
+        );
+    }
+    ok
+}
+
+fn back_expect_state(
+    label: &str,
+    view: &AbiView,
+    expected_back: bool,
+    expected_forward: bool,
+) -> bool {
+    match view.navigation_state() {
+        Ok(state)
+            if state.can_go_back == expected_back && state.can_go_forward == expected_forward =>
+        {
+            eprintln!(
+                "FORWARD_ACTION_SMOKE_STEP label={label} can_go_back={} can_go_forward={}",
+                state.can_go_back, state.can_go_forward
+            );
+            true
+        }
+        Ok(state) => {
+            eprintln!(
+                "[Ladybird] forward-action-smoke {label} state mismatch expected=({expected_back},{expected_forward}) actual=({},{})",
+                state.can_go_back, state.can_go_forward
+            );
+            false
+        }
+        Err(error) => {
+            eprintln!("[Ladybird] back-action-smoke {label} state query failed: {error}");
+            false
+        }
+    }
+}
+
+fn back_pump_until<F>(runtime: &AbiRuntime, label: &str, timeout: Duration, mut done: F) -> bool
+where
+    F: FnMut() -> Result<bool, String>,
+{
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        match done() {
+            Ok(true) => return true,
+            Ok(false) => {}
+            Err(error) => {
+                eprintln!("[Ladybird] back-action-smoke {label} poll failed: {error}");
+                return false;
+            }
+        }
+        if let Err(error) = runtime.pump() {
+            eprintln!("[Ladybird] back-action-smoke {label} pump failed: {error}");
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    eprintln!("[Ladybird] back-action-smoke {label} timed out");
+    false
+}
+
+fn back_url_path(url: &str) -> &str {
+    let host_start = url.find("://").map(|index| index + 3).unwrap_or(0);
+    url[host_start..]
+        .find('/')
+        .map(|index| &url[host_start + index..])
+        .unwrap_or(url)
 }
 
 fn handle_smoke() -> bool {

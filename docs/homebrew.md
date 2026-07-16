@@ -2,8 +2,7 @@
 
 **Canonical user install and operator release documentation** for Astrohacker
 on Apple silicon macOS. Shell / direct install (`install.sh`) is **retired** as
-a product channel; see the historical note in
-[`docs/shell-release.md`](./shell-release.md).
+a product channel; do not revive public bootstrap install as the primary path.
 
 Full environment variable taxonomy: [`docs/environment.md`](./environment.md).
 

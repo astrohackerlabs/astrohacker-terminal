@@ -16,10 +16,17 @@ struct TabEntry {
     pane_id: String,
     inspected_tab_id: i64,
     last_url: String,
+    can_go_back: bool,
+    can_go_forward: bool,
+    can_refresh: bool,
+    pending_refresh_request_id: u64,
+    refresh_request_armed: bool,
+    crashed: bool,
 }
 
 static PDF_INPUT_TRACE_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
 static LAST_LOADING_STATES: Mutex<Vec<TermSurfMessage>> = Mutex::new(Vec::new());
+static LAST_NAVIGATION_STATES: Mutex<Vec<TermSurfMessage>> = Mutex::new(Vec::new());
 
 struct DeferredHttpAuthCancel {
     wc: usize,
@@ -113,6 +120,38 @@ fn remember_loading_state(msg: &TermSurfMessage) {
     }
 }
 
+fn remember_navigation_state(msg: &TermSurfMessage) {
+    let Some(Msg::NavigationState(ref state)) = msg.msg else {
+        return;
+    };
+    let mut states = LAST_NAVIGATION_STATES.lock().unwrap();
+    states.retain(|existing| {
+        !matches!(existing.msg, Some(Msg::NavigationState(ref existing_state)) if existing_state.tab_id == state.tab_id)
+    });
+    states.push(msg.clone());
+}
+
+fn publish_navigation_state(
+    tab_id: i64,
+    can_go_back: bool,
+    can_go_forward: bool,
+    can_refresh: bool,
+) {
+    if tab_id <= 0 {
+        return;
+    }
+    let msg = TermSurfMessage {
+        msg: Some(Msg::NavigationState(proto::termsurf::NavigationState {
+            tab_id,
+            can_go_back,
+            can_go_forward,
+            can_refresh,
+        })),
+    };
+    remember_navigation_state(&msg);
+    crate::ipc::send(&msg);
+}
+
 pub fn replay_state_to_client(stream: &mut UnixStream) {
     let states = LAST_LOADING_STATES.lock().unwrap().clone();
     for msg in states {
@@ -122,6 +161,10 @@ pub fn replay_state_to_client(stream: &mut UnixStream) {
                 loading.tab_id, loading.state, loading.progress
             ));
         }
+        let _ = crate::ipc::write_message(stream, &msg);
+    }
+    let states = LAST_NAVIGATION_STATES.lock().unwrap().clone();
+    for msg in states {
         let _ = crate::ipc::write_message(stream, &msg);
     }
 }
@@ -142,6 +185,21 @@ fn find_by_handle(wc: TsWebContents) -> Option<&'static mut TabEntry> {
 
 fn find_by_tab_id(tab_id: i64) -> Option<&'static mut TabEntry> {
     tabs().iter_mut().find(|t| t.tab_id == tab_id)
+}
+
+fn navigation_action_contract(m: &proto::termsurf::NavigationAction) -> bool {
+    m.tab_id > 0
+        && m.pane_id.is_empty()
+        && match m.action.as_str() {
+            "back" | "forward" => m.request_id == 0,
+            "refresh" => m.request_id != 0,
+            _ => false,
+        }
+}
+
+fn clear_refresh_request(pending_request_id: &mut u64, armed: &mut bool) {
+    *pending_request_id = 0;
+    *armed = false;
 }
 
 // --- String-to-int mappings ---
@@ -189,6 +247,12 @@ pub fn handle_message(msg: &TermSurfMessage) {
                 pane_id: m.pane_id.clone(),
                 inspected_tab_id: 0,
                 last_url: String::new(),
+                can_go_back: false,
+                can_go_forward: false,
+                can_refresh: false,
+                pending_refresh_request_id: 0,
+                refresh_request_armed: false,
+                crashed: false,
             });
             let entry = tabs().last_mut().unwrap();
             entry.handle = unsafe {
@@ -212,6 +276,12 @@ pub fn handle_message(msg: &TermSurfMessage) {
                 pane_id: m.pane_id.clone(),
                 inspected_tab_id: m.inspected_tab_id,
                 last_url: String::new(),
+                can_go_back: false,
+                can_go_forward: false,
+                can_refresh: false,
+                pending_refresh_request_id: 0,
+                refresh_request_armed: false,
+                crashed: false,
             });
             let entry = tabs().last_mut().unwrap();
             entry.handle = unsafe {
@@ -269,6 +339,9 @@ pub fn handle_message(msg: &TermSurfMessage) {
                 trace_pdf_input(format!("close-tab tab_id={} result=no-tab", tab_id));
             }
             tabs().retain(|t| t.tab_id != tab_id);
+            LAST_NAVIGATION_STATES.lock().unwrap().retain(|existing| {
+                !matches!(existing.msg, Some(Msg::NavigationState(ref state)) if state.tab_id == tab_id)
+            });
             trace_pdf_input(format!("close-tab tab_id={} result=removed", tab_id));
             if tabs().is_empty() {
                 trace_pdf_input(
@@ -289,6 +362,51 @@ pub fn handle_message(msg: &TermSurfMessage) {
                     m.tab_id, t.pane_id, m.url
                 ));
                 unsafe { ffi::ts_load_url(t.handle, url.as_ptr()) };
+            }
+        }
+        Msg::NavigationAction(m) => {
+            if !navigation_action_contract(m) {
+                trace_pdf_input(format!(
+                    "navigation-action tab={} pane={} action={} result=invalid-contract",
+                    m.tab_id, m.pane_id, m.action
+                ));
+                return;
+            }
+            if let Some(t) = find_by_tab_id(m.tab_id) {
+                let enabled = match m.action.as_str() {
+                    "back" => t.can_go_back,
+                    "forward" => t.can_go_forward,
+                    "refresh" => t.can_refresh,
+                    _ => false,
+                };
+                if (t.crashed && m.action != "refresh") || !enabled {
+                    trace_pdf_input(format!(
+                        "navigation-action tab={} pane={} action={} result=disabled",
+                        m.tab_id, t.pane_id, m.action
+                    ));
+                    return;
+                }
+                if m.action == "refresh" {
+                    t.pending_refresh_request_id = m.request_id;
+                    t.refresh_request_armed = false;
+                }
+                let action = CString::new(m.action.as_str()).unwrap();
+                let accepted = unsafe { ffi::ts_navigation_action(t.handle, action.as_ptr()) };
+                if m.action == "refresh" && !accepted {
+                    clear_refresh_request(
+                        &mut t.pending_refresh_request_id,
+                        &mut t.refresh_request_armed,
+                    );
+                }
+                trace_pdf_input(format!(
+                    "navigation-action tab={} pane={} action={} accepted={}",
+                    m.tab_id, t.pane_id, m.action, accepted
+                ));
+            } else {
+                trace_pdf_input(format!(
+                    "navigation-action tab={} action={} result=no-tab",
+                    m.tab_id, m.action
+                ));
             }
         }
         Msg::MouseEvent(m) => {
@@ -659,6 +777,13 @@ pub unsafe extern "C" fn on_loading_state(
         ));
         return;
     };
+    let mut navigation_request_id = 0;
+    if state_str == "loading" && t.pending_refresh_request_id != 0 && !t.refresh_request_armed {
+        t.refresh_request_armed = true;
+    }
+    if t.refresh_request_armed {
+        navigation_request_id = t.pending_refresh_request_id;
+    }
     trace_pdf_input(format!(
         "loading-state-callback tab={} pane={} state={} progress={}",
         t.tab_id, t.pane_id, state_str, progress
@@ -668,10 +793,41 @@ pub unsafe extern "C" fn on_loading_state(
             tab_id: t.tab_id,
             state: state_str,
             progress: progress as u64,
+            navigation_request_id,
         })),
     };
+    if navigation_request_id != 0
+        && matches!(
+            msg.msg,
+            Some(Msg::LoadingState(ref loading)) if loading.state == "done" || loading.state == "error"
+        )
+    {
+        clear_refresh_request(
+            &mut t.pending_refresh_request_id,
+            &mut t.refresh_request_armed,
+        );
+    }
     remember_loading_state(&msg);
     crate::ipc::send(&msg);
+}
+
+pub unsafe extern "C" fn on_navigation_state(
+    wc: TsWebContents,
+    can_go_back: bool,
+    can_go_forward: bool,
+    can_refresh: bool,
+    _user_data: *mut c_void,
+) {
+    let Some(t) = find_by_handle(wc) else { return };
+    t.can_go_back = can_go_back;
+    t.can_go_forward = can_go_forward;
+    t.can_refresh = can_refresh;
+    t.crashed = false;
+    trace_pdf_input(format!(
+        "navigation-state tab={} pane={} can_go_back={} can_go_forward={} can_refresh={}",
+        t.tab_id, t.pane_id, can_go_back, can_go_forward, can_refresh
+    ));
+    publish_navigation_state(t.tab_id, can_go_back, can_go_forward, can_refresh);
 }
 
 pub unsafe extern "C" fn on_renderer_crashed(
@@ -683,6 +839,15 @@ pub unsafe extern "C" fn on_renderer_crashed(
     _user_data: *mut c_void,
 ) {
     let Some(t) = find_by_handle(wc) else { return };
+    t.can_go_back = false;
+    t.can_go_forward = false;
+    t.can_refresh = can_reload;
+    t.crashed = true;
+    clear_refresh_request(
+        &mut t.pending_refresh_request_id,
+        &mut t.refresh_request_armed,
+    );
+    publish_navigation_state(t.tab_id, false, false, can_reload);
     let termination_status = unsafe { std::ffi::CStr::from_ptr(termination_status) }
         .to_string_lossy()
         .into_owned();
@@ -707,6 +872,95 @@ pub unsafe extern "C" fn on_renderer_crashed(
         })),
     };
     crate::ipc::send(&msg);
+}
+
+#[cfg(test)]
+mod navigation_contract_tests {
+    use super::{clear_refresh_request, navigation_action_contract};
+    use crate::proto::{self, Msg, TermSurfMessage};
+    use prost::Message;
+
+    fn action(tab_id: i64, pane_id: &str, action: &str) -> proto::termsurf::NavigationAction {
+        proto::termsurf::NavigationAction {
+            tab_id,
+            pane_id: pane_id.into(),
+            action: action.into(),
+            request_id: 0,
+        }
+    }
+
+    #[test]
+    fn navigation_action_requires_engine_identity_and_known_direction() {
+        assert!(navigation_action_contract(&action(7, "", "back")));
+        assert!(navigation_action_contract(&action(7, "", "forward")));
+        let mut refresh = action(7, "", "refresh");
+        refresh.request_id = 9;
+        assert!(navigation_action_contract(&refresh));
+        for invalid in [
+            action(0, "", "back"),
+            action(7, "pane-a", "back"),
+            action(7, "", ""),
+            action(7, "", "refresh"),
+            action(7, "", "Back"),
+        ] {
+            assert!(!navigation_action_contract(&invalid));
+        }
+    }
+
+    #[test]
+    fn protobuf_round_trip_preserves_navigation_contract_and_state_identity() {
+        let message = TermSurfMessage {
+            msg: Some(Msg::NavigationAction(action(19, "", "back"))),
+        };
+        let decoded = TermSurfMessage::decode(message.encode_to_vec().as_slice()).unwrap();
+        let Some(Msg::NavigationAction(decoded_action)) = decoded.msg else {
+            panic!("expected NavigationAction");
+        };
+        assert!(navigation_action_contract(&decoded_action));
+
+        let state = TermSurfMessage {
+            msg: Some(Msg::NavigationState(proto::termsurf::NavigationState {
+                tab_id: 19,
+                can_go_back: false,
+                can_go_forward: true,
+                can_refresh: true,
+            })),
+        };
+        let decoded = TermSurfMessage::decode(state.encode_to_vec().as_slice()).unwrap();
+        let Some(Msg::NavigationState(decoded_state)) = decoded.msg else {
+            panic!("expected NavigationState");
+        };
+        assert_eq!(decoded_state.tab_id, 19);
+        assert!(!decoded_state.can_go_back);
+        assert!(decoded_state.can_go_forward);
+        assert!(decoded_state.can_refresh);
+
+        let loading = TermSurfMessage {
+            msg: Some(Msg::LoadingState(proto::termsurf::LoadingState {
+                tab_id: 19,
+                state: "loading".into(),
+                progress: 0,
+                navigation_request_id: 9,
+            })),
+        };
+        let decoded = TermSurfMessage::decode(loading.encode_to_vec().as_slice()).unwrap();
+        let Some(Msg::LoadingState(decoded_loading)) = decoded.msg else {
+            panic!("expected LoadingState");
+        };
+        assert_eq!(decoded_loading.tab_id, 19);
+        assert_eq!(decoded_loading.navigation_request_id, 9);
+    }
+
+    #[test]
+    fn crash_clears_unarmed_and_armed_refresh_correlation() {
+        for armed in [false, true] {
+            let mut pending_request_id = 91;
+            let mut armed = armed;
+            clear_refresh_request(&mut pending_request_id, &mut armed);
+            assert_eq!(pending_request_id, 0);
+            assert!(!armed);
+        }
+    }
 }
 
 pub unsafe extern "C" fn on_title_changed(

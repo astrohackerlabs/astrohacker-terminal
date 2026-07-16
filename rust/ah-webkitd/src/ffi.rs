@@ -47,6 +47,7 @@ extern "C" {
     // --- Navigation ---
 
     pub fn ts_load_url(wc: TsWebContents, url: *const c_char);
+    pub fn ts_navigation_action(wc: TsWebContents, action: *const c_char) -> bool;
 
     pub fn ts_webkit_test_kill_web_content_process(wc: TsWebContents);
 
@@ -134,6 +135,11 @@ extern "C" {
 
     pub fn ts_set_on_loading_state(
         cb: Option<unsafe extern "C" fn(TsWebContents, *const c_char, c_int, *mut c_void)>,
+        user_data: *mut c_void,
+    );
+
+    pub fn ts_set_on_navigation_state(
+        cb: Option<unsafe extern "C" fn(TsWebContents, bool, bool, bool, *mut c_void)>,
         user_data: *mut c_void,
     );
 

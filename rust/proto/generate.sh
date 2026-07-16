@@ -2,7 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# Generate C code from the proto schema.
-protoc-c --c_out=ghostboard/src/protobuf --proto_path=proto proto/termsurf.proto
+# Generate the tracked C bindings consumed by the current Ghostty fork.
+output_dir="../forks/ghostty/src/protobuf"
+protoc-c --c_out="$output_dir" --proto_path=proto proto/termsurf.proto
 
-echo "Generated ghostboard/src/protobuf/termsurf.pb-c.{c,h}"
+echo "Generated $output_dir/termsurf.pb-c.{c,h}"

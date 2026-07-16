@@ -22,6 +22,7 @@ pub fn handle_message(msg: &TermSurfMessage) {
         Msg::Resize(m) => resize(m),
         Msg::CloseTab(m) => close_tab(m.tab_id),
         Msg::Navigate(m) => navigate(m),
+        Msg::NavigationAction(m) => navigation_action(m),
         Msg::MouseEvent(m) => mouse_event(m),
         Msg::MouseMove(m) => mouse_move(m),
         Msg::ScrollEvent(m) => scroll_event(m),
@@ -62,6 +63,7 @@ pub fn handle_message(msg: &TermSurfMessage) {
         | Msg::RenderSurface(_)
         | Msg::UrlChanged(_)
         | Msg::LoadingState(_)
+        | Msg::NavigationState(_)
         | Msg::TitleChanged(_)
         | Msg::CursorChanged(_)
         | Msg::TargetUrlChanged(_)
@@ -392,6 +394,48 @@ fn navigate(m: &termsurf::Navigate) {
     }
 }
 
+fn navigation_action(m: &termsurf::NavigationAction) {
+    if let Err(error) = validate_navigation_action_message(m) {
+        eprintln!(
+            "[Ladybird] NavigationAction rejected tab_id={} pane_id={} action={} reason={error}",
+            m.tab_id, m.pane_id, m.action
+        );
+        return;
+    }
+    let Some(engine) = engine::global() else {
+        eprintln!(
+            "[Ladybird] NavigationAction failed tab_id={} action={}: engine service is not initialized",
+            m.tab_id, m.action
+        );
+        return;
+    };
+    match engine.navigation_action(m.tab_id, m.action.clone(), m.request_id) {
+        Ok(tab) => eprintln!(
+            "[Ladybird] engine-backed NavigationAction tab_id={} action={} can_go_back={} can_go_forward={} can_refresh={}",
+            tab.id, m.action, tab.can_go_back, tab.can_go_forward, tab.can_refresh
+        ),
+        Err(error) => eprintln!(
+            "[Ladybird] NavigationAction failed tab_id={} action={}: {error}",
+            m.tab_id, m.action
+        ),
+    }
+}
+
+fn validate_navigation_action_message(m: &termsurf::NavigationAction) -> Result<(), &'static str> {
+    if m.tab_id <= 0 {
+        return Err("tab_id must be positive");
+    }
+    if !m.pane_id.is_empty() {
+        return Err("pane_id must be empty at engine boundary");
+    }
+    match m.action.as_str() {
+        "back" | "forward" if m.request_id == 0 => {}
+        "refresh" if m.request_id != 0 => {}
+        _ => return Err("invalid action or request_id"),
+    }
+    Ok(())
+}
+
 fn send_query_tabs_reply() {
     let mut browser_count = 0;
     let tabs = engine::global()
@@ -422,4 +466,78 @@ fn send_query_tabs_reply() {
 
 fn ignored_not_engine(message: &str, reason: &str) {
     eprintln!("[Ladybird] ignored not-engine-relevant {message}: {reason}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prost::Message;
+
+    #[test]
+    fn validates_tab_addressed_navigation_protobuf() {
+        let valid = termsurf::NavigationAction {
+            tab_id: 7,
+            pane_id: String::new(),
+            action: "back".to_string(),
+            request_id: 0,
+        };
+        let forward = termsurf::NavigationAction {
+            action: "forward".to_string(),
+            ..valid.clone()
+        };
+        let envelope = TermSurfMessage {
+            msg: Some(Msg::NavigationAction(valid.clone())),
+        };
+        let decoded = TermSurfMessage::decode(envelope.encode_to_vec().as_slice()).unwrap();
+        let Some(Msg::NavigationAction(decoded_action)) = decoded.msg else {
+            panic!("expected decoded NavigationAction");
+        };
+        assert_eq!(validate_navigation_action_message(&decoded_action), Ok(()));
+        assert_eq!(validate_navigation_action_message(&forward), Ok(()));
+        let refresh = termsurf::NavigationAction {
+            action: "refresh".to_string(),
+            request_id: 9,
+            ..valid.clone()
+        };
+        assert_eq!(validate_navigation_action_message(&refresh), Ok(()));
+
+        let loading = TermSurfMessage {
+            msg: Some(Msg::LoadingState(termsurf::LoadingState {
+                tab_id: 7,
+                state: "error".to_string(),
+                progress: 0,
+                navigation_request_id: 9,
+            })),
+        };
+        let decoded = TermSurfMessage::decode(loading.encode_to_vec().as_slice()).unwrap();
+        let Some(Msg::LoadingState(decoded_loading)) = decoded.msg else {
+            panic!("expected decoded LoadingState");
+        };
+        assert_eq!(decoded_loading.navigation_request_id, 9);
+
+        for invalid in [
+            termsurf::NavigationAction {
+                tab_id: 0,
+                ..valid.clone()
+            },
+            termsurf::NavigationAction {
+                tab_id: -1,
+                ..valid.clone()
+            },
+            termsurf::NavigationAction {
+                pane_id: "pane-1".to_string(),
+                ..valid.clone()
+            },
+            termsurf::NavigationAction {
+                action: "refresh".to_string(),
+                ..valid.clone()
+            },
+            termsurf::NavigationAction {
+                action: "future".to_string(),
+                ..valid.clone()
+            },
+        ] {
+            assert!(validate_navigation_action_message(&invalid).is_err());
+        }
+    }
 }
