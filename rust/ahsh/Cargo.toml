@@ -1,6 +1,6 @@
 [package]
 name = "ahsh"
-version = "0.1.0"
+version = "0.1.26"
 edition = "2024"
 description = "Astrohacker Shell: a poly-shell built on Nushell with Bash compatibility"
 license = "MIT"

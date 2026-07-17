@@ -212,17 +212,24 @@ version explicitly. It never invents another recovery version.
 Before confirmation the command performs read-only version, repository, tool,
 and credential discovery. After the operator types the exact confirmation, it:
 
-1. proves or reconstructs all released fork inputs from the tracked cumulative
+1. sets first-party product Cargo package versions to the selected release
+   version (`rust/ahsh`, `ahweb`, `ahapp`, `ah-chromiumd`, `ah-webkitd`,
+   `ah-ladybirdd` only), refreshes their `Cargo.lock` files, commits that bump
+   on private `main` when needed, and pushes it so the monorepo stays aligned
+   with `origin/main`. This step never rewrites anything under `forks/` (Helix
+   and other fork trees are out of scope; `ahed` / `ahterm` still get the
+   release stamp from `ASTROHACKER_VERSION` / `TERMSURF_VERSION`);
+2. proves or reconstructs all released fork inputs from the tracked cumulative
    patch manifest (Ghostty, Nushell, Reedline, Helix, Chromium, WebKit, and
    Ladybird; Gecko is excluded);
-2. incrementally builds every shipped component in release mode with one
+3. incrementally builds every shipped component in release mode with one
    version while preserving valid build outputs and caches;
-3. packages one archive and freezes its SHA-256;
-4. syncs and pushes the allowlisted public source when it changed;
-5. creates or safely resumes the matching tag, GitHub release asset, and cask
+4. packages one archive and freezes its SHA-256;
+5. syncs and pushes the allowlisted public source when it changed;
+6. creates or safely resumes the matching tag, GitHub release asset, and cask
    without deleting or overwriting a conflict;
-6. refreshes Homebrew and installs or reinstalls the published cask; and
-7. prints the exact release identities and asks the operator to test the app
+7. refreshes Homebrew and installs or reinstalls the published cask; and
+8. prints the exact release identities and asks the operator to test the app
    manually.
 
 The release command runs no product tests, smokes, browser checks, screenshots,
@@ -285,11 +292,17 @@ normal operator interface.
 
    Version contract:
 
+   - First-party product crate package versions under `rust/` track the
+     Homebrew release version. The canonical command rewrites and commits those
+     manifests before building so `CARGO_PKG_VERSION` matches the cask. Do not
+     leave those crates stuck at a placeholder such as `0.1.0` across releases.
+     Do not rewrite package versions under `forks/`.
    - `TERMSURF_VERSION=<version>` is the `ahterm` app/helper version input.
      `ahterm` is the only shipped wrapper that uses the terminal helper/action
      convention: `ahterm +version` and `ahterm +help`.
    - `ASTROHACKER_VERSION=<version>` is the release version input for Rust
-     product/helper binaries and `ahed`.
+     product/helper binaries and `ahed` (build-time stamp for fork-backed
+     binaries; first-party crate versions are also aligned to the same release).
    - Every shipped non-`ahterm` wrapper must support `--version` and `--help`.
      The first `--version` line must use the same `<version>`:
 
