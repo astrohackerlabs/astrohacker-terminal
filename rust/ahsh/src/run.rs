@@ -274,6 +274,9 @@ pub(crate) fn run_repl(
                     "{green}{bold}Startup Time:{reset}{fg} {:?}{reset}",
                     entire_start_time.elapsed()
                 );
+                eprintln!(
+                    "{green}{bold}Shift+Tab:{reset}{fg} Nushell ↔ zsh{reset}"
+                );
                 eprintln!();
             }
             BannerKind::Full => {
@@ -288,6 +291,9 @@ pub(crate) fn run_repl(
                 );
                 eprintln!(
                     "{fg}Version: {green}{version}{fg} (nushell {green}{nu_version}{fg}){reset}"
+                );
+                eprintln!(
+                    "{fg}Press {green}{bold}Shift+Tab{reset}{fg} to toggle between Nushell and zsh.{reset}"
                 );
                 eprintln!(
                     "{green}{bold}Startup Time:{reset}{fg} {:?}{reset}",

@@ -6,18 +6,19 @@
       "name": "ghostty",
       "checkout": "forks/ghostty",
       "base": "53bd14fecfd68c6c0ab64d37b5943247299e2b40",
-      "branch": "issue-26071611180778-split-webview-disappearance",
-      "expected_head": "58d5855ccfc1b2d5d788af87d708f8c1b9b15c98",
-      "expected_tree": "c49e204f49636262be90e23c0fd90e5b7c4f0a4e",
+      "branch": "issue-26071719409451-border-theme-defaults",
+      "expected_head": "25004fc64cdc3577bccd58238aacef18397f272b",
+      "expected_tree": "aa1192bf00dc4359a35d79aba27ed7897b4494e5",
       "patch_directories": [
         "patches/ghostty/patches/issue-26071420489654",
         "patches/ghostty/patches/issue-26071510388098",
         "patches/ghostty/patches/issue-26071517585505",
         "patches/ghostty/patches/issue-26071521449339",
-        "patches/ghostty/patches/issue-26071611180778"
+        "patches/ghostty/patches/issue-26071611180778",
+        "patches/ghostty/patches/issue-26071719409451"
       ],
-      "patch_count": 7,
-      "archive_sha256": "0f9cf4d7a817961247dc46f349bb1da2a1af0083a8f09d668d527023e0b00558",
+      "patch_count": 8,
+      "archive_sha256": "8fba2cad5e9167cf2cd7ffea992eeda01185eca5822622992bcf4ce432830891",
       "allowed_untracked": []
     },
     {

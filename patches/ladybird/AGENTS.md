@@ -15,3 +15,9 @@ Current local paths:
 
 - Source: `forks/ladybird`
 - Patches: `patches/ladybird/patches`
+
+## Learn more
+
+- Reconstruction and current archives: [`README.md`](./README.md)
+- Shared patch policy: [`../README.md`](../README.md)
+- Release series authority: [`../release-manifest.json`](../release-manifest.json)

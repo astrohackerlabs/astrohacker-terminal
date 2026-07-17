@@ -18,3 +18,9 @@ Current local paths:
 - Source: `forks/chromium/src`
 - Tools: `forks/chromium/depot_tools`
 - Patches: `patches/chromium/patches`
+
+## Learn more
+
+- Reconstruction and current archives: [`README.md`](./README.md)
+- Shared patch policy: [`../README.md`](../README.md)
+- Release series authority: [`../release-manifest.json`](../release-manifest.json)

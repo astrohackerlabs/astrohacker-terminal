@@ -3,7 +3,27 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-## Active Add-on (Issue 26071611180778)
+## Active Add-on (Issue 26071719409451)
+
+- Parent product commit: `2cc105acaaf8eb8fa82cb3344067d5b4b2468d68`
+  (prior tip on `issue-26071611180778-split-webview-disappearance`)
+- Product branch: `issue-26071719409451-border-theme-defaults`
+- Product HEAD: `25004fc64cdc3577bccd58238aacef18397f272b`
+- Product tree: `aa1192bf00dc4359a35d79aba27ed7897b4494e5`
+- Issue archive: `patches/ghostty/patches/issue-26071719409451/`
+- Patch:
+  `0001-Default-split-borders-to-theme-palette-colors.patch`
+- Patch SHA-256:
+  `985744ab2a9b3b0abecb7fa586440e235a341f6198dacd1973236b17e52cd007`
+- Archive aggregate SHA-256:
+  `53aad93ead8c853c9d147cd85e6297d4bdf3fdf3e35278ad34fa112aa907f8c7`
+- Scope: default `split-border-width = 2`; unset focused/unfocused border
+  colors fall back to theme `palette[6]` / `palette[8]` in the macOS Swift
+  config bridge.
+- Verification: **source build Pass (`ahterm --release`, Zig 0.15.2)**;
+  operator visual gate open (Issue Exp 1 Partial).
+
+## Prior Add-on (Issue 26071611180778)
 
 - Parent product commit: `328d150826cb17be0f0eaa15fada9549fe2c60a1`
 - Product branch: `issue-26071611180778-split-webview-disappearance`

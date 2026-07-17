@@ -15,3 +15,9 @@ Current local paths:
 
 - Source: `forks/webkit/src`
 - Patches: `patches/webkit/patches`
+
+## Learn more
+
+- Reconstruction and current archives: [`README.md`](./README.md)
+- Shared patch policy: [`../README.md`](../README.md)
+- Release series authority: [`../release-manifest.json`](../release-manifest.json)

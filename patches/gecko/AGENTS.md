@@ -26,3 +26,9 @@ Current local paths:
 - Objdir convention: `forks/gecko/obj-astrohacker-ff`
 - Toolchains: `$MOZBUILD_STATE_PATH` (default `~/.mozbuild`)
 - Patches: `patches/gecko/patches/` (created when product patches exist)
+
+## Learn more
+
+- Reconstruction and notes: [`README.md`](./README.md)
+- Shared patch policy: [`../README.md`](../README.md)
+- Release series authority: [`../release-manifest.json`](../release-manifest.json)
