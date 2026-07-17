@@ -3,24 +3,24 @@ use std::path::PathBuf;
 
 use nu_cli::{ModeDispatcher, ModeResult};
 
-use crate::bash_process::BashProcess;
 use crate::shell::ShellState;
 use crate::shell_engine::ShellEngine;
+use crate::zsh_process::ZshProcess;
 
 pub struct ShannonDispatcher {
-    bash: BashProcess,
+    zsh: ZshProcess,
 }
 
 impl ShannonDispatcher {
     pub fn new() -> Self {
-        let bash = BashProcess::new();
-        ShannonDispatcher { bash }
+        let zsh = ZshProcess::new();
+        ShannonDispatcher { zsh }
     }
 
-    /// Get the current env vars from bash (after login initialization).
-    /// Used to inject bash env vars into nushell's Stack at startup.
+    /// Get the current env vars from zsh (after login + .zshrc initialization).
+    /// Used to inject zsh env vars into nushell's Stack at startup.
     pub fn env_vars(&mut self) -> HashMap<String, String> {
-        self.bash.capture_env()
+        self.zsh.capture_env()
     }
 }
 
@@ -38,9 +38,9 @@ impl ModeDispatcher for ShannonDispatcher {
             last_exit_code: 0,
         };
         match mode {
-            "bash" => {
-                self.bash.inject_state(&state);
-                let result = self.bash.execute(command);
+            "zsh" => {
+                self.zsh.inject_state(&state);
+                let result = self.zsh.execute(command);
                 ModeResult {
                     env: result.env,
                     cwd: result.cwd,

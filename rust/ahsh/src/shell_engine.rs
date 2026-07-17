@@ -1,6 +1,6 @@
 use crate::shell::ShellState;
 
-/// Trait for shell engines. Each non-nu shell (bash, etc.)
+/// Trait for shell engines. Each non-nu shell (zsh, etc.)
 /// implements this to provide a uniform interface for the REPL.
 pub trait ShellEngine {
     /// Inject ahsh state (env vars, cwd) into the shell before execution.

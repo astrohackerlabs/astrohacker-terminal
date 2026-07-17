@@ -1,12 +1,12 @@
 [package]
 name = "ahsh"
-version = "0.1.31"
+version = "0.1.32"
 edition = "2024"
-description = "Astrohacker Shell: a poly-shell built on Nushell with Bash compatibility"
+description = "Astrohacker Shell: Nushell default with zsh environment and alt mode"
 license = "MIT"
 repository = "https://github.com/astrohackerlabs/astrohacker"
 readme = "README.md"
-keywords = ["shell", "nushell", "bash", "terminal", "poly-shell"]
+keywords = ["shell", "nushell", "zsh", "terminal", "poly-shell"]
 categories = ["command-line-utilities"]
 
 [[bin]]

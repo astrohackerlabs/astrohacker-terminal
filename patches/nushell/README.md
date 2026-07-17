@@ -36,9 +36,12 @@ Bounded Shannon/Astrohacker deltas on tip:
 - `shannon-nu-cli` / `shannon-nu-lsp` package naming
 - path pin of `reedline` to sibling `forks/reedline`
 - `ModeDispatcher` support
-- Bash syntax highlighting (`bash_highlight.rs` + tree-sitter deps)
-- REPL mode-dispatch hooks and Bash highlighter selection for `nu` / `bash`
+- Bash syntax highlighting (`bash_highlight.rs` + tree-sitter deps; reused for
+  traditional **zsh** mode highlighting)
+- REPL mode-dispatch hooks and highlighter selection for `nu` / `zsh`
 - related lockfile updates for the path reedline
+- Issue archives may include a follow-on patch renaming mode cycle from `bash`
+  to `zsh` (see `0002-…` under issue-26071420489654 when present)
 
 ## Apply (clean base)
 

@@ -1,7 +1,7 @@
-From 2dc50e0ee0997e58a1b758942ae95f97be462417 Mon Sep 17 00:00:00 2001
+From 8ed2939a450cac2549a105c19e0015b159b64d0d Mon Sep 17 00:00:00 2001
 From: "Ryan X. Charles" <ryan@ryanxcharles.com>
 Date: Sat, 11 Jul 2026 12:54:32 -0500
-Subject: [PATCH] astrohacker: Shannon shell product patch on nushell tip
+Subject: [PATCH 1/2] astrohacker: Shannon shell product patch on nushell tip
  (issue 924)
 
 ---
@@ -18,7 +18,7 @@ Subject: [PATCH] astrohacker: Shannon shell product patch on nushell tip
  create mode 100644 crates/nu-cli/src/mode_dispatcher.rs
 
 diff --git a/Cargo.lock b/Cargo.lock
-index 3de994d..7edbbe7 100644
+index 3de994d17..7edbbe7ec 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
 @@ -201,7 +201,7 @@ dependencies = [
@@ -385,7 +385,7 @@ index 3de994d..7edbbe7 100644
  
  [[package]]
 diff --git a/Cargo.toml b/Cargo.toml
-index 228547c..0808646 100644
+index 228547c3b..08086462a 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
 @@ -87,7 +87,7 @@ members = [
@@ -416,7 +416,7 @@ index 228547c..0808646 100644
  rmp-serde = "1.3.1"
  roxmltree = "0.21.1"
 diff --git a/crates/nu-cli/Cargo.toml b/crates/nu-cli/Cargo.toml
-index e37cb3a..f51efa5 100644
+index e37cb3a14..f51efa574 100644
 --- a/crates/nu-cli/Cargo.toml
 +++ b/crates/nu-cli/Cargo.toml
 @@ -4,9 +4,9 @@ description = "CLI-related functionality for Nushell"
@@ -443,7 +443,7 @@ index e37cb3a..f51efa5 100644
  crossterm = { workspace = true }
 diff --git a/crates/nu-cli/src/bash_highlight.rs b/crates/nu-cli/src/bash_highlight.rs
 new file mode 100644
-index 0000000..1ff9449
+index 000000000..1ff944924
 --- /dev/null
 +++ b/crates/nu-cli/src/bash_highlight.rs
 @@ -0,0 +1,137 @@
@@ -585,7 +585,7 @@ index 0000000..1ff9449
 +    }
 +}
 diff --git a/crates/nu-cli/src/lib.rs b/crates/nu-cli/src/lib.rs
-index d890366..8cd237a 100644
+index d89036685..8cd237a8d 100644
 --- a/crates/nu-cli/src/lib.rs
 +++ b/crates/nu-cli/src/lib.rs
 @@ -1,6 +1,7 @@
@@ -622,7 +622,7 @@ index d890366..8cd237a 100644
  pub use repl::evaluate_repl;
 diff --git a/crates/nu-cli/src/mode_dispatcher.rs b/crates/nu-cli/src/mode_dispatcher.rs
 new file mode 100644
-index 0000000..7ebb75b
+index 000000000..7ebb75b95
 --- /dev/null
 +++ b/crates/nu-cli/src/mode_dispatcher.rs
 @@ -0,0 +1,39 @@
@@ -666,7 +666,7 @@ index 0000000..7ebb75b
 +    pub exit_code: i32,
 +}
 diff --git a/crates/nu-cli/src/repl.rs b/crates/nu-cli/src/repl.rs
-index dfd90af..98cbd99 100644
+index dfd90afc5..98cbd99c5 100644
 --- a/crates/nu-cli/src/repl.rs
 +++ b/crates/nu-cli/src/repl.rs
 @@ -74,6 +74,7 @@ pub fn evaluate_repl(
@@ -951,7 +951,7 @@ index dfd90af..98cbd99 100644
                  line_editor.with_edit_mode(edit_mode)
              }
 diff --git a/crates/nu-lsp/Cargo.toml b/crates/nu-lsp/Cargo.toml
-index 08743ce..fd9e49a 100644
+index 08743ce96..fd9e49a11 100644
 --- a/crates/nu-lsp/Cargo.toml
 +++ b/crates/nu-lsp/Cargo.toml
 @@ -2,8 +2,8 @@
@@ -966,5 +966,5 @@ index 08743ce..fd9e49a 100644
  rust-version.workspace = true
  license.workspace = true
 -- 
-2.54.0
+2.50.1 (Apple Git-155)
 

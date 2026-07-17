@@ -188,9 +188,9 @@ pub(crate) fn run_repl(
     trace!("run_repl");
     let start_time = nu_utils::time::Instant::now();
 
-    // Create the dispatcher early — the persistent bash subprocess initializes
-    // via --login (sourcing .bash_profile/.bashrc). Capture the resulting env
-    // vars to inject into nushell's stack before config loading.
+    // Create the dispatcher early — the persistent zsh subprocess initializes
+    // via login (`zsh -l`) plus an explicit `.zshrc` source. Capture the
+    // resulting env vars to inject into nushell's stack before config loading.
     let mut dispatcher = ahsh::dispatcher::ShannonDispatcher::new();
     if parsed_nu_cli_args.no_config_file.is_none() {
         for (key, value) in dispatcher.env_vars() {
@@ -234,7 +234,7 @@ pub(crate) fn run_repl(
             let mode = ($env.SHANNON_MODE? | default "nu")
             let color = match $mode {
                 "nu" => (ansi green)
-                "bash" => (ansi cyan)
+                "zsh" => (ansi cyan)
                 _ => (ansi green)
             }
             let reset = (ansi reset)

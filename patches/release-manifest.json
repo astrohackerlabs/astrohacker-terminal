@@ -25,13 +25,13 @@
       "checkout": "forks/nushell",
       "base": "0df4ca222cc713e79b6b1684ad8ccaec584ce4ac",
       "branch": "issue-26071420489654-nushell-restoration",
-      "expected_head": "2dc50e0ee0997e58a1b758942ae95f97be462417",
-      "expected_tree": "bcb597ffc4d0e2ccc304923bd281240356d01c13",
+      "expected_head": "797a1d1e7b682ca04d05c149830b79daa764de44",
+      "expected_tree": "31c8123e4bd103f9a9d1654e778293c79f80eb2c",
       "patch_directories": [
         "patches/nushell/patches/issue-26071420489654"
       ],
-      "patch_count": 1,
-      "archive_sha256": "a917d5684de376b978e2f374171e3e8c14b67e723b8472508b531a88a3208723",
+      "patch_count": 2,
+      "archive_sha256": "4388ee8d22fe4e9d280efe053b19cb66798c8e79721b27b204f0b51c6060c59b",
       "allowed_untracked": []
     },
     {
