@@ -6,10 +6,11 @@ fn main() {
     println!("cargo:rerun-if-changed=../proto/termsurf.proto");
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    // Crate lives at rust/ah-chromiumd; monorepo root is two parents up.
     let repo_root = manifest_dir
         .parent()
-        .and_then(|workspace| workspace.parent())
-        .expect("chromium must live under rust/ah-chromiumd");
+        .and_then(|rust_dir| rust_dir.parent())
+        .expect("ah-chromiumd must live under rust/ in the monorepo");
 
     // Chromium build output directory in the ignored top-level fork checkout.
     let chromium_out = env::var_os("TERMSURF_CHROMIUM_OUT")

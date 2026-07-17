@@ -4,13 +4,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 COMPANY_DIR="$REPO_DIR"
-RUST_DIR="$COMPANY_DIR/rust"
+RUST_DIR="$COMPANY_DIR"
 CHROMIUM_SRC="$COMPANY_DIR/forks/chromium/src"
 CHROMIUM_OUT="$CHROMIUM_SRC/out/Default"
 CHROMIUM_PROTOC="$CHROMIUM_OUT/protoc"
 WEBKIT_SRC="$COMPANY_DIR/forks/webkit/src"
-WEBKIT_LIB_DIR="$RUST_DIR/ah-webkitd/libtermsurf_webkit"
-LADYBIRD_LIB_DIR="$RUST_DIR/ah-ladybirdd/libtermsurf_ladybird"
+WEBKIT_LIB_DIR="$RUST_DIR/rust/ah-webkitd/libtermsurf_webkit"
+LADYBIRD_LIB_DIR="$RUST_DIR/rust/ah-ladybirdd/libtermsurf_ladybird"
 GHOSTTY_DIR="$COMPANY_DIR/forks/ghostty"
 
 RELEASE=false
@@ -127,7 +127,7 @@ build_ahapp() {
 }
 
 build_ahsh() {
-  local AHSH_DIR="$RUST_DIR/ahsh"
+  local AHSH_DIR="$RUST_DIR/rust/ahsh"
   if [ ! -d "$COMPANY_DIR/forks/nushell" ]; then
     echo "Missing Nushell fork checkout: $COMPANY_DIR/forks/nushell" >&2
     echo "Reconstruct it from patches/nushell before building ahsh." >&2

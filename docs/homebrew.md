@@ -203,7 +203,7 @@ Before confirmation the command performs read-only version, repository, tool,
 and credential discovery. After the operator types the exact confirmation, it:
 
 1. sets first-party product Cargo package versions to the selected release
-   version (`rust/ahsh`, `ahweb`, `ahapp`, `ah-chromiumd`, `ah-webkitd`,
+   version (`ahsh`, `ahweb`, `ahapp`, `ah-chromiumd`, `ah-webkitd`,
    `ah-ladybirdd` only), refreshes their `Cargo.lock` files, commits that bump
    on private `main` when needed, and pushes it so the monorepo stays aligned
    with `origin/main`. This step never rewrites anything under `forks/`
@@ -281,7 +281,7 @@ normal operator interface.
 
    Version contract:
 
-   - First-party product crate package versions under `rust/` track the
+   - First-party product crate package versions under the monorepo root  track the
      Homebrew release version. The canonical command rewrites and commits those
      manifests before building so `CARGO_PKG_VERSION` matches the cask. Do not
      leave those crates stuck at a placeholder such as `0.1.0` across releases.

@@ -89,13 +89,13 @@
       "checkout": "forks/webkit/src",
       "base": "f1a2d7ccc011b8da238839e6e66172d50f283e4f",
       "branch": "webkit-f1a2d7cc-issue-26071420489654-restoration",
-      "expected_head": "7b7ebf8e3d973c378a11d961c710fd17aeb63069",
-      "expected_tree": "1597177f69e292eaff2d284fbac1e7b75fa7e67d",
+      "expected_head": "04bf8fbd4dbbdcad1186ea3476a7b6da040be342",
+      "expected_tree": "21c365987ded9db768fda927bb89734517e94d5d",
       "patch_directories": [
         "patches/webkit/patches/issue-26071420489654"
       ],
-      "patch_count": 2,
-      "archive_sha256": "4988598932bd4803e75eeb72ea1795fca8c07fd6b07d6886922afccf36023ee3",
+      "patch_count": 3,
+      "archive_sha256": "127b0cc8c947c4c8d3cd2c38a3efa36dedf8432b2c544948508613f88af1dcde",
       "allowed_untracked": []
     },
     {

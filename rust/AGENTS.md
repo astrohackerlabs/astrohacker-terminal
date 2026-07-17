@@ -1,30 +1,33 @@
 # AGENTS.md
 
-Guidance for coding agents working in the Astrohacker Rust workspace.
+Guidance for coding agents working in the Astrohacker **Rust** tree (`rust/`)
+under the monorepo-root Cargo workspace.
 
-This directory contains Astrohacker-owned Rust and native support code for
-Astrohacker Terminal. Fork working trees live outside this directory under
-top-level `forks/`; fork changes are tracked as patches under top-level
-`patches/`.
+Root `Cargo.toml` is the workspace; members are paths like `rust/ahweb`.
+Package and binary names stay unprefixed (`ahweb`, `ahsh`, …).
+
+`rust/ahsh` is **excluded** from workspace members (own lockfile). Build with:
+
+```sh
+cargo build --manifest-path rust/ahsh/Cargo.toml
+```
+
+Workspace `target/` is at the **monorepo root**. Fork trees live under top-level
+`forks/`; root workspace **excludes** `forks` so nested fork Cargo workspaces
+resolve.
 
 ## Commands
 
-Run Rust workspace commands from this directory:
+From monorepo root:
 
 ```sh
 cargo metadata --no-deps
 cargo check --workspace
-cargo build --workspace
+cargo build -p ahweb -p ahapp
+cargo build --manifest-path rust/ahsh/Cargo.toml
 ```
-
-Some crates link against fork build artifacts and may require Chromium, WebKit,
-Ladybird, or Ghostty support libraries to be built first. Do not vendor those
-fork working trees here.
 
 ## Hygiene
 
-- Keep build outputs out of git: `target/`, C/C++ build directories, generated
-  app bundles, xcframeworks, logs, and caches are not source.
-- Keep path fixes scoped and document any temporary compatibility path in the
-  issue experiment that introduces it.
-- When a subdirectory needs agent guidance, add an `AGENTS.md` there.
+- Keep `target/`, native `build/` dirs under crates, and app bundles out of git.
+- Add crate-local `AGENTS.md` only when a subdirectory needs extra guidance.

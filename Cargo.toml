@@ -1,0 +1,27 @@
+[workspace]
+members = [
+    "rust/ahweb",
+    "rust/ah-chromiumd",
+    "rust/ah-webkitd",
+    "rust/ah-ladybirdd",
+    "rust/ah-geckod",
+    "rust/roastty",
+    "rust/ahapp",
+]
+exclude = [
+    "rust/ahsh",
+    "vendor",
+    "rust/proto/test-rust",
+    "forks",
+    "patches",
+    "scripts",
+    "bun",
+    "docs",
+    "node_modules",
+    "target",
+    "dist",
+    "logs",
+    "assets",
+    "skills",
+]
+resolver = "2"

@@ -1,7 +1,7 @@
-From 7b7ebf8e3d973c378a11d961c710fd17aeb63069 Mon Sep 17 00:00:00 2001
+From bc30f11f9c86cdabca29a2ab83a234555c576da2 Mon Sep 17 00:00:00 2001
 From: "Ryan X. Charles" <ryan@ryanxcharles.com>
 Date: Sat, 11 Jul 2026 16:10:48 -0500
-Subject: [PATCH 2/2] issue-924: retain TermSurf WebKit unified-build
+Subject: [PATCH 2/3] issue-924: retain TermSurf WebKit unified-build
  serializer rule
 
 Port issue-857/0005 DerivedSources.make intent only; PDF trace renames
@@ -28,5 +28,5 @@ index 0341f81653..d4007fea68 100644
  
  EXTENSIONS_DIR = $(WebKit2)/WebProcess/Extensions
 -- 
-2.54.0
+2.50.1 (Apple Git-155)
 

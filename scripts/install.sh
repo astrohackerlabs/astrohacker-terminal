@@ -161,7 +161,7 @@ install_ahapp() {
   mkdir -p "$GTUI_BIN_DIR" "$GTUI_INSTALL_DIR"
   cp "$AHAPP_CLI" "$GTUI_BIN_DIR/ahapp"
   rm -rf "$GTUI_INSTALL_DIR/app"
-  cp -R "$BUN_DIR/gtui-app" "$GTUI_INSTALL_DIR/app"
+  cp -R "/gtui-app" "$GTUI_INSTALL_DIR/app"
   codesign --force --sign - "$GTUI_BIN_DIR/ahapp" || true
 
   echo "  Bin: $GTUI_BIN_DIR/ahapp"
