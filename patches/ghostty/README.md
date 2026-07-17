@@ -3,7 +3,23 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-## Active Add-on (Issue 26071720442142)
+## Active Add-on (Issue 26071721129990)
+
+- Parent product commit: `1a3ab12fc8619b81d46e61a1be66ef697ae4962e`
+  (prior tip on `issue-26071720442142-font-keybind-defaults`)
+- Product branch: `issue-26071721129990-shell-xdg-defaults`
+- Product HEAD: `ed063b7b49135907b45d32a715bb92d6ba28eb50`
+- Product tree: `56354bbfd58ce56f06cfdd5c9175979717acf88e`
+- Issue archive: `patches/ghostty/patches/issue-26071721129990/`
+- Patch: `0001-Default-shell-to-ahsh-and-XDG_CONFIG_HOME.patch`
+- Patch SHA-256:
+  `bc54a03efedfd69f89fad9a49a5b047cf26fff5cb2db06f954b9519d04ae62a2`
+- Scope: default shell to packaged ahsh absolute paths with system-shell
+  fallback; inject `XDG_CONFIG_HOME=$HOME/.config` when unset.
+- Verification: **source + 13-patch release series pin**; operator release
+  visual gate open.
+
+## Prior Add-on (Issue 26071720442142)
 
 - Parent product commit: `56ff57e016c29c670b09867a1722f1d9854c6c9a`
   (prior tip on `issue-26071720300520-unfocused-opacity-default`)
@@ -14,8 +30,7 @@ clone at `forks/ghostty`.
 - Patches: `0001-…product-keybinds.patch`, `0002-…Allocator.Error-set.patch`
 - Scope: default `font-family = JetBrainsMono Nerd Font`, `font-size = 12`,
   and Astrohacker split/tab product keybinds on macOS.
-- Verification: **source + 12-patch release series pin**; operator release
-  visual gate open.
+- Verification: **source + series pin Pass; issue closed Pass**.
 
 ## Prior Add-on (Issue 26071720300520)
 
