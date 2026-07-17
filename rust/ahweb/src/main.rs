@@ -3040,6 +3040,7 @@ fn ui(
         ]);
         let mut cmd_block = Block::default()
             .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(border_color).bg(BG))
             .title_style(Style::default().fg(border_color))
             .title_top(cmd_title)
@@ -3087,6 +3088,7 @@ fn ui(
             .block(
                 Block::default()
                     .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
                     .border_style(Style::default().fg(url_border).bg(BG))
                     .title_style(Style::default().fg(url_border))
                     .title_top(url_title)
@@ -3103,6 +3105,7 @@ fn ui(
         let url_bar = Paragraph::new(url).style(Style::default().fg(FG)).block(
             Block::default()
                 .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(url_border).bg(BG))
                 .title_style(Style::default().fg(url_border))
                 .title_top(url_title)
@@ -3133,6 +3136,7 @@ fn ui(
     ]);
     let mut viewport_block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .title(viewport_title)
         .title_bottom(engine_label.alignment(Alignment::Right))
         .border_style(Style::default().fg(viewport_border).bg(BG))
@@ -3448,6 +3452,24 @@ fn ui(
     }
 }
 
+/// Shared chrome border geometry: always rounded. Interaction/disabled state
+/// is color (and fill) only — never Plain/Double/Thick shape changes.
+fn chrome_border_type() -> BorderType {
+    BorderType::Rounded
+}
+
+fn nav_button_colors(actionable: bool, hovered: bool, pressed: bool) -> (Color, Color, Color) {
+    if !actionable {
+        (DIM, BG, BORDER)
+    } else if pressed {
+        (BG, CYAN, CYAN)
+    } else if hovered {
+        (FG, SELECTION, CYAN)
+    } else {
+        (FG, BG, CYAN)
+    }
+}
+
 fn render_back_button(
     frame: &mut Frame,
     area: Rect,
@@ -3457,27 +3479,10 @@ fn render_back_button(
     let actionable = state.can_go_back && state.active_tab_id > 0 && route_available;
     let hovered = actionable && state.hovered;
     let pressed = actionable && state.pressed.is_some();
-    let (fg, bg, border) = if !actionable {
-        (DIM, BG, BORDER)
-    } else if pressed {
-        (BG, CYAN, CYAN)
-    } else if hovered {
-        (FG, SELECTION, CYAN)
-    } else {
-        (FG, BG, CYAN)
-    };
-    let border_type = if !actionable {
-        BorderType::Plain
-    } else if pressed {
-        BorderType::Thick
-    } else if hovered {
-        BorderType::Double
-    } else {
-        BorderType::Rounded
-    };
+    let (fg, bg, border) = nav_button_colors(actionable, hovered, pressed);
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_type(border_type)
+        .border_type(chrome_border_type())
         .border_style(Style::default().fg(border).bg(bg))
         .style(Style::default().fg(fg).bg(bg));
     let button = Paragraph::new(BACK_SYMBOL)
@@ -3496,27 +3501,10 @@ fn render_forward_button(
     let actionable = state.can_go_forward && state.active_tab_id > 0 && route_available;
     let hovered = actionable && state.hovered;
     let pressed = actionable && state.pressed.is_some();
-    let (fg, bg, border) = if !actionable {
-        (DIM, BG, BORDER)
-    } else if pressed {
-        (BG, CYAN, CYAN)
-    } else if hovered {
-        (FG, SELECTION, CYAN)
-    } else {
-        (FG, BG, CYAN)
-    };
-    let border_type = if !actionable {
-        BorderType::Plain
-    } else if pressed {
-        BorderType::Thick
-    } else if hovered {
-        BorderType::Double
-    } else {
-        BorderType::Rounded
-    };
+    let (fg, bg, border) = nav_button_colors(actionable, hovered, pressed);
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_type(border_type)
+        .border_type(chrome_border_type())
         .border_style(Style::default().fg(border).bg(bg))
         .style(Style::default().fg(fg).bg(bg));
     let button = Paragraph::new(FORWARD_SYMBOL)
@@ -3537,28 +3525,11 @@ fn render_refresh_button(
     let actionable = state.can_refresh && state.active_tab_id > 0 && route_available;
     let hovered = actionable && state.hovered;
     let pressed = actionable && state.pressed.is_some();
-    let (fg, bg, border) = if !actionable {
-        (DIM, BG, BORDER)
-    } else if pressed {
-        (BG, CYAN, CYAN)
-    } else if hovered {
-        (FG, SELECTION, CYAN)
-    } else {
-        (FG, BG, CYAN)
-    };
-    let border_type = if !actionable {
-        BorderType::Plain
-    } else if pressed {
-        BorderType::Thick
-    } else if hovered {
-        BorderType::Double
-    } else {
-        BorderType::Rounded
-    };
+    let (fg, bg, border) = nav_button_colors(actionable, hovered, pressed);
     let symbol = refresh_symbol(animation, now);
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_type(border_type)
+        .border_type(chrome_border_type())
         .border_style(Style::default().fg(border).bg(bg))
         .style(Style::default().fg(fg).bg(bg));
     let button = Paragraph::new(symbol)
@@ -4213,9 +4184,10 @@ mod tests {
             disabled.buffer[(disabled.back.x, disabled.back.y)].fg,
             BORDER
         );
+        // Disabled keeps rounded geometry; color only.
         assert_eq!(
             disabled.buffer[(disabled.back.x, disabled.back.y)].symbol(),
-            "┌"
+            "╭"
         );
 
         let normal =
@@ -4233,7 +4205,8 @@ mod tests {
         assert_eq!(hover.buffer[(x, y)].fg, FG);
         assert_eq!(hover.buffer[(x, y)].bg, SELECTION);
         assert_eq!(hover.buffer[(hover.back.x, hover.back.y)].fg, CYAN);
-        assert_eq!(hover.buffer[(hover.back.x, hover.back.y)].symbol(), "╔");
+        // Hover is fill/color only — same rounded corner as idle.
+        assert_eq!(hover.buffer[(hover.back.x, hover.back.y)].symbol(), "╭");
 
         let mut pressed_state = enabled_back_state();
         pressed_state.hovered = true;
@@ -4245,7 +4218,7 @@ mod tests {
         assert_eq!(pressed.buffer[(pressed.back.x, pressed.back.y)].fg, CYAN);
         assert_eq!(
             pressed.buffer[(pressed.back.x, pressed.back.y)].symbol(),
-            "┏"
+            "╭"
         );
 
         let route_missing =
@@ -4301,7 +4274,7 @@ mod tests {
         assert_eq!(hover.buffer[(x, y)].bg, SELECTION);
         assert_eq!(
             hover.buffer[(hover.forward.x, hover.forward.y)].symbol(),
-            "╔"
+            "╭"
         );
 
         let mut pressed_state = enabled_forward_state();
@@ -4324,7 +4297,37 @@ mod tests {
         assert_eq!(pressed.buffer[(x, y)].bg, CYAN);
         assert_eq!(
             pressed.buffer[(pressed.forward.x, pressed.forward.y)].symbol(),
-            "┏"
+            "╭"
+        );
+    }
+
+    #[test]
+    fn url_and_viewport_share_rounded_chrome_corners_with_nav_buttons() {
+        let probe = render_probe_with_back(Mode::Control, 80, 18, None, enabled_back_state(), true);
+        // UiGeometry.viewport is the *inner* content rect; outer frame is inset by 1.
+        let viewport_frame = (
+            probe.viewport.x.saturating_sub(1),
+            probe.viewport.y.saturating_sub(1),
+        );
+        // Control mode: cyan URL, dim viewport border; both rounded top-left.
+        assert_eq!(probe.buffer[(probe.url.x, probe.url.y)].symbol(), "╭");
+        assert_eq!(probe.buffer[(probe.url.x, probe.url.y)].fg, CYAN);
+        assert_eq!(
+            probe.buffer[(viewport_frame.0, viewport_frame.1)].symbol(),
+            "╭"
+        );
+        assert_eq!(
+            probe.buffer[(viewport_frame.0, viewport_frame.1)].fg,
+            BORDER
+        );
+        assert_eq!(probe.buffer[(probe.back.x, probe.back.y)].symbol(), "╭");
+        assert_eq!(
+            probe.buffer[(probe.forward.x, probe.forward.y)].symbol(),
+            "╭"
+        );
+        assert_eq!(
+            probe.buffer[(probe.refresh.x, probe.refresh.y)].symbol(),
+            "╭"
         );
     }
 
