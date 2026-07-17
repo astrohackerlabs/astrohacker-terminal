@@ -3,7 +3,21 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-## Active Add-on (Issue 26071720300520)
+## Active Add-on (Issue 26071720442142)
+
+- Parent product commit: `56ff57e016c29c670b09867a1722f1d9854c6c9a`
+  (prior tip on `issue-26071720300520-unfocused-opacity-default`)
+- Product branch: `issue-26071720442142-font-keybind-defaults`
+- Product HEAD: `1a3ab12fc8619b81d46e61a1be66ef697ae4962e`
+- Product tree: `3e2ec116aae1667819d13f2744d15785bfdca024`
+- Issue archive: `patches/ghostty/patches/issue-26071720442142/`
+- Patches: `0001-…product-keybinds.patch`, `0002-…Allocator.Error-set.patch`
+- Scope: default `font-family = JetBrainsMono Nerd Font`, `font-size = 12`,
+  and Astrohacker split/tab product keybinds on macOS.
+- Verification: **source + 12-patch release series pin**; operator release
+  visual gate open.
+
+## Prior Add-on (Issue 26071720300520)
 
 - Parent product commit: `2aa4373bd65e685ea29d800a28af809cc30a3848`
   (prior tip on `issue-26071720189508-tokyonight-default`)
@@ -16,8 +30,7 @@ clone at `forks/ghostty`.
   `e656a2ac7fc0763fe2c12f09251a5a5e3a6fa2a939243685f3196f9d4f028ece`
 - Scope: product default `unfocused-split-opacity = 1` (no inactive-pane
   dimming); borders mark focus.
-- Verification: **source + 10-patch release series pin Pass**; operator release
-  visual gate open.
+- Verification: **source + series pin Pass; issue closed Pass**.
 
 ## Prior Add-on (Issue 26071720189508)
 
