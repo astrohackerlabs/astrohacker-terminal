@@ -3,7 +3,23 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-## Active Add-on (Issue 26071720189508)
+## Active Add-on (Issue 26071720300520)
+
+- Parent product commit: `2aa4373bd65e685ea29d800a28af809cc30a3848`
+  (prior tip on `issue-26071720189508-tokyonight-default`)
+- Product branch: `issue-26071720300520-unfocused-opacity-default`
+- Product HEAD: `56ff57e016c29c670b09867a1722f1d9854c6c9a`
+- Product tree: `91ad8b4dc398298ffb9089a8c44495cf2460d64e`
+- Issue archive: `patches/ghostty/patches/issue-26071720300520/`
+- Patch: `0001-Default-unfocused-split-opacity-to-1.patch`
+- Patch SHA-256:
+  `e656a2ac7fc0763fe2c12f09251a5a5e3a6fa2a939243685f3196f9d4f028ece`
+- Scope: product default `unfocused-split-opacity = 1` (no inactive-pane
+  dimming); borders mark focus.
+- Verification: **source + 10-patch release series pin Pass**; operator release
+  visual gate open.
+
+## Prior Add-on (Issue 26071720189508)
 
 - Parent product commit: `25004fc64cdc3577bccd58238aacef18397f272b`
   (prior tip on `issue-26071719409451-border-theme-defaults`)
@@ -16,8 +32,7 @@ clone at `forks/ghostty`.
   `d50a411b7e4ac6fc53cebf7d54e447b88fd714ed6ffbf3e56dc2ed3942e0c81c`
 - Scope: product default `theme = TokyoNight` (exact resource name) for light
   and dark when unset.
-- Verification: **source + 9-patch release series pin Pass**; operator visual
-  close gate open.
+- Verification: **source + series pin Pass; issue closed Pass**.
 
 ## Prior Add-on (Issue 26071719409451)
 

@@ -6,9 +6,9 @@
       "name": "ghostty",
       "checkout": "forks/ghostty",
       "base": "53bd14fecfd68c6c0ab64d37b5943247299e2b40",
-      "branch": "issue-26071720189508-tokyonight-default",
-      "expected_head": "2aa4373bd65e685ea29d800a28af809cc30a3848",
-      "expected_tree": "8d87c4521aa89d7a4b74e3b399fb7c69cd3b1108",
+      "branch": "issue-26071720300520-unfocused-opacity-default",
+      "expected_head": "56ff57e016c29c670b09867a1722f1d9854c6c9a",
+      "expected_tree": "91ad8b4dc398298ffb9089a8c44495cf2460d64e",
       "patch_directories": [
         "patches/ghostty/patches/issue-26071420489654",
         "patches/ghostty/patches/issue-26071510388098",
@@ -16,10 +16,11 @@
         "patches/ghostty/patches/issue-26071521449339",
         "patches/ghostty/patches/issue-26071611180778",
         "patches/ghostty/patches/issue-26071719409451",
-        "patches/ghostty/patches/issue-26071720189508"
+        "patches/ghostty/patches/issue-26071720189508",
+        "patches/ghostty/patches/issue-26071720300520"
       ],
-      "patch_count": 9,
-      "archive_sha256": "8b3b4145cc664f21b2909ed805c06e9439747ddb4cc8040262c2e303dc11184e",
+      "patch_count": 10,
+      "archive_sha256": "4ee6cc2c4ae8861d061315d043d4b3016042ad8047a149f947df5587b5a2b46f",
       "allowed_untracked": []
     },
     {
