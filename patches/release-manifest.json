@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "archive_digest": "sha256 of ordered '<patch-sha256>  <repo-relative-path>\\n' rows",
+  "forks": [
+    {
+      "name": "ghostty",
+      "checkout": "forks/ghostty",
+      "base": "53bd14fecfd68c6c0ab64d37b5943247299e2b40",
+      "branch": "issue-26071611180778-split-webview-disappearance",
+      "expected_head": "58d5855ccfc1b2d5d788af87d708f8c1b9b15c98",
+      "expected_tree": "c49e204f49636262be90e23c0fd90e5b7c4f0a4e",
+      "patch_directories": [
+        "patches/ghostty/patches/issue-26071420489654",
+        "patches/ghostty/patches/issue-26071510388098",
+        "patches/ghostty/patches/issue-26071517585505",
+        "patches/ghostty/patches/issue-26071521449339",
+        "patches/ghostty/patches/issue-26071611180778"
+      ],
+      "patch_count": 7,
+      "archive_sha256": "0f9cf4d7a817961247dc46f349bb1da2a1af0083a8f09d668d527023e0b00558",
+      "allowed_untracked": []
+    },
+    {
+      "name": "nushell",
+      "checkout": "forks/nushell",
+      "base": "0df4ca222cc713e79b6b1684ad8ccaec584ce4ac",
+      "branch": "issue-26071420489654-nushell-restoration",
+      "expected_head": "2dc50e0ee0997e58a1b758942ae95f97be462417",
+      "expected_tree": "bcb597ffc4d0e2ccc304923bd281240356d01c13",
+      "patch_directories": [
+        "patches/nushell/patches/issue-26071420489654"
+      ],
+      "patch_count": 1,
+      "archive_sha256": "a917d5684de376b978e2f374171e3e8c14b67e723b8472508b531a88a3208723",
+      "allowed_untracked": []
+    },
+    {
+      "name": "reedline",
+      "checkout": "forks/reedline",
+      "base": "028d4b54eb7b9740aa98eec9f9ca3dc0c6c397ce",
+      "branch": "issue-26071420489654-reedline-restoration",
+      "expected_head": "028d4b54eb7b9740aa98eec9f9ca3dc0c6c397ce",
+      "expected_tree": "ef10dad013474dc7580126f5263c3323e17f3e1f",
+      "patch_directories": [],
+      "patch_count": 0,
+      "archive_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "allowed_untracked": []
+    },
+    {
+      "name": "helix",
+      "checkout": "forks/helix",
+      "base": "14d6bc0febed9c692048271a8ae2362ac969c6e0",
+      "branch": "issue-26071420489654-astrohacker-editor-restoration",
+      "expected_head": "4b4301fb1531567f23858d3a322425b17e1f13be",
+      "expected_tree": "6ebaacaf8ca5cec9e056436c16a4e385c4db1261",
+      "patch_directories": [
+        "patches/helix/patches/issue-26071420489654"
+      ],
+      "patch_count": 1,
+      "archive_sha256": "e781e934f1ad419be40b0a0566a30d827064b58ff311fefa3405eb118b2d9f3b",
+      "allowed_untracked": []
+    },
+    {
+      "name": "chromium",
+      "checkout": "forks/chromium/src",
+      "base": "0c3cca15d78645281db2d339b2dc3d6fad4ee90a",
+      "branch": "150.0.7871.47-issue-26071521449339-refresh-button",
+      "expected_head": "b7be7bd77fca1c2efabad78d430d81632a3b9b50",
+      "expected_tree": "efee8965ee656fa3e117579418e5326c010f96ac",
+      "patch_directories": [
+        "patches/chromium/patches/issue-26071420489654",
+        "patches/chromium/patches/issue-26071510388098",
+        "patches/chromium/patches/issue-26071517585505",
+        "patches/chromium/patches/issue-26071521449339"
+      ],
+      "patch_count": 122,
+      "archive_sha256": "50c32580ef6e60519373efd7a448da985b25f7222982a4cbbc92bb69b271dee9",
+      "allowed_untracked": [
+        "third_party/google_toolbox_for_mac/src/",
+        "third_party/ink_stroke_modeler/src/",
+        "third_party/libphonenumber/dist/"
+      ],
+      "nested_checkouts": [
+        {
+          "path": "third_party/google_toolbox_for_mac/src",
+          "expected_head": "42b12f10cd8342f5cb41a1e3e3a2f13fd9943b0d",
+          "expected_tree": "f736af6aa811d740ba798c2affbd865db1747039"
+        },
+        {
+          "path": "third_party/ink_stroke_modeler/src",
+          "expected_head": "da42d439389c90ec7574f0381ec53e7f5be0c2eb",
+          "expected_tree": "6a848bac1d3fb20e01b1449991b83fd4fe3d2521"
+        },
+        {
+          "path": "third_party/libphonenumber/dist",
+          "expected_head": "9d46308f313f2bf8dbce1dfd4f364633ca869ca7",
+          "expected_tree": "9c413a95028c747cfbcc75b976c75a9a00b3efc8"
+        }
+      ]
+    },
+    {
+      "name": "webkit",
+      "checkout": "forks/webkit/src",
+      "base": "f1a2d7ccc011b8da238839e6e66172d50f283e4f",
+      "branch": "webkit-f1a2d7cc-issue-26071420489654-restoration",
+      "expected_head": "7b7ebf8e3d973c378a11d961c710fd17aeb63069",
+      "expected_tree": "1597177f69e292eaff2d284fbac1e7b75fa7e67d",
+      "patch_directories": [
+        "patches/webkit/patches/issue-26071420489654"
+      ],
+      "patch_count": 2,
+      "archive_sha256": "4988598932bd4803e75eeb72ea1795fca8c07fd6b07d6886922afccf36023ee3",
+      "allowed_untracked": []
+    },
+    {
+      "name": "ladybird",
+      "checkout": "forks/ladybird",
+      "base": "2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd",
+      "branch": "2a3bc6a3-issue-26071521449339-refresh-button",
+      "expected_head": "bc9e447ef3ed944c0c3cc54bf5f87a9ba73babb0",
+      "expected_tree": "59c5553259973a879d6d6c89b289a8b69b36a9d9",
+      "patch_directories": [
+        "patches/ladybird/patches/issue-26071420489654",
+        "patches/ladybird/patches/issue-26071510388098",
+        "patches/ladybird/patches/issue-26071517585505",
+        "patches/ladybird/patches/issue-26071521449339"
+      ],
+      "patch_count": 21,
+      "archive_sha256": "f6ba5fba0f812d7b2327a5d718dfbd979998e4880ac81061134d7f30ced18bad",
+      "allowed_untracked": []
+    }
+  ]
+}

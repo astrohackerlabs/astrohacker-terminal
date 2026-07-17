@@ -13,7 +13,15 @@ Policy:
 - Branch names should map to Astrohacker issues and experiments whenever fork
   source changes are made.
 
-Current fork areas:
+`release-manifest.json` is the machine-readable authority for the cumulative
+fork inputs shipped by the next Homebrew release. It records ordered active
+patch directories, exact counts/digests, base/head/tree identities, and narrow
+untracked paths only when they are exact clean nested checkouts with pinned
+head/tree identities. The release command never guesses “latest” from issue
+folder names. Per-fork READMEs retain reconstruction detail and historical
+archives, but a released patch change must also update the manifest.
+
+Historical per-fork pointers (the release manifest is authoritative):
 
 - `chromium/` — **Issue 26071112000924:** Electron stable Chromium **150.0.7871.47** /
   archive `issue-26071112000924` (authoritative after Exp4 Pass).

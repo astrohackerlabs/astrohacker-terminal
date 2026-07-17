@@ -160,9 +160,77 @@ accepted by scripts).
 
 | Script | Role |
 | --- | --- |
+| `scripts/release-homebrew.py` | Canonical fork verification, incremental release build, package, publish, and local cask installation transaction |
+| `scripts/lib/release_forks.py` | Enforce `patches/release-manifest.json` and apply a missing exact cumulative series only from its recorded base |
 | `scripts/build.sh` | Build components / `all --release` |
-| `scripts/release.sh` | Stage tarball; with `PUBLISH=1` tag, upload, update cask sha |
+| `scripts/release.sh` | Lower-level package/publish helper used by the canonical command |
 | `scripts/sync-public-source.sh` | Sync allowlisted paths into public checkout |
+
+### Canonical release command
+
+The human release operator runs one command from the clean private monorepo:
+
+```sh
+scripts/release-homebrew.py
+```
+
+With no option it selects the next patch version after the greatest strict
+version found across public releases, public tags, and the remote cask. To
+select a higher unused version:
+
+```sh
+scripts/release-homebrew.py --version 0.2.0
+```
+
+#### Build cache preservation
+
+“Clean private monorepo” means a clean Git worktree, not an empty build
+directory. Release builds are incremental by default. `--release` selects
+release-mode artifacts and must never imply `--clean`; normal dependency
+tracking rebuilds only the inputs that changed.
+
+Preserve valid outputs and caches for every shipped project, especially:
+
+- Chromium `forks/chromium/src/out/Default`;
+- WebKit `forks/webkit/src/WebKitBuild`;
+- Ladybird `forks/ladybird/Build`;
+- Ghostty Zig and Xcode outputs under `forks/ghostty`;
+- Rust/Cargo target directories; and
+- Helix `forks/helix/target`.
+
+Never remove these for a routine release. A clean is allowed only after a stale
+or corrupt artifact is diagnosed, must be scoped to that component, and
+requires an explicit rebuild-cost warning and user approval before deletion.
+The approval to destroy build state is separate from the operator's publication
+confirmation.
+
+If an external step fails after packaging, the command records the exact
+version, archive, and digest under ignored `dist/` state. Running the command
+again resumes those same bytes; `--resume X.Y.Z` may state the expected saved
+version explicitly. It never invents another recovery version.
+
+Before confirmation the command performs read-only version, repository, tool,
+and credential discovery. After the operator types the exact confirmation, it:
+
+1. proves or reconstructs all released fork inputs from the tracked cumulative
+   patch manifest (Ghostty, Nushell, Reedline, Helix, Chromium, WebKit, and
+   Ladybird; Gecko is excluded);
+2. incrementally builds every shipped component in release mode with one
+   version while preserving valid build outputs and caches;
+3. packages one archive and freezes its SHA-256;
+4. syncs and pushes the allowlisted public source when it changed;
+5. creates or safely resumes the matching tag, GitHub release asset, and cask
+   without deleting or overwriting a conflict;
+6. refreshes Homebrew and installs or reinstalls the published cask; and
+7. prints the exact release identities and asks the operator to test the app
+   manually.
+
+The release command runs no product tests, smokes, browser checks, screenshots,
+or UI automation. Publication and product qualification are separate. Agents
+may implement or review the command, but the human operator owns its publishing
+confirmation and the resulting app acceptance.
+
+### Lower-level helpers
 
 Flags for `scripts/release.sh <version>`:
 
@@ -171,12 +239,25 @@ Flags for `scripts/release.sh <version>`:
   or simply omit `ASTROHACKER_TERMINAL_RELEASE_PUBLISH=1`
 - Publish:
   `ASTROHACKER_TERMINAL_RELEASE_PUBLISH=1`
+- Publish an archive already created by package-only mode, without restaging or
+  retarring it:
+  `ASTROHACKER_TERMINAL_RELEASE_USE_EXISTING_PACKAGE=1` plus
+  `ASTROHACKER_TERMINAL_RELEASE_EXPECTED_SHA256=<sha256>`
+- The canonical command sets
+  `ASTROHACKER_TERMINAL_RELEASE_SKIP_PRODUCT_QUALIFICATION=1`; lower-level
+  packaging then omits executable version/help checks, editor health, and
+  Ladybird resource-root smokes while retaining artifact-presence, dependency,
+  topology, and legal-integrity assertions needed to construct the archive.
 
 Publish mode requires **clean** public and tap worktrees. It only rewrites cask
 `version` and `sha256`. Commit any binary/postflight content changes on the tap
 **before** publish mode.
 
-### Ordered steps
+### Lower-level manual flow
+
+The following describes the components orchestrated by
+`scripts/release-homebrew.py`. It is recovery/reference material, not the
+normal operator interface.
 
 1. **Preflight version** (remote-facing):
 
@@ -192,18 +273,14 @@ Publish mode requires **clean** public and tap worktrees. It only rewrites cask
 2. **Land product changes** in private monorepo; push tap **content** changes
    (not version/sha) if needed so the tap is clean for publish.
 
-3. **Full release build** (editor is included in `all`; still safe to rebuild
-   editor cleanly if version is sticky):
+3. **Full release build** (editor is included in `all`; preserve all valid
+   incremental build outputs):
 
    ```sh
    TERMSURF_VERSION=<version> \
    ASTROHACKER_VERSION=<version> \
    ASTROHACKER_EDITOR_DEFAULT_RUNTIME=/opt/homebrew/opt/astrohacker-terminal-editor/runtime \
      scripts/build.sh all --release
-
-   ASTROHACKER_VERSION=<version> \
-   ASTROHACKER_EDITOR_DEFAULT_RUNTIME=/opt/homebrew/opt/astrohacker-terminal-editor/runtime \
-     scripts/build.sh ahed --release --clean
    ```
 
    Version contract:
@@ -229,7 +306,7 @@ Publish mode requires **clean** public and tap worktrees. It only rewrites cask
      Runtime/component versions, such as Nushell or browser ABI versions, may be
      shown only as secondary detail after the product release line.
 
-4. **Package-only** (dry-run SHA is not authoritative):
+4. **Package-only**:
 
    ```sh
    ASTROHACKER_TERMINAL_RELEASE_PACKAGE_ONLY=1 \
@@ -248,7 +325,8 @@ Publish mode requires **clean** public and tap worktrees. It only rewrites cask
    # commit in ~/dev/astrohacker-terminal
    ```
 
-6. **Publish**:
+6. **Publish** (a direct helper invocation repackages; the canonical command
+   instead uses the exact existing-package mode documented above):
 
    ```sh
    ASTROHACKER_TERMINAL_RELEASE_PUBLISH=1 scripts/release.sh <version>
@@ -257,49 +335,16 @@ Publish mode requires **clean** public and tap worktrees. It only rewrites cask
    Creates/pushes `v<version>`, GitHub release asset, tap commit `v<version>`
    with authoritative SHA256.
 
-7. **Homebrew validate**:
+### Product qualification (separate)
 
-   ```sh
-   ruby -c ~/dev/homebrew-astrohacker/Casks/astrohacker.rb
-   brew style --cask astrohacker
-   brew audit --cask astrohacker
-   brew cat --cask astrohacker
-   ```
-
-8. **Installed verify** (public tap):
-
-   ```sh
-   brew tap astrohackerlabs/astrohacker
-   brew trust astrohackerlabs/astrohacker
-   brew reinstall --cask astrohacker
-   ahterm +version
-   ahterm +help | head
-   ahweb --version
-   ahweb --help | head
-   ahapp --version
-   ahapp --help | head
-   ahsh --version
-   ahsh --help | head
-   ahed --version
-   ahed --help | head
-   ahed --health rust
-   /opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd --version
-   /opt/homebrew/opt/astrohacker-terminal-ah-chromiumd/ah-chromiumd --help | head
-   /opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd --version
-   /opt/homebrew/opt/astrohacker-terminal-ah-webkitd/ah-webkitd --help | head
-   /opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd --version
-   /opt/homebrew/opt/astrohacker-terminal-ah-ladybirdd/bin/ah-ladybirdd --help | head
-   ```
-
-   Check opt helper paths and
-   `/opt/homebrew/var/log/astrohacker/terminal-postflight-warmup.log`.
-
-### Release-gate smokes
+The following historical/active harnesses may be useful in an issue whose goal
+is product qualification. They are not publication gates and are never invoked
+by `scripts/release-homebrew.py`:
 
 | Script | Role |
 | --- | --- |
-| `scripts/test-issue-26062812000869-installed-homebrew-browser-smoke.sh` | installed three-engine browser smoke (**gate**) |
-| `scripts/test-issue-26070112000882-installed-cold-start.sh` | cold-start + warmup (**gate** when GUI available) |
+| `scripts/test-issue-26062812000869-installed-homebrew-browser-smoke.sh` | installed three-engine browser smoke |
+| `scripts/test-issue-26070112000882-installed-cold-start.sh` | cold-start + warmup |
 | `scripts/test-issue-26062812000867-release-no-env-browser-discovery.sh` | useful discovery check |
 | Older Surfari-named 871/872 harnesses | historical; not current gates until updated |
 
@@ -313,27 +358,23 @@ ASTROHACKER_TERMINAL_SMOKE_VERSION=<version> \
 ### Traps
 
 - Dirty tap or public repo aborts publish mode.
-- Package-only SHA ≠ publish SHA if anything is rebuilt between steps; cask
-  SHA from publish is authoritative.
+- The canonical command packages once and requires the identical archive SHA in
+  publish-existing mode. A direct lower-level publish may repackage instead.
 - Partial publish: inspect tag/asset/tap; rerun same version; do not invent a
   new version just to recover.
-- `scripts/build.sh all --release` must build editor (`ahed`); prefer an
-  explicit clean editor rebuild when version identity matters.
-- Ruby style/audit does not run postflight; reinstall is the postflight gate.
+- `scripts/build.sh all --release` must build editor (`ahed`) through the normal
+  incremental dependency graph. Do not use `--clean` for a routine release.
 - Do not revive cask token `astrohacker-terminal`.
 
 ### Agent checklist
 
-1. Preflight remote version + clean trees + forks present
-2. Product/cask content committed (tap clean for publish)
-3. `scripts/build.sh all --release` + clean `ahed` if needed
-4. Package-only `scripts/release.sh`
-5. Inspect staging/tarball names
-6. `scripts/sync-public-source.sh` + public commit
-7. Publish mode
-8. `ruby -c` / `brew style` / `brew audit` / `brew cat`
-9. `brew reinstall --cask astrohacker` + CLI/app/opt/warmup checks
-10. Gate smokes 869 (+ 882 when possible)
+1. Keep the private monorepo, public source, and tap clean and pushed.
+2. Keep `patches/release-manifest.json` current whenever a released fork patch
+   series changes.
+3. Do not invoke the publishing command; hand it to the human release operator.
+4. Do not add product qualification to the release transaction.
+5. Preserve valid build outputs and caches; never turn release mode into an
+   implicit clean build.
 
 ## Installed smoke expectations
 
