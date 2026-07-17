@@ -3,7 +3,23 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-## Active Add-on (Issue 26071719409451)
+## Active Add-on (Issue 26071720189508)
+
+- Parent product commit: `25004fc64cdc3577bccd58238aacef18397f272b`
+  (prior tip on `issue-26071719409451-border-theme-defaults`)
+- Product branch: `issue-26071720189508-tokyonight-default`
+- Product HEAD: `2aa4373bd65e685ea29d800a28af809cc30a3848`
+- Product tree: `8d87c4521aa89d7a4b74e3b399fb7c69cd3b1108`
+- Issue archive: `patches/ghostty/patches/issue-26071720189508/`
+- Patch: `0001-Default-theme-to-TokyoNight.patch`
+- Patch SHA-256:
+  `d50a411b7e4ac6fc53cebf7d54e447b88fd714ed6ffbf3e56dc2ed3942e0c81c`
+- Scope: product default `theme = TokyoNight` (exact resource name) for light
+  and dark when unset.
+- Verification: **source + 9-patch release series pin Pass**; operator visual
+  close gate open.
+
+## Prior Add-on (Issue 26071719409451)
 
 - Parent product commit: `2cc105acaaf8eb8fa82cb3344067d5b4b2468d68`
   (prior tip on `issue-26071611180778-split-webview-disappearance`)
@@ -15,13 +31,10 @@ clone at `forks/ghostty`.
   `0001-Default-split-borders-to-theme-palette-colors.patch`
 - Patch SHA-256:
   `985744ab2a9b3b0abecb7fa586440e235a341f6198dacd1973236b17e52cd007`
-- Archive aggregate SHA-256:
-  `53aad93ead8c853c9d147cd85e6297d4bdf3fdf3e35278ad34fa112aa907f8c7`
 - Scope: default `split-border-width = 2`; unset focused/unfocused border
   colors fall back to theme `palette[6]` / `palette[8]` in the macOS Swift
   config bridge.
-- Verification: **source build Pass (`ahterm --release`, Zig 0.15.2)**;
-  operator visual gate open (Issue Exp 1 Partial).
+- Verification: **source build Pass; issue closed Pass**.
 
 ## Prior Add-on (Issue 26071611180778)
 
