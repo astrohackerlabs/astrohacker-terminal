@@ -19,11 +19,9 @@ wrapper|ahterm|ghostty|MIT
 wrapper|ahweb|first-party|MIT
 wrapper|ahapp|first-party|MIT
 wrapper|ahsh|nushell-reedline|MIT
-wrapper|ahed|helix|MPL-2.0
 wrapper|ah-chromiumd|chromium|BSD-3-Clause
 wrapper|ah-webkitd|webkit|FOUNDER-ASSUMPTION
 wrapper|ah-ladybirdd|ladybird|BSD-2-Clause
-payload|ahed-runtime|helix|MPL-2.0
 payload|gtui|first-party|MIT
 payload|ah-chromiumd|chromium|BSD-3-Clause
 payload|ah-webkitd|webkit|FOUNDER-ASSUMPTION
@@ -32,7 +30,6 @@ pointer|third_party/chromium/LICENSE
 pointer|third_party/chromium/about_credits.html
 pointer|third_party/ladybird/LICENSE
 pointer|third_party/ladybird/vcpkg-copyright
-pointer|third_party/helix/LICENSE
 pointer|third_party/nushell/LICENSE
 pointer|third_party/reedline/LICENSE
 -->
@@ -164,23 +161,6 @@ vcpkg-packaged dependencies. This package ships:
 
 (one copyright file per vcpkg package from the Ladybird release install tree).
 
-================================================================================
-## helix — ahed, ahed-runtime
-
-Helix editor lineage (forks/helix) as Astrohacker Editor (`ahed`) and runtime
-https://github.com/helix-editor/helix
-
-License family: MPL-2.0 (Mozilla Public License Version 2.0).
-
-Helix is not MIT-only. Covered Software under the MPL-2.0 remains under the
-MPL. Modified MPL-covered source files must be made available under MPL-2.0
-(see MPL sections 3.1–3.3). Astrohacker-modified Helix sources are maintained
-in the private monorepo / public patch archives under patches/helix and related
-forks/helix reconstruction notes.
-
-The full MPL-2.0 text ships at:
-
-  legal/third_party/helix/LICENSE
 
 ================================================================================
 ## nushell-reedline — ahsh

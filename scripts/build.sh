@@ -12,7 +12,6 @@ WEBKIT_SRC="$COMPANY_DIR/forks/webkit/src"
 WEBKIT_LIB_DIR="$RUST_DIR/ah-webkitd/libtermsurf_webkit"
 LADYBIRD_LIB_DIR="$RUST_DIR/ah-ladybirdd/libtermsurf_ladybird"
 GHOSTTY_DIR="$COMPANY_DIR/forks/ghostty"
-HELIX_DIR="$COMPANY_DIR/forks/helix"
 
 RELEASE=false
 CLEAN=false
@@ -22,7 +21,7 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: ahterm, ahsh, ahed, ahweb, ahapp, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
+  echo "Components: ahterm, ahsh, ahweb, ahapp, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
   echo "Aliases: webtui→ahweb, gtui→ahapp, chromium→ah-chromiumd, webkit→ah-webkitd, ladybird→ah-ladybirdd"
 }
 
@@ -64,7 +63,6 @@ if $PRINT_PATHS; then
   printf 'CHROMIUM_SRC=%s\n' "$CHROMIUM_SRC"
   printf 'WEBKIT_SRC=%s\n' "$WEBKIT_SRC"
   printf 'GHOSTTY_DIR=%s\n' "$GHOSTTY_DIR"
-  printf 'HELIX_DIR=%s\n' "$HELIX_DIR"
   exit 0
 fi
 
@@ -156,35 +154,6 @@ build_ahsh() {
   fi
 }
 
-build_ahed() {
-  if [ ! -d "$HELIX_DIR" ]; then
-    echo "Missing Helix fork checkout: $HELIX_DIR" >&2
-    echo "Reconstruct it from patches/helix before building ahed." >&2
-    exit 1
-  fi
-  if [ ! -f "$HELIX_DIR/helix-term/Cargo.toml" ]; then
-    echo "Invalid Helix fork checkout: $HELIX_DIR" >&2
-    echo "Expected helix-term/Cargo.toml under forks/helix." >&2
-    exit 1
-  fi
-  cd "$HELIX_DIR"
-  if $CLEAN; then
-    echo "==> Cleaning ahed..."
-    cargo clean
-  fi
-  if $RELEASE; then
-    echo "==> Building ahed (release)..."
-    HELIX_DISABLE_AUTO_GRAMMAR_BUILD=1 cargo build --release -p helix-term
-    # Reject sticky old editor binary name.
-    rm -f "$HELIX_DIR/target/release/ahe" "$HELIX_DIR/target/debug/ahe"
-    echo "  ahed: $HELIX_DIR/target/release/ahed"
-  else
-    echo "==> Building ahed (debug)..."
-    HELIX_DISABLE_AUTO_GRAMMAR_BUILD=1 cargo build -p helix-term
-    rm -f "$HELIX_DIR/target/release/ahe" "$HELIX_DIR/target/debug/ahe"
-    echo "  ahed: $HELIX_DIR/target/debug/ahed"
-  fi
-}
 
 build_chromiumd() {
   cd "$RUST_DIR"
@@ -374,7 +343,6 @@ case "$COMPONENT" in
   ahweb|webtui) build_ahweb ;;
   ahapp|gtui) build_ahapp ;;
   ahsh)       build_ahsh ;;
-  ahed|ahe)   build_ahed ;;
   ah-chromiumd|chromium)   build_chromiumd ;;
   webkit-fork) build_webkit_fork ;;
   webkit-lib) build_webkit_lib ;;
@@ -387,7 +355,6 @@ case "$COMPONENT" in
     build_ahweb
     build_ahapp
     build_ahsh
-    build_ahed
     build_chromiumd
     build_webkit_fork
     build_webkitd

@@ -32,7 +32,9 @@ Historical per-fork pointers (the release manifest is authoritative):
 - `ghostty/` — **Issue 26071112000924:** host Exp2 archive `issue-26071112000924` (also historical
   `issue-26070412000013`).
 - `gecko/` — optional; no product patch set required for 924.
-- `nushell/` / `reedline/` / `helix/` — **Issue 26071112000924** host Exp2 tips/archives.
+- `nushell/` / `reedline/` — **Issue 26071112000924** host Exp2 tips/archives.
+  (Helix/editor patch tree retired; recovery only via monorepo history — Issue
+  26071716113040.)
 
 ### Merge-upstream (portfolio)
 

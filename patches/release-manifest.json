@@ -47,20 +47,6 @@
       "allowed_untracked": []
     },
     {
-      "name": "helix",
-      "checkout": "forks/helix",
-      "base": "14d6bc0febed9c692048271a8ae2362ac969c6e0",
-      "branch": "issue-26071420489654-astrohacker-editor-restoration",
-      "expected_head": "4b4301fb1531567f23858d3a322425b17e1f13be",
-      "expected_tree": "6ebaacaf8ca5cec9e056436c16a4e385c4db1261",
-      "patch_directories": [
-        "patches/helix/patches/issue-26071420489654"
-      ],
-      "patch_count": 1,
-      "archive_sha256": "e781e934f1ad419be40b0a0566a30d827064b58ff311fefa3405eb118b2d9f3b",
-      "allowed_untracked": []
-    },
-    {
       "name": "chromium",
       "checkout": "forks/chromium/src",
       "base": "0c3cca15d78645281db2d339b2dc3d6fad4ee90a",

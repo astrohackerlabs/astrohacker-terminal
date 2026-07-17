@@ -9,15 +9,14 @@ script locals. Agents and humans should add new names only under this scheme.
 | --- | --- |
 | `TERMSURF_*` | TermSurf **protocol** and pane/session IPC; protocol-adjacent embedding traces |
 | `ASTROHACKER_TERMINAL_*` | Desktop host product packaging, release, smoke, install knobs |
-| `ASTROHACKER_EDITOR_*` | Editor component runtime |
 | `ASTROHACKER_SHELL_*` | Shell component (reserved if needed later) |
 | `ASTROHACKER_{CHROMIUM,WEBKIT,LADYBIRD}_*` | Engine helper product overrides |
 
 **Do not** introduce process environment variables named `AHT_*`, `AHE_*`,
 `AHW_*`, or retired codenames (`ROAMIUM`, `SURFARI`, `GIRLBAT`, `GHOSTBOARD`).
 
-Script-local bash variables may use `AHTERM_*` / `AHED_*` to match shipped
-binaries `ahterm` / `ahed` (they are not process env).
+Script-local bash variables may use `AHTERM_*` to match shipped binary
+`ahterm` (they are not process env).
 
 ## Protocol (keep `TERMSURF_*`)
 
@@ -50,7 +49,7 @@ API, not user env.
 | `ASTROHACKER_TERMINAL_SKIP_POSTFLIGHT_WARMUP` | Skip Homebrew cask postflight browser warmups |
 | `HOMEBREW_ASTROHACKER_TERMINAL_SKIP_POSTFLIGHT_WARMUP` | Homebrew-prefixed skip |
 | `ASTROHACKER_TERMINAL_SMOKE_VERSION` | Installed smoke expected version |
-| `ASTROHACKER_VERSION` | Bundle/editor version stamp at build time |
+| `ASTROHACKER_VERSION` | Bundle / product version stamp at build time |
 
 Retired public direct-install vars (not active product policy):
 `ASTROHACKER_DIRECT_SKIP_WARMUP`, `ASTROHACKER_DIRECT_WARMUP_TIMEOUT_SEC`,
@@ -67,12 +66,6 @@ new docs/scripts):
 - `TERMSURF_SMOKE_VERSION`
 - `HOMEBREW_TERMSURF_SKIP_POSTFLIGHT_WARMUP`
 
-## Editor
-
-| Variable | Role |
-| --- | --- |
-| `ASTROHACKER_EDITOR_RUNTIME` | Runtime override at process start |
-| `ASTROHACKER_EDITOR_DEFAULT_RUNTIME` | Bake default runtime path at build time |
 
 ## Engine path overrides
 
@@ -110,8 +103,6 @@ Resolution order for each engine family:
 | --- | --- |
 | `AHT_APP` | `AHTERM_APP` |
 | `AHT_RELEASE_APP` | `AHTERM_RELEASE_APP` |
-| `AHE_BIN` | `AHED_BIN` |
-| `AHE_INSTALLED_RUNTIME` | `AHED_INSTALLED_RUNTIME` |
 
 ## Structural check
 

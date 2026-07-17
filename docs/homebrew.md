@@ -8,7 +8,7 @@ Full environment variable taxonomy: [`docs/environment.md`](./environment.md).
 
 Astrohacker ships to macOS through the `astrohackerlabs/astrohacker` Homebrew
 tap. There is **one desktop download**: the cask `astrohacker`. It installs
-Astrohacker Terminal, Shell, Editor, and related helpers as one Astrohacker
+Astrohacker Terminal, Shell, Web, and related helpers as one Astrohacker
 bundle. The app lands in **`/Applications/Astrohacker Terminal.app`**.
 
 ## Public command surface
@@ -20,7 +20,6 @@ ahterm
 ahweb
 ahapp
 ahsh
-ahed
 ah-chromiumd
 ah-webkitd
 ah-ladybirdd
@@ -30,7 +29,6 @@ Released payload roots (machine-readable for legal/notice gates; top-level
 paths in the release tarball besides bare CLI binaries):
 
 <!-- released-payload-roots -->
-ahed-runtime
 gtui
 ah-chromiumd
 ah-webkitd
@@ -41,7 +39,6 @@ ah-ladybirdd
 | --- | --- |
 | `ahterm` | Astrohacker Terminal (app executable + PATH launcher) |
 | `ahsh` | Astrohacker Shell |
-| `ahed` | Astrohacker Editor |
 | `ahweb` | Open URLs / browser panes in Terminal |
 | `ahapp` | GTUI in-Terminal app launcher (requires Terminal pane env) |
 
@@ -106,16 +103,11 @@ require `sudo` (helpers are Homebrew `artifact`s).
 - **Legal (authoritative for installed users):**
   `/Applications/Astrohacker Terminal.app/Contents/Resources/legal/`
   (`LICENSE`, `NOTICE`, `TRADEMARKS.md`, `third_party/...`)
-- PATH: `ahterm`, `ahweb`, `ahapp`, `ahsh`, `ahed`, engine helpers
-- Editor runtime →
-  `/opt/homebrew/opt/astrohacker-terminal-editor/runtime/`
+- PATH: `ahterm`, `ahweb`, `ahapp`, `ahsh`, engine helpers
 - Chromium / WebKit / Ladybird trees →
   `/opt/homebrew/opt/astrohacker-terminal-ah-{chromiumd,webkitd,ladybirdd}/`
 - GTUI assets → `/opt/homebrew/opt/astrohacker-terminal-gtui/`
 
-Editor is built with baked default runtime
-`/opt/homebrew/opt/astrohacker-terminal-editor/runtime`. Installed
-`ahed --health rust` must work without `ASTROHACKER_EDITOR_RUNTIME`.
 
 ## Release tarball contract
 
@@ -127,9 +119,8 @@ Top-level contents:
   `Contents/Resources/legal/`)
 - `LICENSE`, `NOTICE`, `TRADEMARKS.md` (tarball root mirror of product legal)
 - `legal/third_party/` (Chromium credits/LICENSE, Ladybird LICENSE + vcpkg
-  copyrights, Helix/Nushell/Reedline LICENSE copies)
-- `ahweb`, `ahapp`, `ahsh`, `ahed`
-- `ahed-runtime/runtime/`
+  copyrights, Nushell/Reedline LICENSE copies)
+- `ahweb`, `ahapp`, `ahsh`
 - `gtui/`
 - `ah-chromiumd/`, `ah-webkitd/`, `ah-ladybirdd/`
 
@@ -196,7 +187,6 @@ Preserve valid outputs and caches for every shipped project, especially:
 - Ladybird `forks/ladybird/Build`;
 - Ghostty Zig and Xcode outputs under `forks/ghostty`;
 - Rust/Cargo target directories; and
-- Helix `forks/helix/target`.
 
 Never remove these for a routine release. A clean is allowed only after a stale
 or corrupt artifact is diagnosed, must be scoped to that component, and
@@ -216,12 +206,12 @@ and credential discovery. After the operator types the exact confirmation, it:
    version (`rust/ahsh`, `ahweb`, `ahapp`, `ah-chromiumd`, `ah-webkitd`,
    `ah-ladybirdd` only), refreshes their `Cargo.lock` files, commits that bump
    on private `main` when needed, and pushes it so the monorepo stays aligned
-   with `origin/main`. This step never rewrites anything under `forks/` (Helix
-   and other fork trees are out of scope; `ahed` / `ahterm` still get the
+   with `origin/main`. This step never rewrites anything under `forks/`
+   (fork trees are out of scope; `ahterm` still gets the
    release stamp from `ASTROHACKER_VERSION` / `TERMSURF_VERSION`);
 2. proves or reconstructs all released fork inputs from the tracked cumulative
-   patch manifest (Ghostty, Nushell, Reedline, Helix, Chromium, WebKit, and
-   Ladybird; Gecko is excluded);
+   patch manifest (Ghostty, Nushell, Reedline, Chromium, WebKit, and
+   Ladybird; Gecko is excluded; editor fork excluded);
 3. incrementally builds every shipped component in release mode with one
    version while preserving valid build outputs and caches;
 4. packages one archive and freezes its SHA-256;
@@ -252,8 +242,8 @@ Flags for `scripts/release.sh <version>`:
   `ASTROHACKER_TERMINAL_RELEASE_EXPECTED_SHA256=<sha256>`
 - The canonical command sets
   `ASTROHACKER_TERMINAL_RELEASE_SKIP_PRODUCT_QUALIFICATION=1`; lower-level
-  packaging then omits executable version/help checks, editor health, and
-  Ladybird resource-root smokes while retaining artifact-presence, dependency,
+  packaging then omits executable version/help checks and Ladybird
+  resource-root smokes while retaining artifact-presence, dependency,
   topology, and legal-integrity assertions needed to construct the archive.
 
 Publish mode requires **clean** public and tap worktrees. It only rewrites cask
@@ -280,13 +270,12 @@ normal operator interface.
 2. **Land product changes** in private monorepo; push tap **content** changes
    (not version/sha) if needed so the tap is clean for publish.
 
-3. **Full release build** (editor is included in `all`; preserve all valid
-   incremental build outputs):
+3. **Full release build** (`scripts/build.sh all` ships Terminal components
+   only — no editor; preserve all valid incremental build outputs):
 
    ```sh
    TERMSURF_VERSION=<version> \
    ASTROHACKER_VERSION=<version> \
-   ASTROHACKER_EDITOR_DEFAULT_RUNTIME=/opt/homebrew/opt/astrohacker-terminal-editor/runtime \
      scripts/build.sh all --release
    ```
 
@@ -301,8 +290,8 @@ normal operator interface.
      `ahterm` is the only shipped wrapper that uses the terminal helper/action
      convention: `ahterm +version` and `ahterm +help`.
    - `ASTROHACKER_VERSION=<version>` is the release version input for Rust
-     product/helper binaries and `ahed` (build-time stamp for fork-backed
-     binaries; first-party crate versions are also aligned to the same release).
+     product/helper binaries (first-party crate versions are also aligned to
+     the same release).
    - Every shipped non-`ahterm` wrapper must support `--version` and `--help`.
      The first `--version` line must use the same `<version>`:
 
@@ -311,7 +300,6 @@ normal operator interface.
      | `ahweb --version` | `Astrohacker Web <version>` |
      | `ahapp --version` | `Astrohacker App <version>` |
      | `ahsh --version` | `Astrohacker Shell <version>` |
-     | `ahed --version` | `Astrohacker Editor <version>` |
      | `ah-chromiumd --version` | `Astrohacker Chromium Engine <version>` |
      | `ah-webkitd --version` | `Astrohacker WebKit Engine <version>` |
      | `ah-ladybirdd --version` | `Astrohacker Ladybird Engine <version>` |
@@ -375,7 +363,6 @@ ASTROHACKER_TERMINAL_SMOKE_VERSION=<version> \
   publish-existing mode. A direct lower-level publish may repackage instead.
 - Partial publish: inspect tag/asset/tap; rerun same version; do not invent a
   new version just to recover.
-- `scripts/build.sh all --release` must build editor (`ahed`) through the normal
   incremental dependency graph. Do not use `--clean` for a routine release.
 - Do not revive cask token `astrohacker-terminal`.
 
