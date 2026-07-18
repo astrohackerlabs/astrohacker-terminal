@@ -1,6 +1,27 @@
 # Ghostty Patches
 
-## Active Add-on (Issue 26071819414418)
+## Active Add-on (Issue 26071821572313)
+
+- Parent product commit: `95b4c3555df1a301a6585200f7c362463acf0b42`
+  (prior tip on `issue-26071819414418-exp1-progress-bar-fit`)
+- Product branch: `issue-26071821572313-exp3-divider-matches-bg`
+- Product HEAD: `3328348e9030fad8a234bb76017418005d3bfc23`
+- Product tree: `463a9ce05d3dd4eed01b20d5ed54aee0076fcd68`
+- Issue archive: `patches/ghostty/patches/issue-26071821572313/`
+- Patches: `0001` gap layout (default 2), `0002` gap default **4**, `0003`
+  unset divider color = theme `background` (no darken)
+- Patch SHA-256:
+  - 0001: `c070ab5767be3ac2e6f2386eb71f87bfa4659860f9abb1e4928fa5ec29c50da4`
+  - 0002: `34ef4a476b5bcea0ad57509d5f197852aa161cd45787609e5ba0f0d19b8e2e31`
+  - 0003: `85c3a2ba99d5ebe84fc76959bc0528cfb25a4bfcec2de9f4acbea866adb5837b`
+- Scope: empty inter-pane gap (`split-pane-gap`, default 4); 1 pt hairline;
+  unset `split-divider-color` matches theme background (no darken).
+- Verification: **source + 25-patch series pin** (archive
+  `0bbad8d0c6bd578e4feba85b68d6c41337e9ca8f8143680bc32792f04a78e1a9`);
+  operator Nu visual gate for Exp 3.
+
+
+## Prior Add-on (Issue 26071819414418)
 
 - Parent product commit: `79f6b04703ea537507599c7ba9116ac97e3ce2ca`
   (prior tip on `issue-26071818128343-exp2-split-border-corner-radius`)

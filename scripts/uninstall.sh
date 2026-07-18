@@ -4,18 +4,29 @@ set -euo pipefail
 COMPONENT="${1:-}"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
 CHROMIUMD_INSTALL_DIR="${ASTROHACKER_CHROMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
-if [ -z "$COMPONENT" ]; then
+
+usage() {
   echo "Usage: $0 <component>"
-  echo "Components: aht, ah-chromiumd, ahweb, all"
-  echo "Aliases: webtui→ahweb"
+  echo "Components: ahterm, ah-chromiumd, ahweb, all"
+  echo "Aliases: aht→ahterm, webtui→ahweb"
+}
+
+if [ -z "$COMPONENT" ]; then
+  usage
   exit 1
 fi
 
+# Normalize legacy aliases to product names.
 case "$COMPONENT" in
-  ah-chromiumd | aht | ahweb | webtui | all) ;;
+  aht) COMPONENT=ahterm ;;
+  webtui) COMPONENT=ahweb ;;
+esac
+
+case "$COMPONENT" in
+  ahterm | ah-chromiumd | ahweb | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: aht, ah-chromiumd, ahweb, all"
+    usage
     exit 1
     ;;
 esac
@@ -30,7 +41,7 @@ needs_root() {
     echo "Error: ASTROHACKER_CHROMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
     exit 1
   fi
-  if [ "$COMPONENT" = "aht" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
+  if [ "$COMPONENT" = "ahterm" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
     mkdir -p "$APPLICATIONS_DIR" || {
       echo "Error: TERMSURF_APPLICATIONS_DIR is not writable: $APPLICATIONS_DIR"
       exit 1
@@ -63,11 +74,8 @@ uninstall_chromiumd() {
   echo "  Removed: $CHROMIUMD_INSTALL_DIR"
 }
 
-uninstall_aht() {
-  local APP_DIR="/Applications"
-  if [ "$COMPONENT" = "aht" ]; then
-    APP_DIR="$APPLICATIONS_DIR"
-  fi
+uninstall_ahterm() {
+  local APP_DIR="$APPLICATIONS_DIR"
   local APP="$APP_DIR/Astrohacker Terminal.app"
 
   echo "==> Uninstalling Astrohacker Terminal..."
@@ -87,11 +95,11 @@ uninstall_ahweb() {
 
 case "$COMPONENT" in
   ah-chromiumd) uninstall_chromiumd ;;
-  aht)          uninstall_aht ;;
-  ahweb|webtui) uninstall_ahweb ;;
+  ahterm)       uninstall_ahterm ;;
+  ahweb)        uninstall_ahweb ;;
   all)
     uninstall_chromiumd
-    uninstall_aht
+    uninstall_ahterm
     uninstall_ahweb
     echo ""
     echo "Done (all)."

@@ -22,7 +22,7 @@ COMPONENT=""
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
   echo "Components: ahterm, ahsh, ahweb, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
-  echo "Aliases: webtui→ahweb, chromium→ah-chromiumd, webkit→ah-webkitd, ladybird→ah-ladybirdd"
+  echo "Aliases: aht→ahterm, webtui→ahweb, chromium→ah-chromiumd, webkit→ah-webkitd, ladybird→ah-ladybirdd"
 }
 
 configuration() {

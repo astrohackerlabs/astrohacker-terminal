@@ -13,25 +13,35 @@ APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
 CHROMIUMD_INSTALL_DIR="${ASTROHACKER_CHROMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
 COMPONENT="${1:-}"
 
-if [ -z "$COMPONENT" ]; then
+usage() {
   echo "Usage: $0 <component>"
-  echo "Components: ahterm (alias aht), ah-chromiumd, ahweb, all"
-  echo "Aliases: webtui→ahweb"
+  echo "Components: ahterm, ah-chromiumd, ahweb, all"
+  echo "Aliases: aht→ahterm, webtui→ahweb"
+}
+
+if [ -z "$COMPONENT" ]; then
+  usage
   exit 1
 fi
 
+# Normalize legacy aliases to product names.
 case "$COMPONENT" in
-  ah-chromiumd | aht | ahweb | webtui | all) ;;
+  aht) COMPONENT=ahterm ;;
+  webtui) COMPONENT=ahweb ;;
+esac
+
+case "$COMPONENT" in
+  ahterm | ah-chromiumd | ahweb | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: ahterm (alias aht), ah-chromiumd, ahweb, all"
+    usage
     exit 1
     ;;
 esac
 
-if [ "$COMPONENT" = "aht" ] && [ ! -x "$AHTERM_RELEASE_APP/Contents/MacOS/ahterm" ]; then
+if [ "$COMPONENT" = "ahterm" ] && [ ! -x "$AHTERM_RELEASE_APP/Contents/MacOS/ahterm" ]; then
   echo "Error: Release app not found at $AHTERM_RELEASE_APP"
-  echo "Run: scripts/build.sh aht --release"
+  echo "Run: scripts/build.sh ahterm --release"
   exit 1
 fi
 
@@ -45,7 +55,7 @@ needs_root() {
     echo "Error: ASTROHACKER_CHROMIUM_INSTALL_DIR is not writable: $CHROMIUMD_INSTALL_DIR"
     exit 1
   fi
-  if [ "$COMPONENT" = "aht" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
+  if [ "$COMPONENT" = "ahterm" ] && [ "$APPLICATIONS_DIR" != "/Applications" ]; then
     mkdir -p "$APPLICATIONS_DIR" || {
       echo "Error: TERMSURF_APPLICATIONS_DIR is not writable: $APPLICATIONS_DIR"
       exit 1
@@ -71,7 +81,8 @@ install_chromiumd() {
 
   if [ ! -f "$CHROMIUMD_SRC" ]; then
     echo "Error: Release build not found at $CHROMIUMD_SRC"
-    echo "Run: scripts/build.sh chromium --release"
+    echo "Run: scripts/build.sh ah-chromiumd --release"
+    echo "(alias: scripts/build.sh chromium --release)"
     exit 1
   fi
 
@@ -94,17 +105,14 @@ install_chromiumd() {
   echo "  Bin: $INSTALL_DIR/ah-chromiumd"
 }
 
-install_aht() {
+install_ahterm() {
   local APP_SRC="$AHTERM_RELEASE_APP"
-  local APP_DIR="/Applications"
-  if [ "$COMPONENT" = "aht" ]; then
-    APP_DIR="$APPLICATIONS_DIR"
-  fi
+  local APP_DIR="$APPLICATIONS_DIR"
   local APP="$APP_DIR/Astrohacker Terminal.app"
 
   if [ ! -x "$APP_SRC/Contents/MacOS/ahterm" ]; then
     echo "Error: Release app not found at $APP_SRC"
-    echo "Run: scripts/build.sh aht --release"
+    echo "Run: scripts/build.sh ahterm --release"
     exit 1
   fi
 
@@ -141,11 +149,11 @@ install_ahweb() {
 
 case "$COMPONENT" in
   ah-chromiumd) install_chromiumd ;;
-  aht)          install_aht ;;
-  ahweb|webtui) install_ahweb ;;
+  ahterm)       install_ahterm ;;
+  ahweb)        install_ahweb ;;
   all)
     install_chromiumd
-    install_aht
+    install_ahterm
     install_ahweb
     echo ""
     echo "Done (all)."
