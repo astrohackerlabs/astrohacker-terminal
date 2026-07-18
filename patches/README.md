@@ -29,8 +29,8 @@ Historical per-fork pointers (the release manifest is authoritative):
   `issue-26071814115751` (2 patches; release-manifest pin).
 - `ladybird/` — **Issue 26071814115751:** master tip `5baf8116…` / archive
   `issue-26071814115751` (22 patches; release-manifest pin).
-- `ghostty/` — **Issue 26071112000924:** host Exp2 archive `issue-26071112000924` (also historical
-  `issue-26070412000013`).
+- `ghostty/` — **Issue 26071814115751:** main tip `f3c9a2b7…` / archive
+  `issue-26071814115751` (17 patches; release-manifest pin).
 - `gecko/` — optional; no product patch set required for 924.
 - `nushell/` — **Issue 26071814115751:** main tip `72b01f3e…` / archive
   `issue-26071814115751` (4 patches).

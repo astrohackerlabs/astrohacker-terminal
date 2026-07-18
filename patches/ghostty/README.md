@@ -3,7 +3,24 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-## Active Add-on (Issue 26071813061732)
+## Current State (Issue 26071814115751)
+
+- **Upstream policy:** latest commit on **`main`**
+- **Upstream base:** `f3c9a2b7262a989ba7e9408d00471fda8f788d16`
+- **Product branch:** `issue-26071814115751-ghostty`
+- **Product HEAD:** `fc25ec02822f9449914e6a95aeefb5bae2e9b28f`
+- **Product tree:** `7f1a24c180d9e935537b08106c0fb093020c8520`
+- **Archive:** `patches/ghostty/patches/issue-26071814115751/` (17 patches)
+- **Archive aggregate SHA-256:**
+  `9467410e92c14a96cb30fb0592f7b2bf839d69551b549e49768e742aa96d45c8`
+- **Verification:** **TREE_MATCH Pass**; `scripts/build.sh ahterm --release`
+  green with Zig 0.15.2 (Exp 6 implementer)
+- **Release authority:** `patches/release-manifest.json` ghostty entry
+
+Build note: tip requires Zig **0.15.2** (`build.zig.zon` minimum). Prefer
+`/opt/homebrew/opt/zig@0.15/bin` on PATH when system Zig is 0.16+.
+
+## Prior Active Add-on (Issue 26071813061732)
 
 - Parent product commit: `ee241e83f206288bfa7bd6177a197fcd4b73afd7`
   (prior tip on `issue-26071811041780-welcome-homepage-url`)
