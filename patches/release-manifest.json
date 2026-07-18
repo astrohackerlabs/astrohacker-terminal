@@ -56,18 +56,15 @@
     {
       "name": "chromium",
       "checkout": "forks/chromium/src",
-      "base": "0c3cca15d78645281db2d339b2dc3d6fad4ee90a",
-      "branch": "150.0.7871.47-issue-26071521449339-refresh-button",
-      "expected_head": "b7be7bd77fca1c2efabad78d430d81632a3b9b50",
-      "expected_tree": "efee8965ee656fa3e117579418e5326c010f96ac",
+      "base": "f405107495a07cb1bfcf687d4af8d91117098db6",
+      "branch": "150.0.7871.114-issue-26071814115751",
+      "expected_head": "476c8df1c2de6d65fdf8990d02b31c002d81a10b",
+      "expected_tree": "ad70b28349aac8c2b8083e61127c4f05953c8b50",
       "patch_directories": [
-        "patches/chromium/patches/issue-26071420489654",
-        "patches/chromium/patches/issue-26071510388098",
-        "patches/chromium/patches/issue-26071517585505",
-        "patches/chromium/patches/issue-26071521449339"
+        "patches/chromium/patches/issue-26071814115751"
       ],
       "patch_count": 122,
-      "archive_sha256": "50c32580ef6e60519373efd7a448da985b25f7222982a4cbbc92bb69b271dee9",
+      "archive_sha256": "59ff364e27546dd3692381585b797b8f6dccc5bc274c2999fd169a84924a2997",
       "allowed_untracked": [
         "third_party/google_toolbox_for_mac/src/",
         "third_party/ink_stroke_modeler/src/",

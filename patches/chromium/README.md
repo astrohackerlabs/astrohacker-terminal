@@ -7,17 +7,30 @@ branch notes that are safe to commit.
 
 ## Current State
 
-- **Restored reconstructable baseline:** `150.0.7871.47-issue-26071420489654` / base
-  `150.0.7871.47` (`0c3cca15d78645281db2d339b2dc3d6fad4ee90a`)
+- **Active pin (Issue 26071814115751):** Electron stable Chromium **`150.0.7871.114`**
+  (`f405107495a07cb1bfcf687d4af8d91117098db6`) / archive
+  `patches/chromium/patches/issue-26071814115751/` (122 format-patches)
 - Main build target: `libtermsurf_chromium`
 - Working tree: `forks/chromium/src`
 - Tooling: `forks/chromium/depot_tools`
 - Patch archives: `patches/chromium/patches`
-- Historical: Issue `26071112000924` remains the exact `0.1.17` release
-  archive; later archives remain history. Issue `26071420489654` is the active
-  restoration record.
+- Release authority: `patches/release-manifest.json` chromium entry
 
-### Issue 26071420489654 / 0.1.17 restoration (current)
+### Issue 26071814115751 / Electron stable Chromium 150.0.7871.114 (current)
+
+| Field | Value |
+| --- | --- |
+| Target base | `150.0.7871.114` / `f405107495a07cb1bfcf687d4af8d91117098db6` |
+| Policy | Electron stable Chromium only (`43.1.1` chrome field at pin) |
+| Product branch | `150.0.7871.114-issue-26071814115751` |
+| Product HEAD | `476c8df1c2de6d65fdf8990d02b31c002d81a10b` (122 commits on base) |
+| Product tree | `ad70b28349aac8c2b8083e61127c4f05953c8b50` |
+| Archive | `patches/chromium/patches/issue-26071814115751/` (122 format-patches) |
+| Archive aggregate SHA-256 | `59ff364e27546dd3692381585b797b8f6dccc5bc274c2999fd169a84924a2997` |
+| Reconstruction | **Pass** — clean-base `git am` TREE_MATCH equal to product tree |
+| Build status | **Green** (local) — `scripts/build.sh chromium-fork` + `ah-chromiumd` exit 0 on Exp 1 observations |
+
+### Issue 26071420489654 / 0.1.17 restoration (historical)
 
 | Field | Value |
 | --- | --- |
@@ -29,7 +42,7 @@ branch notes that are safe to commit.
 | Archive | `patches/chromium/patches/issue-26071420489654/` (119 format-patches) |
 | Archive aggregate SHA-256 | `b332e1468f309e78459da164b40656aa848b4caa2e2f0e92a3abab0844f04a8b` |
 | Reconstruction | **Pass** — 119 stable patch IDs equal; two clean replays produced the expected tree |
-| Build status | **Not built** — engine build, resize behavior, binary comparison, and release qualification are deferred |
+| Build status | Historical — superseded by Issue 26071814115751 pin |
 
 ### Issue 26071112000924 / Electron stable Chromium 150 (`0.1.17` historical)
 
@@ -73,9 +86,9 @@ For the current fully archived baseline:
 
 ```bash
 cd forks/chromium/src
-git checkout 0c3cca15d78645281db2d339b2dc3d6fad4ee90a
-git checkout -b 150.0.7871.47-issue-26071420489654
-git am ../../../patches/chromium/patches/issue-26071420489654/*.patch
+git checkout f405107495a07cb1bfcf687d4af8d91117098db6
+git checkout -b 150.0.7871.114-issue-26071814115751
+git am ../../../patches/chromium/patches/issue-26071814115751/*.patch
 ```
 
 Historical 901 baseline (pre–Issue 26071112000924):
@@ -98,7 +111,7 @@ After committing Chromium changes inside `forks/chromium/src`:
 ```bash
 cd forks/chromium/src
 rm -rf ../../../patches/chromium/patches/issue-{N}
-git format-patch 0c3cca15d78645281db2d339b2dc3d6fad4ee90a..HEAD \
+git format-patch f405107495a07cb1bfcf687d4af8d91117098db6..HEAD \
   -o ../../../patches/chromium/patches/issue-{N}
 ```
 

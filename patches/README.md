@@ -23,8 +23,8 @@ archives, but a released patch change must also update the manifest.
 
 Historical per-fork pointers (the release manifest is authoritative):
 
-- `chromium/` — **Issue 26071112000924:** Electron stable Chromium **150.0.7871.47** /
-  archive `issue-26071112000924` (authoritative after Exp4 Pass).
+- `chromium/` — **Issue 26071814115751:** Electron stable Chromium **150.0.7871.114** /
+  archive `issue-26071814115751` (122 patches; release-manifest pin).
 - `webkit/` — **Issue 26071112000924:** main tip `f1a2d7cc…` / archive `issue-26071112000924`;
   residual focus smoke → Issue 26071112000926.
 - `ladybird/` — **Issue 26071112000924:** master tip `2a3bc6a3…` / archive `issue-26071112000924`
