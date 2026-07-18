@@ -105,18 +105,15 @@
     {
       "name": "ladybird",
       "checkout": "forks/ladybird",
-      "base": "2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd",
-      "branch": "2a3bc6a3-issue-26071521449339-refresh-button",
-      "expected_head": "bc9e447ef3ed944c0c3cc54bf5f87a9ba73babb0",
-      "expected_tree": "59c5553259973a879d6d6c89b289a8b69b36a9d9",
+      "base": "5baf8116efdeafc74f883e5c2bf9f12d9d80c608",
+      "branch": "5baf8116-issue-26071814115751",
+      "expected_head": "63ced9b469a213c161b6b1b9c74d9e9d024b7552",
+      "expected_tree": "4470e021f2df4eace2dce992c99f4913ae23e7f5",
       "patch_directories": [
-        "patches/ladybird/patches/issue-26071420489654",
-        "patches/ladybird/patches/issue-26071510388098",
-        "patches/ladybird/patches/issue-26071517585505",
-        "patches/ladybird/patches/issue-26071521449339"
+        "patches/ladybird/patches/issue-26071814115751"
       ],
-      "patch_count": 21,
-      "archive_sha256": "f6ba5fba0f812d7b2327a5d718dfbd979998e4880ac81061134d7f30ced18bad",
+      "patch_count": 22,
+      "archive_sha256": "c981e048efbec1140a515369a399100e792d2c45227b2cb8d53f843e8b8ad9e2",
       "allowed_untracked": []
     }
   ]

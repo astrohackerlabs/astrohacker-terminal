@@ -8,82 +8,74 @@ tracks patch archives and branch notes that are safe to commit.
 
 - **Upstream policy:** default branch **`master`** tip (remote HEAD is
   `refs/heads/master`, not `main`).
-- **Current base:** `2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd`
-- **Current branch:** `2a3bc6a3-issue-26071420489654-restoration`
-- **Current HEAD:** `986f63961a10e8b375c7fdc82b4d0983fce4e56a`
-- **Current tree:** `118f26862c9d745e38509a3c9e77cc856409925f`
-- **Archive:** `patches/ladybird/patches/issue-26071420489654/` (18 patches)
+- **Active pin (Issue 26071814115751):** master tip
+  `5baf8116efdeafc74f883e5c2bf9f12d9d80c608`
+- **Current branch:** `5baf8116-issue-26071814115751`
+- **Current HEAD:** `63ced9b469a213c161b6b1b9c74d9e9d024b7552`
+- **Current tree:** `4470e021f2df4eace2dce992c99f4913ae23e7f5`
+- **Archive:** `patches/ladybird/patches/issue-26071814115751/` (22 patches)
 - **Archive aggregate SHA-256:**
-  `c1d4db1a665c1b07e69ea3067ed03169ac90003d1355417fcb3d705d4fb3f041`
-- **Verification:** **archive replay Pass; not built**
+  `c981e048efbec1140a515369a399100e792d2c45227b2cb8d53f843e8b8ad9e2`
+- **Verification:** **TREE_MATCH Pass**; release-mode
+  `TERMSURF_LADYBIRD_BACKEND=real scripts/build.sh ladybird --release` green
+  (Exp 4 implementer)
 - Working tree: `forks/ladybird`
+- Release authority: `patches/release-manifest.json` ladybird entry
 
-Every earlier/later archive under `patches/ladybird/patches/` remains a
-historical record. Issue `26071112000924` is the tag-stored `0.1.17` stack;
-post-`0.1.17` archives are present but are not part of this restoration claim.
+Product series includes TermSurf C ABI, navigation/refresh, and a tip port of
+JS dialog hooks to `Utf16String` / `Optional<Utf16String>` for current
+LibWebView.
+
+All prior archives remain under `patches/ladybird/patches/` as historical
+records (including Issue `26071420489654` and add-ons on `2a3bc6a3…`).
 
 ## Merge-upstream
 
 1. Discover tip: `git ls-remote --symref
    https://github.com/LadybirdBrowser/ladybird.git HEAD`
-2. Fetch tip; branch `{short8}-issue-26071112000924` at tip commit.
-3. Apply `patches/ladybird/patches/issue-26071112000924/*.patch` in numeric order
-   (`git am`).
+2. Fetch tip; branch `{short8}-issue-NNNN` at tip commit.
+3. Apply current issue archive (`git am`) or rebase product series onto tip.
 4. Build real backend:
 
    ```bash
    TERMSURF_LADYBIRD_BACKEND=real scripts/build.sh ladybird --release
    ```
 
-5. Smokes (ensure `Ladybird.app/Contents/MacOS` helpers are on `PATH` or
-   symlinked beside `ah-ladybirdd`):
+5. Regenerate archive:
 
    ```bash
-   ah-ladybirdd --termsurf-warmup
-   ah-ladybirdd --termsurf-abi-negative-smoke
-   ah-ladybirdd --termsurf-engine-thread-smoke
-   ah-ladybirdd --termsurf-render-surface-smoke
-   ah-ladybirdd --termsurf-real-frame-attachment-smoke
-   ah-ladybirdd --termsurf-renderer-crash-smoke
-   ah-ladybirdd --termsurf-resource-root-smoke
-   cargo test -p ladybird
-   ```
-
-6. Regenerate archive:
-
-   ```bash
-   rm -rf patches/ladybird/patches/issue-26071112000924
-   mkdir -p patches/ladybird/patches/issue-26071112000924
+   rm -rf patches/ladybird/patches/issue-NNNN
+   mkdir -p patches/ladybird/patches/issue-NNNN
    git -C forks/ladybird format-patch {base}..HEAD \
-     -o "$PWD/patches/ladybird/patches/issue-26071112000924"
+     -o "$PWD/patches/ladybird/patches/issue-NNNN"
    ```
 
-7. Update this README Current State.
+6. Update this README Current State + `patches/release-manifest.json`.
 
 ## Applying Patches
 
 ```bash
 cd forks/ladybird
-git worktree add -b 2a3bc6a3-issue-26071420489654-restoration \
-  /tmp/astrohacker-ladybird-restoration \
-  2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd
-git -C /tmp/astrohacker-ladybird-restoration am \
-  "$PWD/../../patches/ladybird/patches/issue-26071420489654/"*.patch
+git worktree add -b 5baf8116-issue-26071814115751 \
+  /tmp/astrohacker-ladybird-pin \
+  5baf8116efdeafc74f883e5c2bf9f12d9d80c608
+git -C /tmp/astrohacker-ladybird-pin am \
+  "$PWD/../../patches/ladybird/patches/issue-26071814115751/"*.patch
 ```
 
 ## Generating Patches
 
 ```bash
 git -C forks/ladybird format-patch \
-  2a3bc6a32fdd35cf95536d4e80cb395dc2201fcd..HEAD \
-  -o "$PWD/patches/ladybird/patches/issue-26071420489654"
+  5baf8116efdeafc74f883e5c2bf9f12d9d80c608..HEAD \
+  -o "$PWD/patches/ladybird/patches/issue-26071814115751"
 ```
 
 ## Verification
 
 ```bash
 git -C forks/ladybird status --short
-git -C forks/ladybird rev-parse --abbrev-ref HEAD
 git -C forks/ladybird rev-parse HEAD
 TERMSURF_LADYBIRD_BACKEND=real scripts/build.sh ladybird --release
+python3 scripts/lib/release_forks.py
 ```
