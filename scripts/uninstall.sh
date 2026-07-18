@@ -4,21 +4,18 @@ set -euo pipefail
 COMPONENT="${1:-}"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
 CHROMIUMD_INSTALL_DIR="${ASTROHACKER_CHROMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
-GTUI_BIN_DIR="${TERMSURF_GTUI_BIN_DIR:-/usr/local/bin}"
-GTUI_INSTALL_DIR="${TERMSURF_GTUI_INSTALL_DIR:-/usr/local/share/termsurf/gtui}"
-
 if [ -z "$COMPONENT" ]; then
   echo "Usage: $0 <component>"
-  echo "Components: aht, ah-chromiumd, ahweb, ahapp, all"
-  echo "Aliases: webtui→ahweb, gtui→ahapp"
+  echo "Components: aht, ah-chromiumd, ahweb, all"
+  echo "Aliases: webtui→ahweb"
   exit 1
 fi
 
 case "$COMPONENT" in
-  ah-chromiumd | aht | ahweb | webtui | ahapp | gtui | all) ;;
+  ah-chromiumd | aht | ahweb | webtui | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: aht, ah-chromiumd, ahweb, ahapp, all"
+    echo "Components: aht, ah-chromiumd, ahweb, all"
     exit 1
     ;;
 esac
@@ -50,8 +47,6 @@ if [ "$(id -u)" -ne 0 ] && needs_root; then
   exec sudo env \
     TERMSURF_APPLICATIONS_DIR="$APPLICATIONS_DIR" \
     ASTROHACKER_CHROMIUM_INSTALL_DIR="$CHROMIUMD_INSTALL_DIR" \
-    TERMSURF_GTUI_BIN_DIR="$GTUI_BIN_DIR" \
-    TERMSURF_GTUI_INSTALL_DIR="$GTUI_INSTALL_DIR" \
     "$0" "$@"
 fi
 
@@ -89,26 +84,15 @@ uninstall_ahweb() {
   echo "  Removed: /usr/local/bin/ahweb (and legacy /usr/local/bin/web if present)"
 }
 
-uninstall_ahapp() {
-  echo "==> Uninstalling ahapp..."
-  rm -f "$GTUI_BIN_DIR/ahapp"
-  rm -f "$GTUI_BIN_DIR/termsurf"
-  rm -rf "$GTUI_INSTALL_DIR"
-
-  echo "  Removed: $GTUI_BIN_DIR/ahapp (and legacy termsurf if present)"
-  echo "  Removed: $GTUI_INSTALL_DIR"
-}
 
 case "$COMPONENT" in
   ah-chromiumd) uninstall_chromiumd ;;
   aht)          uninstall_aht ;;
   ahweb|webtui) uninstall_ahweb ;;
-  ahapp|gtui)   uninstall_ahapp ;;
   all)
     uninstall_chromiumd
     uninstall_aht
     uninstall_ahweb
-    uninstall_ahapp
     echo ""
     echo "Done (all)."
     ;;

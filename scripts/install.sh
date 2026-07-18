@@ -11,23 +11,20 @@ LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Framewo
 AHTERM_RELEASE_APP="$REPO_DIR/forks/ghostty/macos/build/Release/Astrohacker Terminal.app"
 APPLICATIONS_DIR="${TERMSURF_APPLICATIONS_DIR:-/Applications}"
 CHROMIUMD_INSTALL_DIR="${ASTROHACKER_CHROMIUM_INSTALL_DIR:-/opt/homebrew/opt/astrohacker-terminal-ah-chromiumd}"
-GTUI_BIN_DIR="${TERMSURF_GTUI_BIN_DIR:-/usr/local/bin}"
-GTUI_INSTALL_DIR="${TERMSURF_GTUI_INSTALL_DIR:-/usr/local/share/termsurf/gtui}"
-
 COMPONENT="${1:-}"
 
 if [ -z "$COMPONENT" ]; then
   echo "Usage: $0 <component>"
-  echo "Components: ahterm (alias aht), ah-chromiumd, ahweb, ahapp, all"
-  echo "Aliases: webtui→ahweb, gtui→ahapp"
+  echo "Components: ahterm (alias aht), ah-chromiumd, ahweb, all"
+  echo "Aliases: webtui→ahweb"
   exit 1
 fi
 
 case "$COMPONENT" in
-  ah-chromiumd | aht | ahweb | webtui | ahapp | gtui | all) ;;
+  ah-chromiumd | aht | ahweb | webtui | all) ;;
   *)
     echo "Unknown component: $COMPONENT"
-    echo "Components: ahterm (alias aht), ah-chromiumd, ahweb, ahapp, all"
+    echo "Components: ahterm (alias aht), ah-chromiumd, ahweb, all"
     exit 1
     ;;
 esac
@@ -57,11 +54,6 @@ needs_root() {
     echo "Error: TERMSURF_APPLICATIONS_DIR is not writable: $APPLICATIONS_DIR"
     exit 1
   fi
-  if [ "$COMPONENT" = "gtui" ] || [ "$COMPONENT" = "ahapp" ]; then
-    mkdir -p "$GTUI_BIN_DIR" "$GTUI_INSTALL_DIR" 2>/dev/null || return 0
-    [ -w "$GTUI_BIN_DIR" ] && [ -w "$GTUI_INSTALL_DIR" ] && return 1
-    return 0
-  fi
   return 0
 }
 
@@ -70,8 +62,6 @@ if [ "$(id -u)" -ne 0 ] && needs_root; then
   exec sudo env \
     TERMSURF_APPLICATIONS_DIR="$APPLICATIONS_DIR" \
     ASTROHACKER_CHROMIUM_INSTALL_DIR="$CHROMIUMD_INSTALL_DIR" \
-    TERMSURF_GTUI_BIN_DIR="$GTUI_BIN_DIR" \
-    TERMSURF_GTUI_INSTALL_DIR="$GTUI_INSTALL_DIR" \
     "$0" "$@"
 fi
 
@@ -148,36 +138,15 @@ install_ahweb() {
   echo "  Bin: /usr/local/bin/ahweb"
 }
 
-install_ahapp() {
-  local AHAPP_CLI="$RUST_DIR/target/release/ahapp"
-
-  if [ ! -f "$AHAPP_CLI" ]; then
-    echo "Error: Release build not found at $AHAPP_CLI"
-    echo "Run: scripts/build.sh ahapp --release"
-    exit 1
-  fi
-
-  echo "==> Installing ahapp to $GTUI_BIN_DIR/ahapp..."
-  mkdir -p "$GTUI_BIN_DIR" "$GTUI_INSTALL_DIR"
-  cp "$AHAPP_CLI" "$GTUI_BIN_DIR/ahapp"
-  rm -rf "$GTUI_INSTALL_DIR/app"
-  cp -R "/gtui-app" "$GTUI_INSTALL_DIR/app"
-  codesign --force --sign - "$GTUI_BIN_DIR/ahapp" || true
-
-  echo "  Bin: $GTUI_BIN_DIR/ahapp"
-  echo "  App: $GTUI_INSTALL_DIR/app"
-}
 
 case "$COMPONENT" in
   ah-chromiumd) install_chromiumd ;;
   aht)          install_aht ;;
   ahweb|webtui) install_ahweb ;;
-  ahapp|gtui)   install_ahapp ;;
   all)
     install_chromiumd
     install_aht
     install_ahweb
-    install_ahapp
     echo ""
     echo "Done (all)."
     ;;

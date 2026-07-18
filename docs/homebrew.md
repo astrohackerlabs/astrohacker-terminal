@@ -18,7 +18,6 @@ Released PATH names (machine-readable for gates):
 <!-- released-wrappers -->
 ahterm
 ahweb
-ahapp
 ahsh
 ah-chromiumd
 ah-webkitd
@@ -29,7 +28,6 @@ Released payload roots (machine-readable for legal/notice gates; top-level
 paths in the release tarball besides bare CLI binaries):
 
 <!-- released-payload-roots -->
-gtui
 ah-chromiumd
 ah-webkitd
 ah-ladybirdd
@@ -40,7 +38,6 @@ ah-ladybirdd
 | `ahterm` | Astrohacker Terminal (app executable + PATH launcher) |
 | `ahsh` | Astrohacker Shell |
 | `ahweb` | Open URLs / browser panes in Terminal |
-| `ahapp` | GTUI in-Terminal app launcher (requires Terminal pane env) |
 
 Reserved (not shipping until the product ships): `ahwallet`.
 
@@ -57,7 +54,6 @@ Engine **selectors** for `ahweb` remain family names: `chromium`, `webkit`,
 
 `TermSurf` remains the **protocol** name (`termsurf.proto`, `libtermsurf_*`,
 `TERMSURF_*` env). It is not the product brand and is not the PATH CLI name
-(`ahapp` replaced the old `termsurf` PATH binary).
 
 Historical cask token `astrohacker-terminal` is retired. Users install
 `astrohacker` only. The public GitHub source repo name
@@ -103,10 +99,9 @@ require `sudo` (helpers are Homebrew `artifact`s).
 - **Legal (authoritative for installed users):**
   `/Applications/Astrohacker Terminal.app/Contents/Resources/legal/`
   (`LICENSE`, `NOTICE`, `TRADEMARKS.md`, `third_party/...`)
-- PATH: `ahterm`, `ahweb`, `ahapp`, `ahsh`, engine helpers
+- PATH: `ahterm`, `ahweb`, `ahsh`, engine helpers
 - Chromium / WebKit / Ladybird trees →
   `/opt/homebrew/opt/astrohacker-terminal-ah-{chromiumd,webkitd,ladybirdd}/`
-- GTUI assets → `/opt/homebrew/opt/astrohacker-terminal-gtui/`
 
 
 ## Release tarball contract
@@ -120,8 +115,7 @@ Top-level contents:
 - `LICENSE`, `NOTICE`, `TRADEMARKS.md` (tarball root mirror of product legal)
 - `legal/third_party/` (Chromium credits/LICENSE, Ladybird LICENSE + vcpkg
   copyrights, Nushell/Reedline LICENSE copies)
-- `ahweb`, `ahapp`, `ahsh`
-- `gtui/`
+- `ahweb`, `ahsh`
 - `ah-chromiumd/`, `ah-webkitd/`, `ah-ladybirdd/`
 
 Gate before publish: `scripts/check-release-legal-notices.sh` (NOTICE
@@ -203,7 +197,7 @@ Before confirmation the command performs read-only version, repository, tool,
 and credential discovery. After the operator types the exact confirmation, it:
 
 1. sets first-party product Cargo package versions to the selected release
-   version (`ahsh`, `ahweb`, `ahapp`, `ah-chromiumd`, `ah-webkitd`,
+   version (`ahsh`, `ahweb`, `ah-chromiumd`, `ah-webkitd`,
    `ah-ladybirdd` only), refreshes their `Cargo.lock` files, commits that bump
    on private `main` when needed, and pushes it so the monorepo stays aligned
    with `origin/main`. This step never rewrites anything under `forks/`
@@ -298,7 +292,6 @@ normal operator interface.
      | Wrapper | Expected first line |
      | --- | --- |
      | `ahweb --version` | `Astrohacker Web <version>` |
-     | `ahapp --version` | `Astrohacker App <version>` |
      | `ahsh --version` | `Astrohacker Shell <version>` |
      | `ah-chromiumd --version` | `Astrohacker Chromium Engine <version>` |
      | `ah-webkitd --version` | `Astrohacker WebKit Engine <version>` |

@@ -5385,7 +5385,7 @@ if [ "$SCENARIO" = "named-chromium-debug-launch" ]; then
   fi
   log "PASS: named Chromium debug launch command omits --browser"
   require_log "TermSurf message decoded type=HelloRequest" "named Chromium webtui discovered TERMSURF_SOCKET"
-  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=chromium" "Ghostboard sent HelloReply homepage and browser defaults"
+  require_log "TermSurf HelloReply sent homepage=https://astrohacker.com/welcome browsers=chromium" "Ghostboard sent HelloReply homepage and browser defaults"
   require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "Ghostboard received named Chromium SetOverlay"
   require_log "SetOverlay: named browser resolved browser=chromium env=ASTROHACKER_CHROMIUM_PATH path=${CHROMIUM}" "Ghostboard resolved named Chromium to debug path"
   require_log "spawned browser path=${CHROMIUM} pid=[0-9]+ profile=default" "Ghostboard spawned debug Chromium path"
@@ -5432,8 +5432,8 @@ if [ "$SCENARIO" = "hello-config-browser-list" ]; then
     fail "hello config browser-list command unexpectedly contains --browser"
   fi
   log "PASS: hello config browser-list command omits --browser"
-  require_log "TermSurf Hello config homepage=https://termsurf.com/welcome browsers=chromium,${HELLO_CONFIG_SECOND_BROWSER}" "Ghostboard loaded configured HelloReply browser list"
-  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=chromium,${HELLO_CONFIG_SECOND_BROWSER}" "Ghostboard sent configured HelloReply browser list"
+  require_log "TermSurf Hello config homepage=https://astrohacker.com/welcome browsers=chromium,${HELLO_CONFIG_SECOND_BROWSER}" "Ghostboard loaded configured HelloReply browser list"
+  require_log "TermSurf HelloReply sent homepage=https://astrohacker.com/welcome browsers=chromium,${HELLO_CONFIG_SECOND_BROWSER}" "Ghostboard sent configured HelloReply browser list"
   require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "webtui consumed first configured browser from HelloReply"
   require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "BrowserReady preserved first configured browser key"
 fi
@@ -5443,8 +5443,8 @@ if [ "$SCENARIO" = "hello-empty-browser-list" ]; then
     fail "hello empty browser-list command unexpectedly contains --browser"
   fi
   log "PASS: hello empty browser-list command omits --browser"
-  require_log "TermSurf Hello config homepage=https://termsurf.com/welcome browsers=chromium" "Ghostboard fell back to default HelloReply browser list"
-  require_log "TermSurf HelloReply sent homepage=https://termsurf.com/welcome browsers=chromium" "Ghostboard sent fallback HelloReply browser list"
+  require_log "TermSurf Hello config homepage=https://astrohacker.com/welcome browsers=chromium" "Ghostboard fell back to default HelloReply browser list"
+  require_log "TermSurf HelloReply sent homepage=https://astrohacker.com/welcome browsers=chromium" "Ghostboard sent fallback HelloReply browser list"
   require_log "SetOverlay: pane_id=${PANE_ID} profile=default browser=chromium url=${URL}" "webtui consumed fallback browser from HelloReply"
   require_log "BrowserReady: pane_id=${PANE_ID} tab_id=${BROWSER_TAB_ID} socket=.* browser=chromium" "BrowserReady preserved fallback browser key"
 fi

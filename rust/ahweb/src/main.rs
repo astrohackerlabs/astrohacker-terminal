@@ -1258,7 +1258,7 @@ fn main() -> io::Result<()> {
         None => cli.url.unwrap_or_else(|| {
             hello_homepage
                 .filter(|hp| !hp.is_empty())
-                .unwrap_or_else(|| "https://termsurf.com/welcome".to_string())
+                .unwrap_or_else(|| "https://astrohacker.com/welcome".to_string())
         }),
     };
     let mut inspected_tab_id: i64 = if let Some(id) = raw_url.strip_prefix("devtools://") {

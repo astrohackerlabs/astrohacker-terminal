@@ -17,12 +17,10 @@ Package legal layout (Homebrew / release tarball):
 # kind|id|section|license
 wrapper|ahterm|ghostty|MIT
 wrapper|ahweb|first-party|MIT
-wrapper|ahapp|first-party|MIT
 wrapper|ahsh|nushell-reedline|MIT
 wrapper|ah-chromiumd|chromium|BSD-3-Clause
 wrapper|ah-webkitd|webkit|FOUNDER-ASSUMPTION
 wrapper|ah-ladybirdd|ladybird|BSD-2-Clause
-payload|gtui|first-party|MIT
 payload|ah-chromiumd|chromium|BSD-3-Clause
 payload|ah-webkitd|webkit|FOUNDER-ASSUMPTION
 payload|ah-ladybirdd|ladybird|BSD-2-Clause
@@ -35,9 +33,9 @@ pointer|third_party/reedline/LICENSE
 -->
 
 ================================================================================
-## first-party — ahweb, ahapp, gtui
+## first-party — ahweb
 
-Astrohacker-owned product code for ahweb, ahapp, and GTUI assets is licensed
+Astrohacker-owned product code for ahweb is licensed
 under the MIT License in LICENSE (Copyright (c) 2026 Astrohacker Inc.).
 
 ================================================================================

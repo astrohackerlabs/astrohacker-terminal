@@ -23,7 +23,7 @@ Script-local bash variables may use `AHTERM_*` to match shipped binary
 | Variable | Role |
 | --- | --- |
 | `TERMSURF_SOCKET` | Host↔client IPC socket |
-| `TERMSURF_PANE_ID` | Pane id for `ahweb` / `ahapp` |
+| `TERMSURF_PANE_ID` | Pane id for `ahweb` |
 | `TERMSURF_ENGINE_STARTUP_TRACE` / `_FILE` | Engine warmup/startup traces |
 | `TERMSURF_PDF_INPUT_TRACE` / `_FILE` | PDF input traces |
 | `TERMSURF_WEBTUI_STATE_TRACE_FILE` | WebTUI debug state |

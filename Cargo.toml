@@ -6,7 +6,6 @@ members = [
     "rust/ah-ladybirdd",
     "rust/ah-geckod",
     "rust/roastty",
-    "rust/ahapp",
 ]
 exclude = [
     "rust/ahsh",

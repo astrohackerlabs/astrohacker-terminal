@@ -6,9 +6,9 @@
       "name": "ghostty",
       "checkout": "forks/ghostty",
       "base": "53bd14fecfd68c6c0ab64d37b5943247299e2b40",
-      "branch": "issue-26071721129990-shell-xdg-defaults",
-      "expected_head": "ed063b7b49135907b45d32a715bb92d6ba28eb50",
-      "expected_tree": "56354bbfd58ce56f06cfdd5c9175979717acf88e",
+      "branch": "issue-26071813061732-remove-ahapp-poc",
+      "expected_head": "7093f54e7d0e86c558d86dea36cd04b560488d3e",
+      "expected_tree": "5f58f5236712fbc2fd05ba86752fa08c318fe7c4",
       "patch_directories": [
         "patches/ghostty/patches/issue-26071420489654",
         "patches/ghostty/patches/issue-26071510388098",
@@ -19,10 +19,12 @@
         "patches/ghostty/patches/issue-26071720189508",
         "patches/ghostty/patches/issue-26071720300520",
         "patches/ghostty/patches/issue-26071720442142",
-        "patches/ghostty/patches/issue-26071721129990"
+        "patches/ghostty/patches/issue-26071721129990",
+        "patches/ghostty/patches/issue-26071811041780",
+        "patches/ghostty/patches/issue-26071813061732"
       ],
-      "patch_count": 13,
-      "archive_sha256": "21df8c3b9b3a22b7a5a4d762a895f2d22169472e0d71f03d3f60767944564ac2",
+      "patch_count": 17,
+      "archive_sha256": "a4dedc891dd64705f8f8e348cdf4a9be38441de32e6e20c5c035c91c8e1ec4c1",
       "allowed_untracked": []
     },
     {

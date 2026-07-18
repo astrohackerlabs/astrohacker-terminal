@@ -12,7 +12,6 @@ private Astrohacker monorepo for source releases. It includes:
 - `scripts/` — public build/install helpers and smoke scripts.
 - `rust/` — Rust workspace crates for `ahweb`, Chromium, WebKit, Ladybird, GTUI,
   and protocol/native support code.
-- `bun/gtui-app/` — GTUI app assets used by the Terminal package.
 - `patches/` — fork patch archives and reconstruction notes for Chromium,
   WebKit, Ladybird, Ghostty, and Gecko.
 

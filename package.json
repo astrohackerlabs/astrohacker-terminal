@@ -3,6 +3,5 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "bun/gtui-app"
   ]
 }

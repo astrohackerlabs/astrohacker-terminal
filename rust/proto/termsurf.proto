@@ -3,6 +3,9 @@ package termsurf;
 
 // Wrapper — every message on the wire is one of these.
 message TermSurfMessage {
+  // Former app lifecycle oneof tags (OpenApp / OpenAppReply / CloseAppFrontend).
+  reserved 40, 41, 42;
+
   oneof msg {
     // Tab lifecycle (GUI → Chromium)
     CreateTab create_tab = 1;
@@ -68,11 +71,6 @@ message TermSurfMessage {
 
     // Renderer crash recovery (Chromium → TUI / automation harness)
     RendererCrashed renderer_crashed = 39;
-
-    // TermSurf app lifecycle (TUI ↔ GUI)
-    OpenApp open_app = 40;
-    OpenAppReply open_app_reply = 41;
-    CloseAppFrontend close_app_frontend = 42;
 
     // Generic render surface metadata (engine → GUI)
     RenderSurface render_surface = 43;
@@ -343,27 +341,8 @@ message OpenSplit {
   string command = 3;
 }
 
-message OpenApp {
-  string pane_id = 1;
-  string app_id = 2;
-  string browser = 3;
-  string profile = 4;
-  string entrypoint = 5;
-}
 
-message OpenAppReply {
-  string pane_id = 1;
-  string app_id = 2;
-  string frontend_id = 3;
-  string url = 4;
-  string error = 5;
-}
 
-message CloseAppFrontend {
-  string pane_id = 1;
-  string app_id = 2;
-  string frontend_id = 3;
-}
 
 // --- GUI → TUI ---
 

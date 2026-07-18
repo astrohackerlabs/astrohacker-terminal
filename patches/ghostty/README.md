@@ -3,7 +3,40 @@
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
-## Active Add-on (Issue 26071721129990)
+## Active Add-on (Issue 26071813061732)
+
+- Parent product commit: `ee241e83f206288bfa7bd6177a197fcd4b73afd7`
+  (prior tip on `issue-26071811041780-welcome-homepage-url`)
+- Product branch: `issue-26071813061732-remove-ahapp-poc`
+- Product HEAD: `7093f54e7d0e86c558d86dea36cd04b560488d3e`
+- Product tree: `5f58f5236712fbc2fd05ba86752fa08c318fe7c4`
+- Issue archive: `patches/ghostty/patches/issue-26071813061732/`
+- Patches: 0001 app removal, 0002 compile fix, 0003 ignore zig-pkg
+- Patch SHA-256:
+  - 0001: `850a9d92c2972099b48061b40bd17aa768fd42a74c6d4fe21912d4e40072a1e4`
+  - 0002: `cfc2ed8012fca56de057c80746516bcfa04cdeae883310a39ba546c264f087a4`
+  - 0003: `0279a6422627c9f4b7701c50ae0062eb373adf3e594d5d68cecef1274b93a3f4`
+- Scope: remove TermSurf app host path; fix compile residuals; ignore
+  `zig-pkg/` so release_forks clean check passes after local Zig builds.
+- Verification: **source + 17-patch release series pin**.
+
+## Prior Add-on (Issue 26071811041780)
+
+- Parent product commit: `ed063b7b49135907b45d32a715bb92d6ba28eb50`
+  (prior tip on `issue-26071721129990-shell-xdg-defaults`)
+- Product branch: `issue-26071811041780-welcome-homepage-url`
+- Product HEAD: `ee241e83f206288bfa7bd6177a197fcd4b73afd7`
+- Product tree: `95fa220c4c20cfdf139c6d76775182170aed6d3c`
+- Issue archive: `patches/ghostty/patches/issue-26071811041780/`
+- Patch: `0001-Default-homepage-to-astrohacker.com-welcome.patch`
+- Patch SHA-256:
+  `6ec86883ad5afb252690ee8209902f5beb30bcb94a11fdbc453b64125c101b09`
+- Scope: product default homepage URL
+  `https://astrohacker.com/welcome` (Config, HelloReply fallback, Swift
+  bridge) instead of `termsurf.com/welcome`.
+- Verification: **source + 14-patch release series pin**; issue closed Pass.
+
+## Prior Add-on (Issue 26071721129990)
 
 - Parent product commit: `1a3ab12fc8619b81d46e61a1be66ef697ae4962e`
   (prior tip on `issue-26071720442142-font-keybind-defaults`)
@@ -17,7 +50,7 @@ clone at `forks/ghostty`.
 - Scope: default shell to packaged ahsh absolute paths with system-shell
   fallback; inject `XDG_CONFIG_HOME=$HOME/.config` when unset.
 - Verification: **source + 13-patch release series pin**; operator release
-  visual gate open.
+  visual gate open (prior tip).
 
 ## Prior Add-on (Issue 26071720442142)
 

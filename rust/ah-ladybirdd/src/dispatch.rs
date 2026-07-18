@@ -50,13 +50,6 @@ pub fn handle_message(msg: &TermSurfMessage) {
             ignored_not_engine("QueryDevtoolsReply", "GUI-owned devtools query reply")
         }
         Msg::BrowserReady(_) => ignored_not_engine("BrowserReady", "GUI-to-TUI notification"),
-        Msg::OpenApp(_) => ignored_not_engine("OpenApp", "TermSurf app lifecycle request"),
-        Msg::OpenAppReply(_) => {
-            ignored_not_engine("OpenAppReply", "TermSurf app lifecycle response")
-        }
-        Msg::CloseAppFrontend(_) => {
-            ignored_not_engine("CloseAppFrontend", "TermSurf app lifecycle close")
-        }
         Msg::ServerRegister(_)
         | Msg::TabReady(_)
         | Msg::CaContext(_)

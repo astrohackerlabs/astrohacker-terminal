@@ -23,7 +23,7 @@ From monorepo root:
 ```sh
 cargo metadata --no-deps
 cargo check --workspace
-cargo build -p ahweb -p ahapp
+cargo build -p ahweb
 cargo build --manifest-path rust/ahsh/Cargo.toml
 ```
 

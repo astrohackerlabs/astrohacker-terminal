@@ -21,8 +21,8 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: ahterm, ahsh, ahweb, ahapp, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
-  echo "Aliases: webtui→ahweb, gtui→ahapp, chromium→ah-chromiumd, webkit→ah-webkitd, ladybird→ah-ladybirdd"
+  echo "Components: ahterm, ahsh, ahweb, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
+  echo "Aliases: webtui→ahweb, chromium→ah-chromiumd, webkit→ah-webkitd, ladybird→ah-ladybirdd"
 }
 
 configuration() {
@@ -109,22 +109,6 @@ build_ahweb() {
   fi
 }
 
-build_ahapp() {
-  cd "$RUST_DIR"
-  if $CLEAN; then
-    echo "==> Cleaning ahapp..."
-    cargo clean -p ahapp
-  fi
-  if $RELEASE; then
-    echo "==> Building ahapp (release)..."
-    cargo build --release -p ahapp
-    echo "  ahapp: $RUST_DIR/target/release/ahapp"
-  else
-    echo "==> Building ahapp (debug)..."
-    cargo build -p ahapp
-    echo "  ahapp: $RUST_DIR/target/debug/ahapp"
-  fi
-}
 
 build_ahsh() {
   local AHSH_DIR="$RUST_DIR/rust/ahsh"
@@ -341,7 +325,6 @@ build_ahterm() {
 case "$COMPONENT" in
   chromium-fork) build_chromium_fork ;;
   ahweb|webtui) build_ahweb ;;
-  ahapp|gtui) build_ahapp ;;
   ahsh)       build_ahsh ;;
   ah-chromiumd|chromium)   build_chromiumd ;;
   webkit-fork) build_webkit_fork ;;
@@ -353,7 +336,6 @@ case "$COMPONENT" in
   all)
     build_chromium_fork
     build_ahweb
-    build_ahapp
     build_ahsh
     build_chromiumd
     build_webkit_fork
