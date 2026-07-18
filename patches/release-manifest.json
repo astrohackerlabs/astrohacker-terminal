@@ -6,15 +6,16 @@
       "name": "ghostty",
       "checkout": "forks/ghostty",
       "base": "f3c9a2b7262a989ba7e9408d00471fda8f788d16",
-      "branch": "issue-26071818128343-exp2-split-border-corner-radius",
-      "expected_head": "79f6b04703ea537507599c7ba9116ac97e3ce2ca",
-      "expected_tree": "b39f2254f26f2b460bc75dcb0d22cf77723babf2",
+      "branch": "issue-26071819414418-exp1-progress-bar-fit",
+      "expected_head": "95b4c3555df1a301a6585200f7c362463acf0b42",
+      "expected_tree": "1104fe6b37327bc2156147d1ef1fc2cb2e6b7388",
       "patch_directories": [
         "patches/ghostty/patches/issue-26071814115751",
-        "patches/ghostty/patches/issue-26071818128343"
+        "patches/ghostty/patches/issue-26071818128343",
+        "patches/ghostty/patches/issue-26071819414418"
       ],
-      "patch_count": 20,
-      "archive_sha256": "3ae22c5b21160b1b18d61740e586bb89b4d0ba35031815658db22f18969456fd",
+      "patch_count": 22,
+      "archive_sha256": "a65ae7df61032eadb3f92ae6252cdc3fdb8cecaebeb6f5979168ea03c67d06fa",
       "allowed_untracked": []
     },
     {

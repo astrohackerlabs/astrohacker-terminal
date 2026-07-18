@@ -1,6 +1,27 @@
 # Ghostty Patches
 
-## Active Add-on (Issue 26071818128343)
+## Active Add-on (Issue 26071819414418)
+
+- Parent product commit: `79f6b04703ea537507599c7ba9116ac97e3ce2ca`
+  (prior tip on `issue-26071818128343-exp2-split-border-corner-radius`)
+- Product branch: `issue-26071819414418-exp1-progress-bar-fit`
+- Product HEAD: `95b4c3555df1a301a6585200f7c362463acf0b42`
+- Product tree: `1104fe6b37327bc2156147d1ef1fc2cb2e6b7388`
+- Issue archive: `patches/ghostty/patches/issue-26071819414418/`
+- Patches: `0001` theme palette colors + initial clip, `0002` concentric
+  inset-box clip (R−w on content rect, not full pane)
+- Patch SHA-256:
+  - 0001: `4ed31e658edd20464025d75ec92b5f0a72d8eac9fa691bbfc1cb623584a756e2`
+  - 0002: `0f596616c692f35f355a36cca7cfac017c3e861ba19bd542ea9de0bb2d69ffda`
+- Scope: OSC surface progress bar uses theme palette 6/1/3; laid out in the
+  inset content box and clipShape'd with continuous radius max(0, R−w) so
+  corners are concentric with the split border stroke.
+- Verification: **source + 22-patch series pin** (archive
+  `a65ae7df61032eadb3f92ae6252cdc3fdb8cecaebeb6f5979168ea03c67d06fa`);
+  agent Release `aht` preflight; operator Nu visual gate open (Exp 1).
+
+
+## Prior Add-on (Issue 26071818128343)
 
 - Parent product commit: `fc25ec02822f9449914e6a95aeefb5bae2e9b28f`
   (prior tip on `issue-26071814115751-ghostty`)
