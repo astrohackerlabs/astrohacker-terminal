@@ -13,12 +13,12 @@ mod test_bins;
 
 use crate::{
     command::parse_cli_args_from_env,
-    config_files::set_config_path,
     logger::{configure, logger},
 };
 use log::{Level, trace};
 use miette::Result;
 use nu_cli::gather_parent_env_vars;
+use nu_config::{CliOverrides, ConfigError, ConfigWarning, SystemEnv, resolve_paths};
 use nu_engine::{convert_env_values, exit::cleanup_exit};
 use nu_lsp::LanguageServer;
 use nu_path::absolute_with;
@@ -26,6 +26,7 @@ use nu_protocol::{
     ByteStream, Config, IntoValue, PipelineData, ShellError, Span, Spanned, Type, Value,
     engine::{EngineState, Stack},
     record, report_shell_error,
+    shell_error::generic::GenericError,
 };
 use nu_std::load_standard_library;
 use nu_utils::perf;
@@ -33,7 +34,7 @@ use run::{run_commands, run_file, run_repl};
 use signals::ctrlc_protection;
 use std::{
     borrow::Cow,
-    path::{PathBuf, absolute},
+    path::PathBuf,
     str::FromStr,
     sync::Arc,
 };
@@ -130,65 +131,76 @@ fn main() -> Result<()> {
     #[cfg(all(feature = "rustls-tls", feature = "network"))]
     nu_command::tls::CRYPTO_PROVIDER.default();
 
-    // Begin: Default NU_LIB_DIRS, NU_PLUGIN_DIRS
-    // Set default NU_LIB_DIRS and NU_PLUGIN_DIRS here before the env.nu is processed. If
-    // the env.nu file exists, these values will be overwritten, if it does not exist, or
-    // there is an error reading it, these values will be used.
-    let nushell_config_path: PathBuf = nu_path::nu_config_dir().map(Into::into).unwrap_or_default();
-    if let Ok(xdg_config_home) = std::env::var("XDG_CONFIG_HOME")
-        && !xdg_config_home.is_empty()
-    {
-        if nushell_config_path
-            != absolute_with(&xdg_config_home, &init_cwd)
-                .unwrap_or(PathBuf::from(&xdg_config_home))
-                .join("nushell")
-        {
+    // Resolve all config paths once (nu-config 0.114.2+); do not re-read XDG helpers later.
+    let cli_overrides = CliOverrides::from_path_strings(
+        None,
+        parsed_nu_cli_args
+            .config_file
+            .as_ref()
+            .map(|s| s.item.as_str()),
+        parsed_nu_cli_args
+            .env_file
+            .as_ref()
+            .map(|s| s.item.as_str()),
+        #[cfg(feature = "plugin")]
+        parsed_nu_cli_args
+            .plugin_file
+            .as_ref()
+            .map(|s| s.item.as_str()),
+        &init_cwd,
+    );
+
+    let (config_dirs, warnings) = match resolve_paths(&SystemEnv, &cli_overrides) {
+        Ok(result) => result,
+        Err(ConfigError::ConfigDirNotFound) => {
             report_shell_error(
                 None,
                 &engine_state,
-                &ShellError::InvalidXdgConfig {
-                    xdg: xdg_config_home,
-                    default: nushell_config_path.display().to_string(),
+                &ShellError::ConfigDirNotFound {
+                    span: Span::unknown(),
                 },
             );
-        } else if let Some(old_config) = dirs::config_dir()
-            .and_then(|p| absolute(p).ok())
-            .map(|p| p.join("nushell"))
-        {
-            let xdg_config_empty = nushell_config_path
-                .read_dir()
-                .map_or(true, |mut dir| dir.next().is_none());
-            let old_config_empty = old_config
-                .read_dir()
-                .map_or(true, |mut dir| dir.next().is_none());
-            if !old_config_empty && xdg_config_empty {
-                eprintln!(
-                    "WARNING: XDG_CONFIG_HOME has been set but {} is empty.\n",
-                    nushell_config_path.display(),
-                );
-                eprintln!(
-                    "Nushell will not move your configuration files from {}",
-                    old_config.display()
-                );
+            (nu_config::NushellConfigDirs::empty(), vec![])
+        }
+        Err(ConfigError::NoHomeDir) => {
+            report_shell_error(
+                None,
+                &engine_state,
+                &ShellError::Generic(GenericError::new_internal(
+                    "Config path resolution failed",
+                    ConfigError::NoHomeDir.to_string(),
+                )),
+            );
+            (nu_config::NushellConfigDirs::empty(), vec![])
+        }
+    };
+
+    for w in &warnings {
+        match w {
+            ConfigWarning::XdgConfigIgnored { xdg, resolved } => {
+                let err = ShellError::InvalidXdgConfig {
+                    xdg: xdg.clone(),
+                    default: resolved.display().to_string(),
+                };
+                report_shell_error(None, &engine_state, &err);
+            }
+            ConfigWarning::OldConfigDirHasFiles { .. } => {
+                eprintln!("{w}");
             }
         }
     }
 
-    let default_nushell_completions_path = if let Some(mut path) = nu_path::data_dir() {
-        path.push("nushell");
-        path.push("completions");
-        path.into()
-    } else {
-        std::path::PathBuf::new()
-    };
+    engine_state.config_dirs = config_dirs;
 
-    let mut default_nu_lib_dirs_path = nushell_config_path.clone();
+    // Begin: Default NU_LIB_DIRS, NU_PLUGIN_DIRS
+    let default_nushell_completions_path = engine_state.config_dirs.data_home.join("completions");
+    let mut default_nu_lib_dirs_path = engine_state.config_dirs.config_home.clone();
     default_nu_lib_dirs_path.push("scripts");
 
     // Parse include paths from -I flag
     let include_paths = &parsed_nu_cli_args.include_path;
 
-    let mut default_nu_plugin_dirs_path = nushell_config_path;
+    let mut default_nu_plugin_dirs_path = engine_state.config_dirs.config_home.clone();
     default_nu_plugin_dirs_path.push("plugins");
     engine_state.add_env_var("NU_PLUGIN_DIRS".to_string(), Value::test_list(vec![]));
     let mut working_set = nu_protocol::engine::StateWorkingSet::new(&engine_state);
@@ -293,23 +305,7 @@ fn main() -> Result<()> {
         perf!("start logging", start_time, use_color);
     }
 
-    start_time = nu_utils::time::Instant::now();
-    set_config_path(
-        &mut engine_state,
-        init_cwd.as_ref(),
-        "config.nu",
-        "config-path",
-        parsed_nu_cli_args.config_file.as_ref(),
-    );
-
-    set_config_path(
-        &mut engine_state,
-        init_cwd.as_ref(),
-        "env.nu",
-        "env-path",
-        parsed_nu_cli_args.env_file.as_ref(),
-    );
-    perf!("set_config_path", start_time, use_color);
+    // Config paths are resolved above into engine_state.config_dirs (no set_config_path).
 
     #[cfg(unix)]
     {
@@ -541,10 +537,6 @@ fn main() -> Result<()> {
             config_files::setup_config(
                 &mut engine_state,
                 &mut stack,
-                #[cfg(feature = "plugin")]
-                parsed_nu_cli_args.plugin_file,
-                parsed_nu_cli_args.config_file,
-                parsed_nu_cli_args.env_file,
                 parsed_nu_cli_args.login_shell.is_some(),
             );
         }
@@ -568,15 +560,7 @@ fn main() -> Result<()> {
 
         if parsed_nu_cli_args.no_config_file.is_none() {
             let mut stack = nu_protocol::engine::Stack::new();
-            config_files::setup_config(
-                &mut engine_state,
-                &mut stack,
-                #[cfg(feature = "plugin")]
-                parsed_nu_cli_args.plugin_file,
-                parsed_nu_cli_args.config_file,
-                parsed_nu_cli_args.env_file,
-                false,
-            );
+            config_files::setup_config(&mut engine_state, &mut stack, false);
         }
 
         LanguageServer::initialize_stdio_connection(engine_state)?.serve_requests()?
