@@ -1,5 +1,31 @@
 # Ghostty Patches
 
+## Active Add-on (Issue 26071818128343)
+
+- Parent product commit: `fc25ec02822f9449914e6a95aeefb5bae2e9b28f`
+  (prior tip on `issue-26071814115751-ghostty`)
+- Product branch: `issue-26071818128343-exp2-split-border-corner-radius`
+  (historical tip also reachable as `issue-26071818128343-rounded-pane-borders`)
+- Product HEAD: `79f6b04703ea537507599c7ba9116ac97e3ce2ca`
+- Product tree: `b39f2254f26f2b460bc75dcb0d22cf77723babf2`
+- Issue archive: `patches/ghostty/patches/issue-26071818128343/`
+- Patches: `0001` Exp1 outer rounding, `0002` Exp1 all four corners,
+  `0003` Exp2 `split-border-corner-radius` (`auto`|`0`|N)
+- Patch SHA-256:
+  - 0001: `4f77f419990195742bbea578e6b6177144f2346de6cf07e572e67027856c935d`
+  - 0002: `21c130a0d46a0ca12299803c16413137873d717d6755cc838b61ffe0d266271d`
+  - 0003: `17bf47409c739f11c1458d9741b99ef5bc4702bece68b5cb0b724fc11a1bc77c`
+- Scope: every corner of each split pane border uses effective radius
+  from `split-border-corner-radius` (`auto` → window `_cornerRadius`
+  fallback 10; `0` square; positive fixed). Content/dim clip at
+  max(0, R_eff - w); internal T-junctions included.
+- Verification: **source + 20-patch series pin** (archive
+  `3ae22c5b21160b1b18d61740e586bb89b4d0ba35031815658db22f18969456fd`);
+  agent Release `aht` green; operator visual Pass (Exp 3).
+
+## Prior Add-on (Issue 26071814115751)
+
+
 Ghostty fork work is tracked here as patch archives against the ignored local
 clone at `forks/ghostty`.
 
