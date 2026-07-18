@@ -25,8 +25,8 @@ Historical per-fork pointers (the release manifest is authoritative):
 
 - `chromium/` — **Issue 26071814115751:** Electron stable Chromium **150.0.7871.114** /
   archive `issue-26071814115751` (122 patches; release-manifest pin).
-- `webkit/` — **Issue 26071112000924:** main tip `f1a2d7cc…` / archive `issue-26071112000924`;
-  residual focus smoke → Issue 26071112000926.
+- `webkit/` — **Issue 26071814115751:** main tip `e0ee95bc…` / archive
+  `issue-26071814115751` (2 patches; release-manifest pin).
 - `ladybird/` — **Issue 26071112000924:** master tip `2a3bc6a3…` / archive `issue-26071112000924`
   (18 patches).
 - `ghostty/` — **Issue 26071112000924:** host Exp2 archive `issue-26071112000924` (also historical
