@@ -6,18 +6,19 @@
       "name": "ghostty",
       "checkout": "forks/ghostty",
       "base": "f3c9a2b7262a989ba7e9408d00471fda8f788d16",
-      "branch": "issue-26071913243342-exp1-spatial-mru-focus",
-      "expected_head": "05f6a4d599ea42bf598d031bbeae02b2dc61e7a4",
-      "expected_tree": "87e2e30995a617b7a28b95ea09f6c278c4f7c418",
+      "branch": "issue-26071914254256-exp7-browse-chrome-keys",
+      "expected_head": "4f000871a51141c37d03f07addb5ad78cf0fc11e",
+      "expected_tree": "8fde8bbf717ddcf62a068ecdbd7a8e4e66b7571b",
       "patch_directories": [
         "patches/ghostty/patches/issue-26071814115751",
         "patches/ghostty/patches/issue-26071818128343",
         "patches/ghostty/patches/issue-26071819414418",
         "patches/ghostty/patches/issue-26071821572313",
-        "patches/ghostty/patches/issue-26071913243342"
+        "patches/ghostty/patches/issue-26071913243342",
+        "patches/ghostty/patches/issue-26071914254256"
       ],
-      "patch_count": 26,
-      "archive_sha256": "c1bc34bec200ac65a8199c78fd6e320df642686a473cb3634e1dc7f4f0d89101",
+      "patch_count": 27,
+      "archive_sha256": "691b551eb7cd27c7ba728fb5d310bb2067703bbf67fbed9ee86c3c838822179e",
       "allowed_untracked": []
     },
     {

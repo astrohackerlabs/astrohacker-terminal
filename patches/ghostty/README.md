@@ -1,6 +1,24 @@
 # Ghostty Patches
 
-## Active Add-on (Issue 26071913243342)
+## Active Add-on (Issue 26071914254256 Exp 7)
+
+- Parent product commit: `05f6a4d599ea42bf598d031bbeae02b2dc61e7a4`
+  (prior tip on `issue-26071913243342-exp1-spatial-mru-focus`)
+- Product branch: `issue-26071914254256-exp7-browse-chrome-keys`
+- Product HEAD: `4f000871a51141c37d03f07addb5ad78cf0fc11e`
+- Product tree: `8fde8bbf717ddcf62a068ecdbd7a8e4e66b7571b`
+- Issue archive: `patches/ghostty/patches/issue-26071914254256/`
+- Patches: `0001` Browse chrome key allowlist for TermSurf overlays
+- Patch SHA-256:
+  - 0001: `f5f2dd60feca97b992d38e4ea24dc798a713a2a6c3729580aef854df7954e57f`
+- Scope: when browse-forwardable, host-steal only chrome actions
+  (splits/tabs/zoom/new_tab/close_tab/fullscreen/quit); else bulk-forward
+  webview. Zig classify + unit tests; AppKit preflight before forward.
+- Verification: **source + 27-patch series pin** (see
+  `patches/release-manifest.json`); `zig build test -Dtest-filter=…` for
+  browse_chrome units.
+
+## Prior Add-on (Issue 26071913243342)
 
 - Parent product commit: `3328348e9030fad8a234bb76017418005d3bfc23`
   (prior tip on `issue-26071821572313-exp3-divider-matches-bg`)
