@@ -46,7 +46,7 @@ fn submode_color(mode: &EditorMode) -> Color {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 enum Mode {
     Browse,
     Control,
@@ -54,6 +54,18 @@ enum Mode {
     Command,
     Dialog,
     Auth,
+}
+
+/// Initial UI mode at process start (Issue 26071922533901 Exp 1).
+/// Browse = content-first keys to page; reverses Issue 649 Control default
+/// after Ghostty Browse chrome allowlist (ahcalc Exp 7). Esc still → Control.
+fn initial_mode() -> Mode {
+    Mode::Browse
+}
+
+/// Browsing flag sent on SetOverlay / ModeChanged (host browse-forward).
+fn mode_is_browsing(mode: &Mode) -> bool {
+    matches!(mode, Mode::Browse)
 }
 
 #[derive(Clone)]
@@ -1344,7 +1356,7 @@ fn main() -> io::Result<()> {
         .and_then(|p| p.to_str().map(String::from))
         .unwrap_or_else(|| "web".to_string());
 
-    let mut mode = Mode::Control;
+    let mut mode = initial_mode();
     let mut is_dark = true;
     let mut command_error: Option<String> = None; // Command bar error (Issue 26030112000690).
     let mut browser_ready = false;
@@ -1668,7 +1680,7 @@ fn main() -> io::Result<()> {
                         viewport_rect.height,
                         inspected_tab_id,
                         &profile,
-                        mode == Mode::Browse,
+                        mode_is_browsing(&mode),
                         &browser,
                     );
                 } else {
@@ -1680,7 +1692,7 @@ fn main() -> io::Result<()> {
                         viewport_rect.height,
                         &url,
                         &profile,
-                        mode == Mode::Browse,
+                        mode_is_browsing(&mode),
                         &browser,
                     );
                 }
@@ -3551,6 +3563,15 @@ mod tests {
         assert!(is_version_arg("--version".to_string()));
         assert!(is_version_arg("-V".to_string()));
         assert!(!is_version_arg("--help".to_string()));
+    }
+
+    /// Issue 26071922533901 Exp 1: shipped startup mode is Browse (not Control).
+    #[test]
+    fn initial_mode_is_browse_and_advertises_browsing() {
+        assert_eq!(initial_mode(), Mode::Browse);
+        assert!(mode_is_browsing(&initial_mode()));
+        assert!(!mode_is_browsing(&Mode::Control));
+        assert!(!mode_is_browsing(&Mode::Edit));
     }
 
     #[test]
