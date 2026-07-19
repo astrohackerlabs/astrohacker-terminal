@@ -1,6 +1,24 @@
 # Ghostty Patches
 
-## Active Add-on (Issue 26071821572313)
+## Active Add-on (Issue 26071913243342)
+
+- Parent product commit: `3328348e9030fad8a234bb76017418005d3bfc23`
+  (prior tip on `issue-26071821572313-exp3-divider-matches-bg`)
+- Product branch: `issue-26071913243342-exp1-spatial-mru-focus`
+- Product HEAD: `05f6a4d599ea42bf598d031bbeae02b2dc61e7a4`
+- Product tree: `87e2e30995a617b7a28b95ea09f6c278c4f7c418`
+- Issue archive: `patches/ghostty/patches/issue-26071913243342/`
+- Patches: `0001` nearest primary-axis cohort + MRU spatial `goto_split`
+- Patch SHA-256:
+  - 0001: `3b9cadc4bf6fc0f8f5992a78259f0c42149844a0f0d41f0064eeab38ed7dfc95`
+- Scope: spatial left/right/up/down restores last focused leaf in nearest
+  band; previous/next tree-order unchanged; window MRU of surface IDs.
+- Verification: **source + 26-patch series pin** (archive
+  `c1bc34bec200ac65a8199c78fd6e320df642686a473cb3634e1dc7f4f0d89101`);
+  SplitTree unit tests + `scripts/build.sh aht --release` (Zig 0.15.2).
+
+
+## Prior Add-on (Issue 26071821572313)
 
 - Parent product commit: `95b4c3555df1a301a6585200f7c362463acf0b42`
   (prior tip on `issue-26071819414418-exp1-progress-bar-fit`)

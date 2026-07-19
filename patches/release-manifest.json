@@ -6,17 +6,18 @@
       "name": "ghostty",
       "checkout": "forks/ghostty",
       "base": "f3c9a2b7262a989ba7e9408d00471fda8f788d16",
-      "branch": "issue-26071821572313-exp3-divider-matches-bg",
-      "expected_head": "3328348e9030fad8a234bb76017418005d3bfc23",
-      "expected_tree": "463a9ce05d3dd4eed01b20d5ed54aee0076fcd68",
+      "branch": "issue-26071913243342-exp1-spatial-mru-focus",
+      "expected_head": "05f6a4d599ea42bf598d031bbeae02b2dc61e7a4",
+      "expected_tree": "87e2e30995a617b7a28b95ea09f6c278c4f7c418",
       "patch_directories": [
         "patches/ghostty/patches/issue-26071814115751",
         "patches/ghostty/patches/issue-26071818128343",
         "patches/ghostty/patches/issue-26071819414418",
-        "patches/ghostty/patches/issue-26071821572313"
+        "patches/ghostty/patches/issue-26071821572313",
+        "patches/ghostty/patches/issue-26071913243342"
       ],
-      "patch_count": 25,
-      "archive_sha256": "0bbad8d0c6bd578e4feba85b68d6c41337e9ca8f8143680bc32792f04a78e1a9",
+      "patch_count": 26,
+      "archive_sha256": "c1bc34bec200ac65a8199c78fd6e320df642686a473cb3634e1dc7f4f0d89101",
       "allowed_untracked": []
     },
     {

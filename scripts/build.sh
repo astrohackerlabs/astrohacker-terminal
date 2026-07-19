@@ -295,7 +295,7 @@ build_ahterm() {
     ZIG_OPTIMIZE="ReleaseFast"
   fi
 
-  echo "==> Building AHTKit ($ZIG_OPTIMIZE)..."
+  echo "==> Building GhosttyKit / libghostty ($ZIG_OPTIMIZE)..."
   cd "$GHOSTTY_DIR"
   if [ -n "${TERMSURF_VERSION:-}" ]; then
     zig build -Demit-macos-app=false -Doptimize="$ZIG_OPTIMIZE" "-Dversion-string=$TERMSURF_VERSION"
