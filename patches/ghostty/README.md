@@ -1,6 +1,27 @@
 # Ghostty Patches
 
-## Active Add-on (Issue 26072011262273 Exp 3)
+## Active Add-on (Issue 26072011262273 Exp 4)
+
+- Parent product commit: `f58675fa9d88f51c551d157546f080e9379bc09f`
+  (prior tip on `issue-26072011262273-exp3-dock-padding`)
+- Product branch: `issue-26072011262273-exp4-half-dock-padding`
+- Product HEAD: `87ca338679438debc7a0a4c60173a5cd5f897ae5`
+- Product tree: `e4266784dbfce565109999462cf0b38b159aef95`
+- Issue archive: `patches/ghostty/patches/issue-26072011262273/`
+- Patches: `0001`–`0004` as prior; `0005` half dock side pad (scale 0.92)
+- Patch SHA-256:
+  - 0001: `f7ddb0cb0c54abef3388b354a400907a71dfaadc0cf6bcb5fe7a8bc723d2404a`
+  - 0002: `a7e699bc39d9161401c0800d4550ac4d99beb32cc7c0ab045f9e9041d94b91f7`
+  - 0003: `e5b458d52b4dd2b8654c21b9f57fdda1188b0fb224bcdd7c90fdb8a1c6530116`
+  - 0004: `cf0c8de67830e2e76f726733b369f9e88f21402bd6ad6f8146cba0374c453dcc`
+  - 0005: `e26d00f58823b46a9f62b6901362fc7714189e304c1bc94663610ce006aaacc2`
+- Scope: AppIcon ladder from factory dock with `dock_content_scale=0.92`
+  (~82.5% mark width, ~8.75% L/R pad — half Exp 3 final pad).
+- Verification: **source + 32-patch series pin**;
+  `python3 scripts/sync-termsurf-appicon.py --check-only`; Release
+  `scripts/build.sh ahterm --release` (Zig 0.15.2).
+
+## Prior Add-on (Issue 26072011262273 Exp 3)
 
 - Parent product commit: `cf30906f6786eb610290aab75bcc853789d63aa6`
   (prior tip on `issue-26072011262273-exp2-dock-icon`)
@@ -17,7 +38,7 @@
   - 0004: `cf0c8de67830e2e76f726733b369f9e88f21402bd6ad6f8146cba0374c453dcc`
 - Scope: AppIcon ladder from factory dock with `dock_content_scale=0.72`
   (~65% mark width, ~17% L/R pad) after operator rejected 0.89/10% sides.
-  Colors/opaque corners unchanged.
+  Colors/opaque corners unchanged. Exp 3 **Fail** (too much pad on Dock).
 - Verification: **source + 31-patch series pin**;
   `python3 scripts/sync-termsurf-appicon.py --check-only`; Release
   `scripts/build.sh ahterm --release` (Zig 0.15.2).
