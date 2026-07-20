@@ -1,6 +1,24 @@
 # Ghostty Patches
 
-## Active Add-on (Issue 26071914254256 Exp 7)
+## Active Add-on (Issue 26072011262273 Exp 1)
+
+- Parent product commit: `4f000871a51141c37d03f07addb5ad78cf0fc11e`
+  (prior tip on `issue-26071914254256-exp7-browse-chrome-keys`)
+- Product branch: `issue-26072011262273-exp1-rename-relogo`
+- Product HEAD: `ced9b930f6483e0fd9c0f6e2791e3e9b6f8263ae`
+- Product tree: `47da67a08cc68ddfaaee19f4bcd64c3333d3939e`
+- Issue archive: `patches/ghostty/patches/issue-26072011262273/`
+- Patches: `0001` Rename app to Astrohacker TermSurf + TermSurf icon assets
+- Patch SHA-256:
+  - 0001: `f7ddb0cb0c54abef3388b354a400907a71dfaadc0cf6bcb5fe7a8bc723d2404a`
+- Scope: product display/bundle name **Astrohacker TermSurf**; keep
+  `EXECUTABLE_NAME=ahterm`; `+version` identity; TermSurf mark as primary
+  icon (Ghostty.icon / icons ladder); user-facing menus/help strings.
+- Verification: **source + 28-patch series pin** (see
+  `patches/release-manifest.json`); Release `scripts/build.sh ahterm --release`
+  (Zig 0.15.2).
+
+## Prior Add-on (Issue 26071914254256 Exp 7)
 
 - Parent product commit: `05f6a4d599ea42bf598d031bbeae02b2dc61e7a4`
   (prior tip on `issue-26071913243342-exp1-spatial-mru-focus`)

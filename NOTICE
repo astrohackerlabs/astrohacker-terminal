@@ -1,4 +1,4 @@
-Astrohacker Terminal
+Astrohacker TermSurf
 Copyright (c) 2026 Astrohacker Inc.
 
 This product includes software developed by third parties. Their original
@@ -11,7 +11,7 @@ Package legal layout (Homebrew / release tarball):
   NOTICE
   TRADEMARKS.md
   legal/third_party/...
-  Astrohacker Terminal.app/Contents/Resources/legal/  (authoritative installed)
+  Astrohacker TermSurf.app/Contents/Resources/legal/  (authoritative installed)
 
 <!-- legal-manifest
 # kind|id|section|license
@@ -242,7 +242,7 @@ https://github.com/ghostty-org/website
 The Terminal API (VT) reference pages under website/src/content/docs/vt/ are
 adapted from Ghostty's VT documentation, and website/src/components/VTSequence.astro
 is a port of Ghostty's VTSequence component. Product-specific prose and links
-have been adapted for Astrohacker Terminal; the underlying sequence documentation
+have been adapted for Astrohacker TermSurf; the underlying sequence documentation
 originates with the Ghostty project.
 
 MIT License

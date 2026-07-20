@@ -8,8 +8,8 @@ Full environment variable taxonomy: [`docs/environment.md`](./environment.md).
 
 Astrohacker ships to macOS through the `astrohackerlabs/astrohacker` Homebrew
 tap. There is **one desktop download**: the cask `astrohacker`. It installs
-Astrohacker Terminal, Shell, Web, and related helpers as one Astrohacker
-bundle. The app lands in **`/Applications/Astrohacker Terminal.app`**.
+Astrohacker TermSurf, Shell, Web, and related helpers as one Astrohacker
+bundle. The app lands in **`/Applications/Astrohacker TermSurf.app`**.
 
 ## Public command surface
 
@@ -37,7 +37,7 @@ ah-ladybirdd
 
 | Command | Role |
 | --- | --- |
-| `ahterm` | Astrohacker Terminal (app executable + PATH launcher) |
+| `ahterm` | Astrohacker TermSurf (app executable + PATH launcher) |
 | `ahsh` | Astrohacker Shell |
 | `ahweb` | Open URLs / browser panes in Terminal |
 | `ahcalc` | Scientific calculator TermSurf app (full-pane web UI) |
@@ -97,10 +97,10 @@ require `sudo` (helpers are Homebrew `artifact`s).
 
 ## Installed layout
 
-- `Astrohacker Terminal.app` → `/Applications/Astrohacker Terminal.app`
+- `Astrohacker TermSurf.app` → `/Applications/Astrohacker TermSurf.app`
   (executable `Contents/MacOS/ahterm`)
 - **Legal (authoritative for installed users):**
-  `/Applications/Astrohacker Terminal.app/Contents/Resources/legal/`
+  `/Applications/Astrohacker TermSurf.app/Contents/Resources/legal/`
   (`LICENSE`, `NOTICE`, `TRADEMARKS.md`, `third_party/...`)
 - PATH: `ahterm`, `ahweb`, `ahsh`, `ahcalc`, engine helpers
 - Chromium / WebKit / Ladybird trees →
@@ -116,7 +116,7 @@ Asset name: `astrohacker-<version>-aarch64-apple-darwin.tar.gz`
 
 Top-level contents:
 
-- `Astrohacker Terminal.app/` (with `Contents/MacOS/ahterm` and
+- `Astrohacker TermSurf.app/` (with `Contents/MacOS/ahterm` and
   `Contents/Resources/legal/`)
 - `LICENSE`, `NOTICE`, `TRADEMARKS.md` (tarball root mirror of product legal)
 - `legal/third_party/` (Chromium credits/LICENSE, Ladybird LICENSE + vcpkg
@@ -380,7 +380,7 @@ ASTROHACKER_TERMINAL_SMOKE_VERSION=<version> \
 
 ## Installed smoke expectations
 
-After install, from inside Astrohacker Terminal:
+After install, from inside Astrohacker TermSurf:
 
 - `ahweb --browser chromium https://example.com`
 - `ahweb --browser webkit https://example.com`

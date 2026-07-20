@@ -217,9 +217,9 @@ where
             }
             "--help" | "-h" => {
                 print!(
-                    "Astrohacker Chromium Engine — Chromium support helper for Astrohacker Terminal\n\n\
+                    "Astrohacker Chromium Engine — Chromium support helper for Astrohacker TermSurf\n\n\
 Usage: ah-chromiumd [OPTIONS]\n\n\
-Options:\n      --ipc-socket=<PATH>       Connect to an Astrohacker Terminal IPC socket\n      --listen-socket=<PATH>    Listen for browser IPC clients\n      --user-data-dir=<PATH>    Browser profile data directory\n      --browser-name=<NAME>     Browser identity to register\n      --incognito               Use an incognito browser context\n      --termsurf-warmup         Warm runtime dependencies and exit\n  -h, --help                    Print help\n      --version                 Print version\n"
+Options:\n      --ipc-socket=<PATH>       Connect to an Astrohacker TermSurf IPC socket\n      --listen-socket=<PATH>    Listen for browser IPC clients\n      --user-data-dir=<PATH>    Browser profile data directory\n      --browser-name=<NAME>     Browser identity to register\n      --incognito               Use an incognito browser context\n      --termsurf-warmup         Warm runtime dependencies and exit\n  -h, --help                    Print help\n      --version                 Print version\n"
                 );
                 return true;
             }

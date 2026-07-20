@@ -316,10 +316,10 @@ build_ahterm() {
     ./build.nu --configuration "$CONFIGURATION" --action build
   fi
   if $RELEASE; then
-    codesign --force --deep --sign - "build/$CONFIGURATION/Astrohacker Terminal.app"
+    codesign --force --deep --sign - "build/$CONFIGURATION/Astrohacker TermSurf.app"
   fi
-  echo "  ahterm: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app"
-  echo "  ahterm executable: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app/Contents/MacOS/ahterm"
+  echo "  ahterm: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker TermSurf.app"
+  echo "  ahterm executable: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker TermSurf.app/Contents/MacOS/ahterm"
 }
 
 build_ahcalc() {
