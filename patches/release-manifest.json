@@ -6,9 +6,9 @@
       "name": "ghostty",
       "checkout": "forks/ghostty",
       "base": "f3c9a2b7262a989ba7e9408d00471fda8f788d16",
-      "branch": "issue-26072011262273-exp1-rename-relogo",
-      "expected_head": "ced9b930f6483e0fd9c0f6e2791e3e9b6f8263ae",
-      "expected_tree": "47da67a08cc68ddfaaee19f4bcd64c3333d3939e",
+      "branch": "issue-26072011262273-exp3-dock-padding",
+      "expected_head": "f58675fa9d88f51c551d157546f080e9379bc09f",
+      "expected_tree": "04ceeda3187022099526a074b77a53ea25d87c4c",
       "patch_directories": [
         "patches/ghostty/patches/issue-26071814115751",
         "patches/ghostty/patches/issue-26071818128343",
@@ -18,8 +18,8 @@
         "patches/ghostty/patches/issue-26071914254256",
         "patches/ghostty/patches/issue-26072011262273"
       ],
-      "patch_count": 28,
-      "archive_sha256": "7324f37a203bf70a3d99c211889aa068a3d648c018491d000d4a6d93d3c541a3",
+      "patch_count": 31,
+      "archive_sha256": "64b3915cdd85da960658b4c161029966799d68ee5eed0b91d1443c9514719ace",
       "allowed_untracked": []
     },
     {

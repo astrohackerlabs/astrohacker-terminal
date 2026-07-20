@@ -1,6 +1,48 @@
 # Ghostty Patches
 
-## Active Add-on (Issue 26072011262273 Exp 1)
+## Active Add-on (Issue 26072011262273 Exp 3)
+
+- Parent product commit: `cf30906f6786eb610290aab75bcc853789d63aa6`
+  (prior tip on `issue-26072011262273-exp2-dock-icon`)
+- Product branch: `issue-26072011262273-exp3-dock-padding`
+- Product HEAD: `f58675fa9d88f51c551d157546f080e9379bc09f`
+- Product tree: `04ceeda3187022099526a074b77a53ea25d87c4c`
+- Issue archive: `patches/ghostty/patches/issue-26072011262273/`
+- Patches: `0001` Rename + TermSurf icon; `0002` Opaque factory dock AppIcon;
+  `0003` dock padding ~10% sides (scale 0.89); `0004` stronger pad scale 0.72
+- Patch SHA-256:
+  - 0001: `f7ddb0cb0c54abef3388b354a400907a71dfaadc0cf6bcb5fe7a8bc723d2404a`
+  - 0002: `a7e699bc39d9161401c0800d4550ac4d99beb32cc7c0ab045f9e9041d94b91f7`
+  - 0003: `e5b458d52b4dd2b8654c21b9f57fdda1188b0fb224bcdd7c90fdb8a1c6530116`
+  - 0004: `cf0c8de67830e2e76f726733b369f9e88f21402bd6ad6f8146cba0374c453dcc`
+- Scope: AppIcon ladder from factory dock with `dock_content_scale=0.72`
+  (~65% mark width, ~17% L/R pad) after operator rejected 0.89/10% sides.
+  Colors/opaque corners unchanged.
+- Verification: **source + 31-patch series pin**;
+  `python3 scripts/sync-termsurf-appicon.py --check-only`; Release
+  `scripts/build.sh ahterm --release` (Zig 0.15.2).
+
+## Prior Add-on (Issue 26072011262273 Exp 2)
+
+- Parent product commit: `ced9b930f6483e0fd9c0f6e2791e3e9b6f8263ae`
+  (prior tip on `issue-26072011262273-exp1-rename-relogo`)
+- Product branch: `issue-26072011262273-exp2-dock-icon`
+- Product HEAD: `cf30906f6786eb610290aab75bcc853789d63aa6`
+- Product tree: `9b9764f8fd9cf0541d9c1ae72932c0f570b0dc35`
+- Issue archive: `patches/ghostty/patches/issue-26072011262273/`
+- Patches: `0001` Rename app to Astrohacker TermSurf + TermSurf icon assets;
+  `0002` Opaque factory dock TermSurf AppIcon ladder
+- Patch SHA-256:
+  - 0001: `f7ddb0cb0c54abef3388b354a400907a71dfaadc0cf6bcb5fe7a8bc723d2404a`
+  - 0002: `a7e699bc39d9161401c0800d4550ac4d99beb32cc7c0ab045f9e9041d94b91f7`
+- Scope: regenerate `TermSurf.appiconset` + `AppIconImage` from brand factory
+  dock master (cyan `#1BFEFF` on opaque navy `#07203A`); corners α=255.
+  Dock authority remains `ASSETCATALOG_COMPILER_APPICON_NAME = TermSurf`.
+- Verification: **source + 29-patch series pin** (see
+  `patches/release-manifest.json`); `python3 scripts/sync-termsurf-appicon.py
+  --check-only`; Release `scripts/build.sh ahterm --release` (Zig 0.15.2).
+
+## Prior Add-on (Issue 26072011262273 Exp 1)
 
 - Parent product commit: `4f000871a51141c37d03f07addb5ad78cf0fc11e`
   (prior tip on `issue-26071914254256-exp7-browse-chrome-keys`)
