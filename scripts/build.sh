@@ -21,7 +21,7 @@ COMPONENT=""
 
 usage() {
   echo "Usage: $0 <component> [--release] [--clean] [--open]"
-  echo "Components: ahterm, ahsh, ahweb, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
+  echo "Components: ahterm, ahsh, ahweb, ahcalc, chromium-fork, ah-chromiumd, webkit-fork, webkit-lib, ah-webkitd, ladybird-lib, ah-ladybirdd, all"
   echo "Aliases: aht→ahterm, webtui→ahweb, chromium→ah-chromiumd, webkit→ah-webkitd, ladybird→ah-ladybirdd"
 }
 
@@ -322,10 +322,45 @@ build_ahterm() {
   echo "  ahterm executable: $GHOSTTY_DIR/macos/build/$CONFIGURATION/Astrohacker Terminal.app/Contents/MacOS/ahterm"
 }
 
+build_ahcalc() {
+  local AHCALC_DIR="$REPO_DIR/bun/ahcalc"
+  if [ ! -d "$AHCALC_DIR" ]; then
+    echo "Error: ahcalc package missing: $AHCALC_DIR" >&2
+    exit 1
+  fi
+  if ! command -v bun >/dev/null 2>&1; then
+    echo "Error: bun is required to build ahcalc (not found on PATH)" >&2
+    exit 1
+  fi
+  if $CLEAN; then
+    echo "==> Cleaning ahcalc dist..."
+    rm -rf "$AHCALC_DIR/dist"
+  fi
+  # Prefer ASTROHACKER_VERSION (release); fall back to TERMSURF_VERSION if set.
+  if [ -z "${ASTROHACKER_VERSION:-}" ] && [ -n "${TERMSURF_VERSION:-}" ]; then
+    export ASTROHACKER_VERSION="$TERMSURF_VERSION"
+  fi
+  if $RELEASE; then
+    echo "==> Building ahcalc (release${ASTROHACKER_VERSION:+, version $ASTROHACKER_VERSION})..."
+  else
+    echo "==> Building ahcalc (debug${ASTROHACKER_VERSION:+, version $ASTROHACKER_VERSION})..."
+  fi
+  (
+    cd "$AHCALC_DIR"
+    # Ensure package deps when node_modules missing (scoped, not monorepo-wide).
+    if [ ! -d "$AHCALC_DIR/node_modules" ] && [ ! -d "$REPO_DIR/node_modules" ]; then
+      bun install
+    fi
+    bun run build:ahcalc
+  )
+  echo "  ahcalc: $AHCALC_DIR/dist/ahcalc"
+}
+
 case "$COMPONENT" in
   chromium-fork) build_chromium_fork ;;
   ahweb|webtui) build_ahweb ;;
   ahsh)       build_ahsh ;;
+  ahcalc)     build_ahcalc ;;
   ah-chromiumd|chromium)   build_chromiumd ;;
   webkit-fork) build_webkit_fork ;;
   webkit-lib) build_webkit_lib ;;
@@ -337,6 +372,7 @@ case "$COMPONENT" in
     build_chromium_fork
     build_ahweb
     build_ahsh
+    build_ahcalc
     build_chromiumd
     build_webkit_fork
     build_webkitd

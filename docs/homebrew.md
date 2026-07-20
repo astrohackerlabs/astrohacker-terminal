@@ -19,6 +19,7 @@ Released PATH names (machine-readable for gates):
 ahterm
 ahweb
 ahsh
+ahcalc
 ah-chromiumd
 ah-webkitd
 ah-ladybirdd
@@ -28,6 +29,7 @@ Released payload roots (machine-readable for legal/notice gates; top-level
 paths in the release tarball besides bare CLI binaries):
 
 <!-- released-payload-roots -->
+ahcalc
 ah-chromiumd
 ah-webkitd
 ah-ladybirdd
@@ -38,6 +40,7 @@ ah-ladybirdd
 | `ahterm` | Astrohacker Terminal (app executable + PATH launcher) |
 | `ahsh` | Astrohacker Shell |
 | `ahweb` | Open URLs / browser panes in Terminal |
+| `ahcalc` | Scientific calculator TermSurf app (full-pane web UI) |
 
 Reserved (not shipping until the product ships): `ahwallet`.
 
@@ -99,9 +102,12 @@ require `sudo` (helpers are Homebrew `artifact`s).
 - **Legal (authoritative for installed users):**
   `/Applications/Astrohacker Terminal.app/Contents/Resources/legal/`
   (`LICENSE`, `NOTICE`, `TRADEMARKS.md`, `third_party/...`)
-- PATH: `ahterm`, `ahweb`, `ahsh`, engine helpers
+- PATH: `ahterm`, `ahweb`, `ahsh`, `ahcalc`, engine helpers
 - Chromium / WebKit / Ladybird trees →
   `/opt/homebrew/opt/astrohacker-terminal-ah-{chromiumd,webkitd,ladybirdd}/`
+- ahcalc package payload →
+  `/opt/homebrew/opt/astrohacker-terminal-ahcalc/` (when installed as artifact)
+  or under Caskroom stage `ahcalc/` (binary links `ahcalc/dist/ahcalc`)
 
 
 ## Release tarball contract
@@ -116,6 +122,7 @@ Top-level contents:
 - `legal/third_party/` (Chromium credits/LICENSE, Ladybird LICENSE + vcpkg
   copyrights, Nushell/Reedline LICENSE copies)
 - `ahweb`, `ahsh`
+- `ahcalc/` (payload: `dist/ahcalc`, `dist/browser/`, `public/`)
 - `ah-chromiumd/`, `ah-webkitd/`, `ah-ladybirdd/`
 
 Gate before publish: `scripts/check-release-legal-notices.sh` (NOTICE
@@ -277,8 +284,9 @@ normal operator interface.
 
    - First-party product crate package versions under the monorepo root  track the
      Homebrew release version. The canonical command rewrites and commits those
-     manifests before building so `CARGO_PKG_VERSION` matches the cask. Do not
-     leave those crates stuck at a placeholder such as `0.1.0` across releases.
+     manifests before building so `CARGO_PKG_VERSION` matches the cask. It also
+     rewrites `bun/ahcalc/package.json` `"version"` to the same X.Y.Z. Do not
+     leave those packages stuck at a placeholder such as `0.1.0` across releases.
      Do not rewrite package versions under `forks/`.
    - `TERMSURF_VERSION=<version>` is the `ahterm` app/helper version input.
      `ahterm` is the only shipped wrapper that uses the terminal helper/action
@@ -293,6 +301,7 @@ normal operator interface.
      | --- | --- |
      | `ahweb --version` | `Astrohacker Web <version>` |
      | `ahsh --version` | `Astrohacker Shell <version>` |
+     | `ahcalc --version` | `Astrohacker Calc <version>` |
      | `ah-chromiumd --version` | `Astrohacker Chromium Engine <version>` |
      | `ah-webkitd --version` | `Astrohacker WebKit Engine <version>` |
      | `ah-ladybirdd --version` | `Astrohacker Ladybird Engine <version>` |

@@ -18,9 +18,11 @@ Package legal layout (Homebrew / release tarball):
 wrapper|ahterm|ghostty|MIT
 wrapper|ahweb|first-party|MIT
 wrapper|ahsh|nushell-reedline|MIT
+wrapper|ahcalc|first-party|MIT
 wrapper|ah-chromiumd|chromium|BSD-3-Clause
 wrapper|ah-webkitd|webkit|FOUNDER-ASSUMPTION
 wrapper|ah-ladybirdd|ladybird|BSD-2-Clause
+payload|ahcalc|first-party|MIT
 payload|ah-chromiumd|chromium|BSD-3-Clause
 payload|ah-webkitd|webkit|FOUNDER-ASSUMPTION
 payload|ah-ladybirdd|ladybird|BSD-2-Clause
@@ -37,6 +39,16 @@ pointer|third_party/reedline/LICENSE
 
 Astrohacker-owned product code for ahweb is licensed
 under the MIT License in LICENSE (Copyright (c) 2026 Astrohacker Inc.).
+
+================================================================================
+## first-party — ahcalc
+
+Astrohacker-owned product code for ahcalc (scientific calculator TermSurf app,
+including the compiled product binary and package static assets) is licensed
+under the MIT License in LICENSE (Copyright (c) 2026 Astrohacker Inc.). The
+distributed binary is produced with the Bun toolchain and embeds third-party
+runtime components under their respective licenses as used by Bun/Remix at
+build time; Astrohacker first-party source remains MIT as above.
 
 ================================================================================
 ## ghostty — ahterm
